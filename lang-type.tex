@@ -1,0 +1,151 @@
+\section{Type System}
+
+Types live in \emph{universes}. Initially there are the three universes
+\code{Proposition}, \code{Any} and \code{Box} ($\Prop$, $\Any$ and $\Box$ in
+mathematical formulas).
+
+Universes are called \emph{sorts} as well.
+
+A new type definition has to indicate in which universe the type lives. The
+default universe is $\Any$.
+
+\begin{alba}
+  class List(A) create [] (^)(A,List(A))
+
+  -- is equivalent to
+  class List(A:Any): Any create ...
+
+  -- i.e. the identifier 'List' has the type (or better kind)
+  Any -> Any
+\end{alba}
+
+A proposition has be be defined explicitly to live in the universe $\Prop$.
+%
+\begin{alba}
+  class (<=): Natural -> Natural -> Proposition create
+    zero (a:Natural: 0 <= a
+    next (a,b:Natural): a <= b => a.succ <= b.succ
+
+  -- (and): Proposition -> Proposition -> Proposition
+  class (and) (a,b:Proposition): Proposition create
+    conj: a => b => a and b
+\end{alba}
+
+Universes are ordered. The order has to be wellfounded. The top element is
+$\Box$. This is the biggest universe. Initially only $\Prop < \Any < \Box$ is
+valid.
+
+New universes are introduced by defining abstract classes.
+\begin{alba}
+  abstract class Partial_order
+    section (PO:Partial_order)
+      (<=) (a,b:PO): Proposition
+      reflexive: all(a:PO)
+        a <= a
+      antisymmetric: all(a,b:PO)
+        a <= b  and  b <= a
+        =>  a = b
+      transitive: all(a,b,c:PO)
+        a <= b and b <= c
+        => a <= c
+\end{alba}
+%
+By default for all new abstract classes $A$ the relation $A < \Any$ is
+valid.
+
+Since the class \code{Natural} has a relation \code{<=} which is reflexive,
+antisymmetric and transitive, we can state that \code{Natural} lives not only
+in the biggest universe \code{Any} but also in the more restricted universe
+\code{Partial\_order}. This is indicated by the declaration of an
+inheritance relation
+%
+\begin{alba}
+  class Natural inherit Partial_order
+\end{alba}
+
+Next we define a decidable partial order
+%
+\begin{alba}
+  abstract class Decidable_partial_order: Any
+    section (DPO: Decidable_partial_order)
+      (<=) (a,b:DPO): Proposition
+      (<=) (a,b:DPO): Decision (a <= b)
+
+      reflexive: all(a:PO)
+        a <= a
+      ...
+\end{alba}
+%
+Initially the universe of a decidable partial order is minimal and is a
+subuniverse of $\Any$. But it is evident that the decidable partial order is a
+subuniverse of a partial order and we can state this fact by
+%
+\begin{alba}
+  abstract class Decidable_partial_order inherit Partial_order
+\end{alba}
+
+
+
+\begin{alba}
+  abstract class
+    Functor: Any -> Any
+  section (A, B: Any, F: Functor)
+    map: (A->B) -> F(A) -> F(B)
+    -- with operator []
+    []:  (A->B) -> F(A) -> F(B)
+\end{alba}
+
+
+\begin{alba}
+  abstract class Monad: Any -> Any
+    section (A, B: Any, M:Monad)
+      return: A -> M(A)
+      (>>=): M(A) -> (A -> M(B)) -> M(B)
+
+      [] (f:A->B, m:M(A)): M(B) :=
+        m >>= (a) := return @ f(a)
+
+      <*> (mf:M(A->B), m:M(A)): M(B) :=
+        mf >>= (f) := f[m]
+
+      -- in do notation
+      [] (f:A->B, m:M(A)): M(B) :=
+        do
+          a := m
+          return @ f(a)
+
+      <*> (mf:M(A->B), m:M(A)): M(B) :=
+        do
+          f := mf
+          f[m]
+\end{alba}
+
+
+\subsection{Experimental: Alba Type System in Alba}
+
+\begin{alba}
+  mutual
+    class Object create
+      var(Variable)
+      app(Object,Object)
+      app(Object,Type)
+      lam(Variable,Type,Object)
+      lam(Variable,Kind,Object)
+    class Type create
+      var(Natural)
+      app(Type,Type)
+      app(Type,Object)
+      lam(Variable,Type,Type)
+      lam(Variable,Kind,Type)
+      pi(Variable,Type,Type)
+      pi(Variable,Kind,Type)
+    class Kine create
+      sort(Sort)
+      pi(Variable,Kind,Kind)
+      pi(Variable,Type,Kind)
+\end{alba}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

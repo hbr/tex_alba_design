@@ -1,0 +1,163 @@
+\chapter{Github}
+
+
+
+
+
+\section{Get Files}
+
+Raw files can be downloaded from the content delivery network \emph{jsdelivr}.
+\begin{verbatim}
+    https://cdn.jsdelivr.net/gh/user/repo@version/filepath
+\end{verbatim}
+The version is optional. It can be a tag, a branch or a sha1.
+
+Directly from github
+\begin{verbatim}
+    https://raw.githubusercontent.com/user/repo@version/filepath
+\end{verbatim}
+
+
+
+
+
+
+\section{Github API}
+
+All API access is over https, and accessed from {\tt
+  https://api.github.com}. All data is send and received as json.
+
+\subsection{User Authentification}
+
+In order to authenticate a user we invoke the command
+{\small
+\begin{verbatim}
+    curl -u "username:pwd" https://api.github.com
+\end{verbatim}%
+}%
+then the api responds either with
+{\small
+\begin{verbatim}
+    {
+      "message": "Bad credentials",
+      "documentation_url": "https://developer.github.com/v3"
+    }
+\end{verbatim}
+}
+or a json with some information.
+
+Request information about a repo and the tags of a repo
+{\small
+\begin{verbatim}
+    curl -u "user:pwd" https://api.github.com/repos/user/repo
+    curl -u "user:pwd" https://api.github.com/repos/user/repo/tags
+\end{verbatim}
+}
+
+If a user wants to publish an Alba library we check the tags of the repo and
+verify that the version is tagged in github. As a side effect we verify that
+the user is really the owner of the repo.
+
+
+Problem: During the execution of the curl command the password is visible via
+{\tt ps -aef|grep curl}. The password might appear in the command history.
+
+
+
+\section{Travis-ci}
+
+Interesting travis environment variables:
+\begin{description}
+
+\item[TRAVIS\_COMMIT] The commit that the current build is testing.
+
+\item[TRAVIS\_COMMIT\_RANGE] The range of commits that were included in the push
+  or pull request. (Note that this is empty for builds triggered by the
+  initial commit of a new branch.)
+  
+\item[TRAVIS\_OS\_NAME] On multi-OS builds, this value indicates the platform
+  the job is running on. Values are currently linux, osx and windows (beta),
+  to be extended in the future.
+
+\item[TRAVIS\_REPO\_SLUG] The slug (in form: owner-name/repo-name) of the
+  repository currently being built.
+
+
+\item[TRAVIS\_PULL\_REQUEST\_SLUG] If the current job is a pull request, the slug
+  (in the form owner-name/repo-name) of the repository from which the PR
+  originated.
+
+\end{description}
+%
+In order to check which files have been modified by a pull request we can
+issue
+{\small
+\begin{verbatim}
+   git diff --name-only $TRAVIS_COMMIT_RANGE
+\end{verbatim}
+}
+
+We can use this to check that a pull request on the registry modifies only the
+file \code{packages/user/repo/releases}.
+
+
+
+\section{Automerge}
+
+There is a tool called \code{mergify}. It is a github application which needs
+to be activated on a github repository which receives the pull requests and
+wants to merge the pullrequests automatically after some tests have been
+passed.
+
+The mergify service is free for open source projects. The application can be
+installed either on all repos of a user or on selected repos of a
+user. Question: What about organization users?
+
+
+The configuration file is called \code{.mergify.yml}. It contains conditions
+which must be satisfied to trigger a merge.
+
+{\small
+\begin{verbatim}
+    pull_request_rules:
+      - name: automatic merge on CI success and review
+        conditions:
+          - status-success=continuous-integration/travis-ci/pr
+          - "#approved-reviews-by>=2"
+        actions:
+          merge:
+            method: merge
+\end{verbatim}
+}
+
+Note: A travis script can call git commands!
+
+
+\section{Github Pages}
+
+Content must be in the master branch, either rooted in the toplevel directory
+or in the directory \code{docs} or in the gh-pages branch. The browser finds
+the content at \code{user.github.io/repo}.
+
+For user or organization sites the content is in the repo
+\code{user.github.io}. The repo must be a repo of the user or the
+organisation. Content must start at the root of the repo.
+
+
+\paragraph{Automatic Deploy}
+There is a basic script on
+\url{https://github.com/domenic/zones/blob/master/deploy.sh} and a gist
+\url{https://gist.github.com/domenic/ec8b0fc8ab45f39403dd}
+
+
+Travis-ci has an own instruction on how to deploy to gh-pages at
+\url{https://docs.travis-ci.com/user/deployment/pages/}.
+
+On order to keep the source code branches and the gh-pages in the same repo, a
+trick is required see
+\url{http://onthecode.com/post/2015/06/14/master-and-gh-pages-branches-on-github.html}.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

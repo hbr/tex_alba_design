@@ -1,0 +1,190 @@
+\chapter{Web Applications}
+\label{chapter:web}
+
+
+
+\section{Events}
+
+Then an event occurs javascript sends to all listeners of the event an event
+object.
+
+Solution in Elm:
+
+The elm compiler converts the event object into a json string value
+(\code{JSON.stringify(obj)}) and each handler has a decoder to decode the json
+string into an elm message.
+
+Disadvantage: In many cases the decoder ignores the json string and just
+produces an elm message.
+
+\section{Dom - Document Object Model}
+\label{sec:dom}
+
+
+\subsection{The Dom Tree}
+
+The dom is a tree.
+\begin{description}
+\item[Text] The leave of the tree are text nodes.
+  
+\item[Node] The inner nodes have
+
+  \begin{description}
+  \item[Tag] Paragraph, body, div, span, ...
+  \item[Attributes] A list of attributes.
+  \item[Children] A list of children nodes.
+  \end{description}
+  
+\end{description}
+
+Node navigation properties (i.e accessed by \code{nd.prop}).
+\begin{itemize}
+\item 
+  parentNode
+\item 
+  childNodes[nodenumber]
+\item 
+  firstChild
+\item 
+  lastChild
+\item 
+  nextSibling
+\item 
+  previousSibling
+\end{itemize}
+
+\begin{js}
+  // child nodes
+  var nodeList = elementNodeReference.childNodes;
+
+  // a node list has a length property and element can be accessed by
+  // list[i].
+\end{js}
+
+A common error in DOM processing is to expect an element node to contain text.
+
+\begin{js}
+  // append a child
+  var para = document.createElement("p");
+  var node = document.createTextNode("This is a new paragraph.");
+  para.appendChild(node);
+
+  // remove a child node
+  var parent = document.getElementById("div1");
+  var child = document.getElementById("p1");
+  parent.removeChild(child);
+
+  // replace a child node
+  var parent = document.getElementById("div1");
+  var child = document.getElementById("p1");
+  parent.replaceChild(para, child);
+\end{js}
+
+\subsection{Attributes}
+
+
+\begin{js}
+  // set an attribute
+  element.setAttribute(attribute, value)
+\end{js}
+
+A dom node can have a list of attributes. E.g. \code{class} or \code{style}.
+
+An attribute is a property (set in js by \code{n.className = 'greeting'}) with
+a value (in this case a string).
+
+The \code{style} is a property whose value is an object
+(\code{n.style.property = 'red'}).
+
+
+
+\subsection{Events}
+
+The event handlers of an attribute are properties like \code{onclick},
+\code{onmousover}, etc. Their values are the handlers which are javascript
+functions \code{(event) => {...}}. The event \code{onerror} needs a handler
+like \code{(event,source,lineno,colno,error) => {...}}. 
+
+
+When the event handler is invoked, the this keyword inside the handler is set
+to the DOM element on which the handler is registered. For more details see
+the this keyword documentation.
+
+When a function is used as an event handler, its this is set to the element
+the event fired from (some browsers do not follow this convention for
+listeners added dynamically with methods other than addEventListener()).
+
+\begin{js}
+  n.addEventListener(event, function, useCapture)
+  n.removeEventListener(event, function, useCapture)
+  // optional useCapture:
+  //    true - Removes the event handler from the capturing phase
+  //    false- Default. Removes the event handler from the bubbling phase
+
+  // e.g.
+  n.addEventListener('click',handler);
+\end{js}
+
+
+\begin{verbatim}
+        Capture     Bubble
+           v          ^
+    +------v----------^------+
+    |      v   Body   ^      |
+    | +----v----------^----+ |
+    | |    v    Div   ^    | |
+    | | +--v----------^--+ | |
+    | | |     Button     | | |
+    | | +----------------+ | |
+    | +--------------------+ |
+    +------------------------+
+\end{verbatim}
+
+Today browser use both methods, but bubble is the default.
+
+When using on you can customize the event behavior a bit. There are two ways
+to do this:
+
+\code{ev.stopPropagation} means the event stops traveling through the DOM. So
+if propagation of a click is stopped, it will not trigger any other event
+listeners.
+
+\code{ev.preventDefault} means any built-in browser behavior related to the
+event is prevented. This can be handy with key presses or touch gestures.
+
+
+
+\subsection{Repaints and Reflows}
+
+A repaint is triggered when only visibility like background color etc. changes
+but the layout is unchanged.
+
+A reflow is needed when the layout might have changed. Adding, removing or
+replacing dom nodes trigger a reflow. Reflow is costlier than repaint.
+
+Use \code{createDocumentFragment} to assemble a new dom subtree and then add
+the fragment causing only one reflow.
+
+
+A common use for DocumentFragment is to create one, assemble a DOM subtree
+within it, then append or insert the fragment into the DOM using Node
+interface methods such as appendChild() or insertBefore(). Doing this moves
+the fragment's nodes into the DOM, leaving behind an empty
+DocumentFragment. Because all of the nodes are inserted into the document at
+once, only one reflow and render is triggered instead of potentially one for
+each node inserted if they were inserted separately.
+
+
+\subsection{Event Delegation}
+
+All events bubble by default and they have a property named \code{target}
+which is the innermost node where the event occurred.
+
+We can use e.g. the class \code{id} of the node to dispatch to the correct
+event handler.
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

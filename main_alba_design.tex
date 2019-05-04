@@ -1,0 +1,53 @@
+\documentclass[12pt]{report}
+\usepackage{amsmath,amsthm,amssymb,xcolor,graphicx,tikz,listings}
+\usepackage[pdftex]{hyperref}
+\usetikzlibrary{positioning}
+
+
+
+
+
+\begin{document}
+
+\title{Overall Design of the Albatross Compiler}
+\author{Helmut Brandl \\ \scriptsize (firstname dot lastname at gmx dot net)}
+\date{}
+
+\maketitle
+
+%\abstract{ }
+
+
+\tableofcontents
+
+
+
+
+
+\input{tex_macros}
+
+\include{basics}
+
+\include{lang}
+
+\include{web}
+
+\include{io}
+
+\include{github}
+
+\include{ocaml}
+
+\include{js}
+
+\include{parsing}
+
+\appendix
+\chapter{Dummy Appendix}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

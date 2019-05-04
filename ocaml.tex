@@ -1,0 +1,86 @@
+\chapter{Ocaml}
+
+
+\section{Some Constructs}
+
+\begin{ocaml}
+  (* the 2 declarations are equivalent *)
+  apply (f:'a -> 'b) (a:'a): 'b =
+    f a
+
+  apply (type a) (type b) (f:a -> b) (a:a): b =
+    f a
+\end{ocaml}
+
+
+\section{Trampolines}
+
+\begin{ocaml}
+  (* implement trampolining *)
+  type 'a bounce = Done of 'a | Call of (unit -> 'a bounce)
+
+  let rec trampoline = function  (* tail recursive function *)
+    | Call thunk -> trampoline (thunk())
+    | Done x     -> x
+
+  (* define some functions which use them *)
+  let rec
+    even n = if n = 0 then (Done true) else (Call (fun () -> odd (n-1)))
+  and
+    odd n = if n = 0 then (Done false) else (Call (fun () -> even (n-1)))
+
+  (* test them out *)
+  let _ =
+    assert (trampoline (even 0) = true );
+    assert (trampoline (even 1) = false);
+    assert (trampoline (even 2) = true );
+    assert (trampoline (even 3) = false);
+
+    assert (trampoline (odd 0) = false);
+    assert (trampoline (odd 1) = true);
+    assert (trampoline (odd 2) = false);
+    assert (trampoline (odd 3) = true);
+\end{ocaml}
+
+
+
+\section{First Class Modules}
+
+
+\begin{ocaml}
+  let string_module: (module ANY) = (module String)
+
+  let dummy (i:(module ANY)): unit =
+    let module M = (val i) in
+    let open M in
+    ()
+
+  let dummy2 (module M:ANY): unit =
+    let open M in
+    ()
+
+  let _ = dummy string_module
+\end{ocaml}
+
+
+\begin{ocaml}
+  module type IMOD =
+    sig
+      val value: int
+    end
+
+  let set_imod (v:int): (module IMOD) =
+    let module I =
+      struct
+        let value: int = v
+      end in
+    (module I)
+
+  let get_imod (module I:IMOD): int =
+    I.value
+\end{ocaml}
+
+%%%Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

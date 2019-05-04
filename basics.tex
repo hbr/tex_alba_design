@@ -1,0 +1,557 @@
+\chapter{Basics}
+
+
+\section{Terminology}
+
+\begin{description}
+\item[Module] A module is the smallest compilation unit. It consists of an
+  implementation file \code{<module-name>.al} and an interface file
+  \code{<module-name>.ali}. The module name must be a valid lower case Alba
+  identifier (i.e. no hyphens etc.).
+
+\item[Package] A package is a collection of modules. It is located in a
+  directory having a file named \code{alba-package.yml} describing the
+  package (package name, source directory, etc.). A package name must have the
+  form of a dot separated list of identifiers \code{p.q.r...} where each
+  individual identifier is a valid lowercase identifier.
+
+  A package can be published in the Alba registry. A published package named
+  \code{user.repo} must be located in a github repository \code{repo} of the
+  github user or organisation \code{user}. This puts a requirement on valid
+  github user/organisation and repository names. If you have a github username
+  which is not a valid Alba lowercase identifier, then just create an
+  organisation with a valid name and put your published packages there.
+
+\item[Workspace] A workspace is a directory containing a file named
+  \code{alba-workspace.yml} (empty file, may contain later some toplevel
+  information) and containing a collection of packages as direct or indirect
+  subdirectories. Workspaces must not be nested. With the availablility of the
+  file \code{alba-workspace.yml} the user flags that this directory starts an
+  Alba workspace.
+
+  The command \code{alba compile} issued within a workspace compiles
+  everything in the workspace which needs compilation.
+
+  The compiler creates and manages a directory named \code{.alba-build} to
+  store all compiled modules of the workspace.
+
+\item[Context] The compiler creates and manages a directory called
+  \code{\$HOME/.alba} where it stores all installed packages and some global
+  configuration data.
+
+\end{description}
+
+
+\section{Directories}
+
+{\small
+\begin{verbatim}
+   $HOME
+     - ...
+       - ...
+          - alba-workspace.yml
+             - ...
+               - pkg1
+                 - alba-package.yml
+                 - src
+                    m1.al m1.ali ....
+             - pkg2
+               - alba-package.yml
+               - src
+                   ...
+          - .alba-build
+            - pkg1
+              - alba-package.yml
+              - m1.al m1.al.d m1.al.o  m1.ali m1.ali.d m1.ali.o ...
+            - pkg2
+                ...
+\end{verbatim}
+}
+
+
+\section{Commands}
+
+
+\begin{description}
+
+\item[\code{help}] The command \code{alba help cmd} displays help text of the
+  command and all available options for the command.
+
+\item[\code{init}]
+  \begin{description}
+
+  \item[\code{context}] Initializes the home directory \code{\$HOME} of the current
+    user as a context.
+
+  \item[\code{workspace}] The command \code{alba init workspace} initializes the
+    current directory as the root of a workspace
+
+  \end{description}
+
+\item[\code{clean}]
+
+  \begin{description}
+
+  \item[\code{workspace}] The command \code{alba clean workspace} cleans the
+    workspace (each next compilation command compiles from scratch).
+
+
+  \item[\code{context}] The command \code{alba clean context} cleans the
+    context i.e. it removes all installed libraries and cleans all the
+    workspaces which use some of the installed libraries.
+
+  \item[\code{all}] The command \code{alba clean all} cleans up all workspaces
+    and the context. This is the command to issue if you think that something
+    has been screwed up completely.
+  \end{description}
+
+
+\item[\code{show}]
+  \begin{description}
+
+  \item[\code{workspaces}] Shows information about the workspaces in the
+    context.
+
+  \item[\code{installed}] Shows information about installed libraries in the
+    context.
+
+  \item[\code{packages}] Shows information about the packages in the workspace.
+
+  \end{description}
+
+\item[\code{compile}] The command \code{alba compile mod1 mod2 pck1 ...}
+  compiles all module and packages given as arguments and all their
+  dependencies within the workspace. Compilation is needed only if there have
+  been modifications since the last compilation. The compile command issued
+  without arguments compiles the whole workspace.
+
+  Options: \code{-f, --force} enforces compilation even if not needed.
+
+\item[\code{status}] The command \code{alba status mod1 mod2 pck1 ...} checks
+  the compilation status of the modules/packages of the workspace given as
+  arguments. Issued without arguments the compilation status of the whole
+  workspace checked.
+
+
+\item[\code{install}] The command \code{alba install user.repo} installs the
+  registered package \code{user.repo} from the corresponding github
+  repository into the context.
+
+  If given without a version, the latest released version is installed. The
+  command \code{alba install user.repo.3.2.0} installs the specific version of
+  the package.
+
+  Different version of published packages can be installed into the context.
+
+
+\item[\code{remove}]
+
+
+\item[\code{publish}]
+
+\end{description}
+
+
+
+\section{Packages}
+
+A package needs a configuration file name \code{alba-package.yml} in its
+toplevel directory.
+
+\subsubsection{ Example of a library package}
+{\small
+\begin{verbatim}
+  type:   library
+  name:   mypackage         -- can be p.q.r.... or user.repo
+  source: src               -- '.' not recommended
+  export: [module1, module2, ... ]   -- exported modules
+  use:
+    public:  [pckg1, pckg2, ... ]    -- visible to users of the library
+    private: [pckg1, pckg2, ... ]    -- only private use
+
+  -- Information needed for published packages
+  version: 1.0.1
+  previous_version: 1.0.0      -- if exists, needed to check proper
+                               -- semantic versioning
+\end{verbatim}
+}
+%
+Modifications in the privately used packages do not affect users of the
+library.
+
+
+
+\subsubsection{ Example of a web application}
+{\small
+\begin{verbatim}
+  type: web-application
+
+  name: myprog.html           -- or myprog.js
+  main-module: mod            -- module containing the function 'main'
+
+  source: src
+  use: [pckg1, pckg2, ... ]
+\end{verbatim}
+}
+
+
+\subsubsection{ Example of an executable package}
+{\small
+\begin{verbatim}
+  type: executable
+
+  name: myprog.js             -- javascript program to be called
+                              -- by 'node myprog.js'
+
+  main-module: mod            -- module containing the function 'main'
+
+  source: src
+  use: [pckg1, pckg2, ... ]
+\end{verbatim}
+}
+
+
+
+\section{Dependency Management}
+
+\subsection{\code{.al} Modification}
+
+Recompile the source file and check it against its interface specification.
+
+A modification of a source file does not affect other modules.
+
+
+\subsection{\code{.ali} Modification}
+
+A modification of an interface file might affect all users. A modification
+only affect external users if the module is exported.
+
+Furthermore it can invalidate an implementation file. The implementation file
+might still be correct but does not satisfy its specification.
+
+It is possible that an interface and an implementation file can be compiled
+correctly standalone, but the implementation does not satisfy its
+specification. We can use the filenames \code{m.al.o0} and  \code{m.al.o} to
+express that the first one is correct but not yet checked against its
+specification and the second to express correctness and compliance with the
+specification.
+
+\subsection{\code{alba-package.yml} Modification}
+
+
+Problems with internal consistency:
+\begin{description}
+
+\item[Exported modules] Only available modules can be exported.
+
+\item[Used packages] All actually used packages within modules must be
+  contained.
+
+\end{description}
+
+
+Problems with users:
+\begin{description}
+
+\item[Exported modules] Exporting more has no external effects, exporting less
+  might invalidate other packages which use the module.
+
+\end{description}
+
+
+\subsection{Old}
+
+{\small
+\begin{verbatim}
+   source               builddir
+
+   alba-package.yml     alba-package.yml
+
+   mod.al               mod.al       -- copy src while reading
+                        mod.al.d     -- write dep while reading
+                        mod.al.o     -- write obj if compiles
+
+   mod.ali              mod.ali
+                        mod.ali.d
+                        mod.ali.o
+
+   ok: mod.al(src) <= mod.al(build) <= mod.al.o
+       mod.al(src) <= mod.al.d      <= mod.al.o
+
+   mod.al(build) < mod.al(src) => modified
+   mod.al.o < mod.al(build)    => cannot be compiled
+
+   write first temporary file, then rename (i.e. mv)
+\end{verbatim}
+}
+
+The files \code{alba-package.yml} and \code{mod.al.d/mod.ali.d} are needed to
+generate the dependency graph. Whenever a source file has been modified, the
+dependency file will be rewritten (if use block is syntactically correct) and
+the source file will be copied (if syntactically ok).
+
+The compiler only works on files if they are needed for the compilation.
+
+First loops in the files \code{alba-package.yml} are detected and then in the
+files \code{mod.al*.d}.
+
+
+The status checker does not modify the build directory. It just follows the
+\code{mod.al*.d} of the files to be analyzed and reports modifications,
+affectations and loops.
+
+\begin{alba}
+  -- Decision: Proposition -> Proposition -> Any
+  class
+    Decision(a,b:Proposition): Any
+  create
+    left  (a)
+    right (b)
+
+  -- Decision: Proposition -> Any
+  Decision (a:Proposition): Any
+    := Decision(a, not a)
+
+  -- Decider: all(A:Any) (A->Proposition) -> Any
+  Decider (A:Any, p:A->Proposition): Any
+    := all(x) Decision (p(x))
+\end{alba}
+
+
+\section{Screwed Up Workspaces or Contexts}
+
+The Alba compiler uses hidden directories like \code{.alba},
+\code{.alba-workspace} to store dependencies, workspaces, usages of installed
+libraries etc. The user must not edit these directories. But the user can do
+it by accident or maliciously. Therefore the Alba compiler must not rely on
+correct versions of these directories.
+
+Some error cases:
+\begin{itemize}
+
+\item The user removes a complete subtree of the filesystem. This action can
+  accidently remove a package from a workspace or a workspace from an
+  environment.
+
+  Each time the compiler accesses information about a workspace registered in
+  the context, it has to check if the workspace still exists and remove it
+  otherwise. The same happens in case of a deleted package from a workspace. A
+  deletion of a package causes all depended packages to be recompiled at the
+  next issue of \code{alba compile}. This is some kind of \emph{garbage
+    collection}
+
+
+\end{itemize}
+
+
+
+\section{Package Registry}
+
+A special github repo \verb|alba.registry| is used to register published
+packages. Initially only alba packages are in the registry. Later packages
+from arbitrary users can be published as long as they compile successfully
+with the given used packages.
+
+The registry has a file for each package which contains a list of released
+versions.
+
+\noindent Structure of the registry
+{\small
+\begin{verbatim}
+   packages
+     alba
+       core
+         releases  -- text file with one line per version
+       http
+         releases
+     user1
+       pkg1
+         releases
+       pkg2
+         releases
+       ...
+     ...
+  .travis.yml
+\end{verbatim}
+}
+Each file \code{releases} is a textfile which has all released version numbers
+of the package in reverse chronological order with one line per version
+number.
+
+In order to release a package, the owner must have a fork of the registry,
+modify the file \code{packages/user/repo/releases} (put the newest release
+number as the first line of the file) and then issue a pull request of the
+registry.
+
+
+
+
+
+
+
+
+The alba compiler can access the registry via the github api and an
+authorization token which allows to modify files in the repo representing the
+registry. I.e. it must be able to create blob objects, tree objects and commit
+objects. The authorization token shall not be in the alba compiler binary
+as cleartext. It has to be encrypted (e.g. via MD5 hash) and decrypted before
+accessing the registry.
+
+{\bf Note:} It might not be a good idea to have the authorization token within
+the alba binary. The compiler is open source, therefore anybody with enough
+knowhow can get the authorization token and screw up the registry. Furthermore
+personal access tokens allow access to all repos of the user which is really a
+killing point.
+
+The user must authenticate itself with its github password. The password is
+not stored. But a login into the github account is done. Only authenticated
+users can access the registry.
+
+Problem: It must be made sure that only packages which compile successfully
+and satisfy the semantic versioning constraints can be released.
+
+After successful check the compiler can ask the user to authenticate and then
+sign the sha1 hash of the package. Requires more thinking.
+
+Requirements:
+\begin{itemize}
+\item Only successfully checked packages can be released.
+\item The registry must be protected in the sense that the authorization token
+  cannot be accessed illegally.
+\end{itemize}
+
+
+
+
+\section{Install Packages}
+
+In order to install a registered package \code{user.repo.x.y.z} the following
+steps are necessary:
+\begin{enumerate}
+
+\item Find information of the registered releases of the package
+  \code{user.repo} by sending a http request to the Alba registry.
+
+\item Check that the requested version is in the list of released packages. If
+  the package has been requested without a version number then use the latest
+  release of the package.
+
+\item Get the archive (either \code{x.y.z.zip} or \code{x.y.z.tar.gz}) from
+  \code{user/repo/archive} e.g. by \code{wget} and store it in the context.
+
+\item Unpack the archive into the context (e.g. by \code{tar xzf x.y.z.tar.gz}
+  or \code{unzip x.y.z.zip}.
+
+\item Install all dependencies which are not yet installed.
+
+\item Compile the package.
+\end{enumerate}
+
+
+\noindent In order to install a package we need tools to
+%
+\begin{itemize}
+\item Make Https requests to the registry (e.g. \code{curl}).
+\item Download archives (e.g. \code{wget}).
+\item Unpack archives (\code{tar} or \code{unzip}).
+\end{itemize}
+
+
+\section{Version Numbers}
+
+A version number has the general format
+
+\begin{verbatim}
+    major.minor.patch
+\end{verbatim}
+
+\begin{itemize}
+\item increase patch level: No interface changes
+\item increase minor version: Only addition of interfaces; cannot break builds
+\item increase major version: Build breaking changes allowed
+\end{itemize}
+
+Avoidance of potential crashes by adding new functions: Each type is owned by
+a package. A library package can only export functions if it owns at least one
+type in the signature. I.e. a package cannot export functions on types which
+are owned by used modules. In order to export functions with no types owned by
+the package, the package has to wrap the type. E.g.
+
+\begin{alba}
+class Natural2 create
+    wrap(Natural)
+end
+
+unwrap (n:Natural2): Natural :=
+    inspect n case
+        wrap(i) := i
+    end
+\end{alba}
+%
+The wrapping and unwrapping has no runtime cost.
+
+
+\section{External Tools}
+
+\begin{itemize}
+\item wget or curl to get released github repos, .zip or .tar.gz
+\item tar and/or unzip to unpack github repositories
+\item curl to access the github api via http requests (only for accessing the
+  registry).
+\end{itemize}
+
+Note: An archive \code{<name>.tar.gz} is just a zipped tar archive. Unzip
+decompresses it and then tar can extract the files from the archive. It might
+be better to use \code{<name>.zip} and decompress and extract it with one
+command. The tools \code{zip} and \code{unzip} shall be available on all
+platforms.
+
+
+
+\newpage
+\section{Unix vs. Windows}
+
+\begin{itemize}
+\item No interval timer for native compilation of ocaml.
+
+  We probably don't need interval timer in the alba compiler. If needed, the
+  node version of the compiler should be able to generate interval timer.
+
+\end{itemize}
+
+
+
+
+
+
+
+\section{Syntax and Code Layout}
+
+\lstset{language=alba}
+Declarations are separated by semicolon {\tt ';'}. In order to avoid a lot of
+semicolons newlines can serve as implicit semicolons.
+
+Newlines serve as implicit semicolons unless
+\begin{itemize}
+\item preceded or followed by
+  \begin{itemize}
+    \item an operator
+    \item the keywords \lstinline!case else!
+  \end{itemize}
+\item preceded by
+  \begin{itemize}
+  \item an opening parenthesis like {\tt '(', '[‘, '\{‘ }
+  \item an opening keyword \lstinline!all assert do inspect require some!
+  \end{itemize}
+\item followed  by
+  \begin{itemize}
+    \item a closing parenthesis like {\tt ')', ']‘, '\}‘}
+    \item a closing keyword like \lstinline!end!
+  \end{itemize}
+\end{itemize}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

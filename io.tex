@@ -1,0 +1,263 @@
+\chapter{IO}
+
+\section{Basics}
+
+Input and output have a high cost in terms of processor cycles
+{\small
+\begin{verbatim}
+   L1 cache               3 cycles
+   L2 cache              14 cycles
+   RAM                  250 cycles
+   Disk          41 000 000 cycles
+   Network      240 000 000 cycles
+\end{verbatim}
+}
+%
+\begin{description}
+
+\item[Disk IO] When writing to a disk the read/write head has to be positioned
+  to the correct sector. The programm is blocked until the disk is positioned
+  and the data is transferred between the physical disk and the corresponding
+  part of the ram. Doing this for one or only a couple of characters is highly
+  inefficient.
+
+\item[Network IO] Network cards transmit and receive data with a certain
+  packet size (e.g. on ethernet 1492 bytes). The network driver does
+  transmission of packages of the corresponding size. In order to send data it
+  has to be ready to send. In order to receive data some packet must have been
+  received.
+\end{description}
+
+
+
+Input/Output can be
+\begin{enumerate}
+\item Disk IO
+
+\item Network IO
+
+\item Console IO
+\end{enumerate}
+
+
+
+
+
+
+\section{Synchronous versus Asynchronous IO}
+
+The usual IO mode is synchronous. The user requests to read from a disk file
+to a buffer, the operating system handles the request and the user waits
+until the request has been handled and continues with the result.
+
+Only one request can be made at a time and during the processing of the
+request the program has to wait. In the IO monad this can be handled e.g. by
+%
+\begin{ocaml}
+  fill_buffer fd >>= fun r ->
+  match r with
+  | None ->
+    (* error handling *)
+  | Some _ ->
+    (* success handling *)
+\end{ocaml}
+%
+Note that the bind operator has the signature
+%
+\begin{ocaml}
+  val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+\end{ocaml}
+
+
+The programming model in a web browser and of \code{node\_js} is
+asynchronous. For each possible request (e.g. a mouse click or the receiving
+of a request on a server) the user registers an event handler.
+
+Each time an event occurs, the runtime calls the event handler. The events
+happen sequentially but in unpredictable order. Only one event handler is
+called at a time. No parallel processing of events is possible in this event.
+
+In order to fit asynchronous IO into monadic programming the monadic value
+\code{'a t} must have a message type \code{'a} which is a message and each
+message handler must generate a message of this type. The monadic function of
+type \code{'a -> 'b t} decodes the message and handles the actual event. This
+is called \emph{parallel wait}.
+
+Such a parallel wait can be handled e.g. by the unix system calls
+\code{select} and \code{poll} which can wait on reading into a buffer or
+flushing of buffers on a collection of file descriptors.
+
+A monadic value of type \code{'a t} must be generated from a function which
+receives all the event handlers which can - in case of its event - create a
+message of type \code{'a}. The function of type \code{'a -> 'b t} actually
+handles the specific request. The event handlers used to generate the monadic
+value of type  \code{'a t} are just the message creators.
+
+In the monadic asynchronous modell the event handler are just message
+transformers (they transform the content of the event into a specific message)
+and the continuation function actually \emph{handles} the events.
+
+An \emph{event loop} can be made with a continuation function of type \code{'a
+  -> 'a t}.
+
+If the message type changes then all event transformers must be replaced by
+new ones generating the new message type from the event which can occur.
+
+In Elm the update function has the signature
+\begin{ocaml}
+  update: 'model -> 'msg -> 'model * 'msg Cmd.t
+
+  view: 'model -> 'msg Html.t
+
+  subscriptions: 'model -> 'msg Subscriptions.t
+\end{ocaml}
+
+
+
+
+\section{Abstraction Layer for IO}
+
+\subsection{Requirements}
+
+\begin{enumerate}
+
+\item Process environment, command line arguments. Exit.
+
+\item Get current directory and change current directory.
+
+\item Create and remove directories, get the content of directories, rename
+  directories.
+
+\item Node Paths: Build filenames with basename and file name according to the
+  operating system (i.e. backslash or slash as separator, drive name, etc.)
+
+\item Stat files and directories, compare modification timestamps (module
+  Stats).
+
+\item Open files for reading (existent), writing (create if not existent,
+  overwrite if existent). Rename files. Remove files (unlink)
+
+\item Read and write files with buffers (fill, flush), read and write from io
+  buffers.
+
+\item Run external programs (like curl, unzip and wget) and collect their
+  results with timemout.
+\end{enumerate}
+
+
+\subsection{Implementation}
+
+
+\section{HTTP}
+
+HTTP works over TCP connections. A HTTP request opens a TCP connection to the
+server, sends the HTTP request and receives the HTTP response.
+
+Since HTTP/1.1 there is a keep alive mechanism which allows to use the same
+TCP connection for several HTTP requests.
+
+HTTP/1.1 introduced chunked transfer encoding to allow content on persistent
+connections to be streamed rather than buffered.
+
+HTTP pipelining is a technique in which multiple HTTP requests are sent on a
+single TCP connection without waiting for the corresponding responses.
+
+Byte serving is the process of sending only a portion of an HTTP/1.1 message
+from a server to a client. Byte serving begins when an HTTP server advertises
+its willingness to serve partial requests using the Accept-Ranges response
+header.
+
+\noindent Request message
+\begin{enumerate}
+\item Request line consisting of method url version (e.g., GET
+  /images/logo.png HTTP/1.1, which requests a resource called /images/logo.png
+  from the server.)
+
+\item request header fields (e.g., Accept-Language: en)
+
+\item an empty line (lines must be separated by <CR><LF>)
+
+\item an optional message body
+\end{enumerate}
+%
+Example
+{\small
+\begin{verbatim}
+  GET / HTTP/1.1
+  Host: www.example.com
+\end{verbatim}
+}
+
+
+\noindent Respone message
+\begin{enumerate}
+\item a status line which includes the status code and reason message (e.g.,
+  HTTP/1.1 200 OK, which indicates that the client's request succeeded.)
+
+\item response header fields (e.g., Content-Type: text/html)
+
+\item an empty line (lines must be separated by <CR><LF>)
+
+\item an optional message body
+\end{enumerate}
+%
+Example
+{\small
+\begin{verbatim}
+  HTTP/1.1 200 OK
+  Date: Mon, 23 May 2005 22:38:34 GMT
+  Content-Type: text/html; charset=UTF-8
+  Content-Length: 138
+  Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT
+  Server: Apache/1.3.3.7 (Unix) (Red-Hat/Linux)
+  ETag: "3f80f-1b6-3e1cb03b"
+  Accept-Ranges: bytes
+  Connection: close
+
+  <html>
+    <head>
+      <title>An Example Page</title>
+    </head>
+    <body>
+      <p>Hello World, this is a very simple HTML document.</p>
+    </body>
+  </html>
+  \end{verbatim}
+}
+
+
+\section{HTTPS}
+
+HTTPS is HTTP over TLS or SSL. Both TLS and SSL need cryptographic algorithms
+for key exchange (Diffie-Hellman). Both might be difficult to get right.
+
+For native ocaml we can use Cohttp to make Http request or a calls to
+\code{curl}.
+
+For ocaml over node we can use node directly, because node has a http library
+to make Http requests.
+
+
+\section{Open Questions}
+
+\begin{enumerate}
+\item How to turn echoing on and off in order to read passwords from standard
+  input?
+
+  The usual way to do this (for any language) is using ANSI escape
+  sequences. Code 8 sets the terminal to conceal characters and code 0 resets
+  the attributes, making them visible again.
+
+  For example, in a unix shell you can test this with echo and read:
+  \begin{verbatim}
+  echo -e '\x1b[8m'; read varname; echo -e '\x1b[0m'
+  \end{verbatim}
+  To do the same from OCaml, you can output \verb|"\x1b[8m"|, read the
+  password, and then output \verb|"\x1b[0m"| afterwards to switch printing
+  back on.
+
+\end{enumerate}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

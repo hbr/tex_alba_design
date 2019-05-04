@@ -1,0 +1,133 @@
+\section{Syntax}
+
+\subsection{Indentation Blocks}
+
+There are certain constructs which require that the following construct must
+be indented. E.g. a class definition consists of a declaration and a
+definition.
+
+{\small
+\begin{verbatim}
+   -- ( construct ) means that construct must be indented after
+   -- each newline
+
+   type_definition ::=
+     'class' (class_declaration) class_definition
+
+   class_definiton ::=
+     'create' ({constructor})     -- {a}: zero or more a
+\end{verbatim}
+}
+
+
+\begin{alba}
+  class Color create red green blue
+
+  class Natural create 0 succ(Natural)
+
+  class Natural create
+    0
+    succ(Natural)
+
+  class
+    Natural: Any
+  create
+    0
+    succ(Natural)
+\end{alba}
+
+
+Big advantage of indentation blocks: There is no need to put any form of
+parentheses around the blocks (like \code{begin ... end}), the programmer
+indicates by indentation which construct must be considered as part of the
+block or to an outer block.
+
+
+\begin{alba}
+  class
+    (<=): Natural -> Natural -> Prop
+  create
+    zero (a:Natural): 0 <= a
+    succ (a,b:Natural): a <= b  =>  a.succ <= b.succ
+\end{alba}
+
+
+
+\begin{alba}
+  -- Abstract classes
+  abstract class Partial_order section (PO)  -- implicit type 'PARTIAL_ORDER'
+    (<=) (a,b:PO): Propostion
+    reflexive: all(a:PO)
+      a <= a
+    antisymmetric: all(a,b:PO)
+      a <= b  and  b <= a
+      =>  a = b
+    transitive: all(a,b,c:PO)
+      a <= b and b <= c
+      => a <= c
+\end{alba}
+%
+or more verbose
+\begin{alba}
+  abstract class
+    Partial_order
+  section(PO:PARTIAL_ORDER)
+    (<=) (a,b:PO): Propostion
+    reflexive: all(a:PO)
+      a <= a
+    ...
+\end{alba}
+
+A function definition
+\begin{alba}
+  (+) (a,b:Natural): Natural :=
+    inspect a case
+      0 := b
+      n.succ :=
+        (n + b).succ
+
+  -- or more verbose
+  (+) (a,b:Natural): Natural :=
+    inspect
+      a
+    case
+      0 := b
+      n.succ :=
+        (n + b).succ
+\end{alba}
+
+
+\paragraph{Requirements for the Parser}
+The start of an indentation block must be marked. Indentation blocks are
+nested. At the beginning of a block the parser does not yet know how much
+indentation the programmer chooses. This is evident after the first newline
+with an indentation more than the indentation of the outer block.
+
+The first actual indentation within an indentation block fixes the indentation
+of the block.
+
+All opened indentation blocks form some kind of tabulators. We remain within
+the inner indentation block as long the indentation is at least the
+indentation of the block. As soon as the next indentation is less than the
+minimum indentation, the indentation block is closed.
+
+
+\paragraph{Open Questions}
+\begin{itemize}
+\item Is more indentation allowed? For the innermost block maybe yes. But
+  closing a block has to land exactly on one of the indentation levels of the
+  outer blocks which are determined by the first indented line of the
+  block. Otherwise the indentation might look very flattery.
+
+\item 
+  However it might be better to enforce strict indentation. With strict
+  indentation the nesting is explicit. I.e. either put an indented block
+  completely on a line or indent exactly the same amount after each newline
+  where the indentation of the first indented line determines the needed
+  indentation of the block.
+\end{itemize}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

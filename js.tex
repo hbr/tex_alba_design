@@ -1,0 +1,400 @@
+\chapter{Javascript}
+
+
+\section{Js\_of\_ocaml}
+
+
+
+\subsection{Base Types}
+
+{\small
+\begin{verbatim}
+     int        int                     Number
+     float      float                   Number
+     bool       bool Js.t               Boolean
+     string     Js.js_string Js.t       String
+     array      Js.js_array Js.t        Array
+\end{verbatim}
+}
+
+
+\subsection{Typing Javascript Objects}
+
+Javascript objects are given types of the shape
+%
+\begin{ocaml}
+  <m_1 : t_1; ...; m_n : t_n> Js.t
+\end{ocaml}
+%
+using a phantom object type. The methods m\_i stands for the field of the
+Javascript object. For instance, a Javascript object of type:
+
+\begin{ocaml}
+   < data : js_string t Js.prop;
+     appendData : js_string t -> unit Js.meth> Js.t
+\end{ocaml}
+%
+has a property data containing a Javascript string, and a method appendData
+taking a Javascript string as argument and returning no value.
+
+
+\subsection{OCaml and Javascript functions}
+
+OCaml and Javascript do not follow the same calling convention. In OCaml,
+functions can be partially applied, returning a function closure. In
+Javascript, when only some of the parameters are passed, the others are set to
+the \code{undefined} value. As a consequence, it is not possible to call a
+Javascript function from OCaml as if it was an OCaml function, and conversely.
+
+Calling Javascript functions: At the moment, there is no syntactic sugar for
+calling Javascript functions. You should use either \code{Js.Unsafe.call} or
+\code{Js.Unsafe.fun\_call}, depending whether you want \code{this} to be bound
+to some particular object in the function body or not.
+
+
+\subsection{Tail Calls}
+
+Tail recursive functions are optimized into a loop.
+
+Mutually tail recursive functions are optimized into a trampoline where the
+trampoline is not called at each recursive calls but e.g. at each 50 recursive
+call.
+
+
+
+
+
+
+
+
+
+\section{Node}
+
+
+\subsection{Needed Node Commands}
+
+\subsubsection{\code{process.argv}}
+
+The process.argv property returns an array containing the command line
+arguments passed when the Node.js process was launched. The first element will
+be process.execPath. See process.argv0 if access to the original value of
+argv[0] is needed. The second element will be the path to the JavaScript file
+being executed. The remaining elements will be any additional command line
+arguments.
+
+
+
+\subsubsection{\code{process.exit([code])}}
+
+Exit the process with an exit code (default: 0).
+
+\subsubsection{\code{process.env}}
+
+The environment object of the current process. Example:
+\begin{js}
+  {
+    TERM: 'xterm-256color',
+    SHELL: '/usr/local/bin/bash',
+    USER: 'maciej',
+    PATH: '~/.bin/:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin',
+    PWD: '/Users/maciej',
+    EDITOR: 'vim',
+    SHLVL: '1',
+    HOME: '/Users/maciej',
+    LOGNAME: 'maciej',
+    _: '/usr/local/bin/node'
+  }
+\end{js}
+
+\subsubsection{\code{process.cwd()}}
+
+Get the current working directory.
+
+\subsubsection{\code{process.chdir(directory)}}
+
+The process.chdir() method changes the current working directory of the
+Node.js process or throws an exception if doing so fails (for instance, if the
+specified directory does not exist).
+
+Note that this feature does not have a callback. It is called synchronuously.
+
+\subsubsection{\code{fs.mkdir(path,callback)}}
+
+We do not need options.
+
+\begin{js}
+  fs.mkdir('/bla', (err) => {console.log(err);});
+
+  // return
+  { [Error: EACCES: permission denied, mkdir '/bla']
+    errno: -13,
+    code: 'EACCES',
+    syscall: 'mkdir',
+    path: '/bla' }
+\end{js}
+
+
+\begin{js}
+  fs.mkdir('./_build', (err) => {console.log(err);});
+
+  // return
+  { [Error: EEXIST: file already exists, mkdir './_build']
+    errno: -17,
+    code: 'EEXIST',
+    syscall: 'mkdir',
+    path: './_build' }
+\end{js}
+
+\begin{js}
+  fs.mkdir('./tmp', (err) => {console.log(err);});
+
+  // return
+  null
+\end{js}
+
+
+
+
+\subsubsection{\code{fs.rmdir(path, callback)}}
+
+Asynchronous rmdir(2). No arguments other than a possible exception are given
+to the completion callback.
+
+Using fs.rmdir() on a file (not a directory) results in an ENOENT error on
+Windows and an ENOTDIR error on POSIX.
+
+
+
+\subsubsection{\code{fs.readdir(path[, options], callback)}}
+
+Callback \code{(err,files) => {...}}
+
+Reads the contents of a directory. The callback gets two arguments (err,
+files) where files is an array of the names of the files in the directory
+excluding '.' and '..'.
+
+\subsubsection{\code{fs.mkdtemp(prefix,callback)}}
+
+Creates a unique temporary directory. Callback \code{(err,folder) =>
+  {... }}.
+
+Generates six random characters to be appended behind a required prefix to
+create a unique temporary directory.
+
+
+
+
+\subsubsection{\code{fs.unlink(path, callback)}}
+
+Asynchronously removes a file or symbolic link. No arguments other than a
+possible exception are given to the completion callback.
+
+fs.unlink() will not work on a directory, empty or otherwise. To remove a
+directory, use fs.rmdir().
+
+
+
+
+\subsubsection{\code{fs.stat}}
+
+\begin{js}
+  // The commands
+  const fs = require('fs');
+  fs.stat(".travis.yml", (err,stats) => {console.log(err);
+                                         console.log(stats)});
+  // return on success
+  null
+  Stats {
+    dev: 16777220,
+    mode: 33188,
+    nlink: 1,
+    uid: 501,
+    gid: 20,
+    rdev: 0,
+    blksize: 4096,
+    ino: 8618330134,
+    size: 416,
+    blocks: 8,
+    atimeMs: 1556653904784.4294,
+    mtimeMs: 1556653904730.4136,
+    ctimeMs: 1556653904730.4136,
+    birthtimeMs: 1556653904729.9878,
+    atime: 2019-04-30T19:51:44.784Z,
+    mtime: 2019-04-30T19:51:44.730Z,
+    ctime: 2019-04-30T19:51:44.730Z,
+    birthtime: 2019-04-30T19:51:44.730Z }
+
+  // return on failure
+  { [Error: ENOENT: no such file or directory, stat '.travis.yaml']
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'stat',
+    path: '.travis.yaml' }
+\end{js}
+
+Note: To check the existence of a file or a directory better open it and treat
+the error case.
+
+\subsubsection{\code{fs.open(path, flags[, mode], callback)}}
+
+Needed flags: Read: \code{'r'}, Write: \code{'w'} (File is created if it does
+not exist).
+
+The flag \code{'r'} returns an error if the file does not exist.
+
+Note: On windows opening a file with \code{'r'} fails with \code{EPERM}. The
+\code{'r+'} flag is needed in that case. However files name \code{.alba} do
+not automatically have the hidden attribute and should be readable, writeable
+without any problem.
+
+Mode: default \code{0o666} i.e. readable and writable. Mode is only effective
+if the file is created.
+
+\subsubsection{\code{fs.close(fd, callback)}}
+
+Callback \code{(err) => {...}}.
+
+
+
+
+
+
+\subsection{Streams}
+
+Readable streams generate their own buffers. If data is availabe on a readable
+stream the even \code{readable} is emitted. An \code{error} event can be
+emitted at any time e.g. when the stream cannot be created (file cannot be
+opened for a file stream).
+
+\code{end} signals the end of the stream. \code{close} signals the closure of
+the file descriptor. The \code{end} and \code{close} events are emitted by
+\code{fs.createReadStream(..)} at the end of the stream.
+
+Writable streams can be buffered infinitely. Therefore either wait for the
+callback on the \code{write} method (\code{ws.write(buf,cb)}) or stop writing
+if \code{write} returns \code{false} and wait for the \code{drain} event.
+
+A stream has to be represented internally as a mutable structure which has to
+store the occurrence of the events \code{error,end}.
+
+The method \code{fs.createReadStream(..)} fires an \code{open} event, when the
+file has been opened successfully. We have to wait for this event (or
+\code{error}) after opening a readable stream on a file.
+
+Note: Event handlers are unregistered by \code{rs.off('end', handler)}.
+
+\begin{js}
+  require('http').createServer( function(req, res) {
+    var rs = fs.createReadStream('/path/to/big/file');
+    rs.on('data', function(data) {
+      if (!res.write(data)) { // data buffered internally
+        rs.pause();}
+    });
+    res.on('drain', function() {
+      rs.resume();
+    });
+    rs.on('end', function() {
+      res.end();
+    });
+  }).listen(8080);
+\end{js}
+
+If a call to \code{write} returns false, the \code{drain} event will be
+emitted when it is appropriate to resume writing data to the stream.
+
+
+Another example:
+\begin{js}
+  // Write the data to the supplied writable stream one million times.
+  // Be attentive to back-pressure.
+  function writeOneMillionTimes(writer, data, encoding, callback) {
+    let i = 1000000;
+    write();
+    function write() {
+      let ok = true;
+      do {
+        i--;
+        if (i === 0) {
+          // last time!
+          writer.write(data, encoding, callback);
+        } else {
+          // see if we should continue, or wait
+          // don't pass the callback, because we're not done yet.
+          ok = writer.write(data, encoding);
+        }
+      } while (i > 0 && ok);
+      if (i > 0) {
+        // had to stop early!
+        // write some more once it drains
+        writer.once('drain', write);
+      }
+    }
+  }
+\end{js}
+
+
+
+
+
+
+
+
+
+
+
+
+\section{This keyword}
+
+
+In the global execution context (outside of any function), this refers to the
+global object whether in strict mode or not.
+
+A simple call of a function is e.g. \code{f(a1,a2,...)}. But the function can
+be called with an object and this is bound to this object during the call
+(\code{f.apply(obj,a1,a2,...)} or \code{f.call(obj,a1,a2,...)}).
+
+
+In arrow functions, this retains the value of the enclosing lexical context's
+this. In global code, it will be set to the global object.
+
+
+
+
+
+
+
+\section{Integer Arithmetic}
+
+
+Javascript can only safely represent integers $i$ in the range
+$$ -2^{53} < i < 2^{53}.$$
+
+\begin{js}
+  Number.MAX_SAFE_INTEGER = Math.pow(2, 53)-1; // 9_007_199_254_740_991
+  Number.MIN_SAFE_INTEGER = -Number.MAX_SAFE_INTEGER;
+
+  BigInt(Number.MAX_SAFE_INTEGER) + 2n;
+  // -> 9_007_199_254_740_993n
+\end{js}
+
+\begin{js}
+  function inc(x){
+    x = x|0;  \\ x:int
+    return (x + 1)|0;
+  }
+\end{js}
+
+
+\begin{js}
+  var product = Math.imul(a, b); // 32 bit modulo arithmetic
+
+  Math.imul(2, 4);          // 8
+  Math.imul(-1, 8);         // -8
+  Math.imul(-2, -2);        // 4
+  Math.imul(0xffffffff, 5); // -5
+  Math.imul(0xfffffffe, 5); // -10
+\end{js}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

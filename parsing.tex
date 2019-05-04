@@ -1,0 +1,753 @@
+\chapter{Parsing}
+
+\section{Incremental Parsing with Combinators}
+
+\subsection{Basics of an Incremental Parser}
+
+An incremental parser receives one token at a time. At any point it gives
+information whether it needs more tokens or it has terminated.
+
+In order to work properly the parser has to buffer some information.
+\begin{itemize}
+
+\item In order to process alternatives it has to be able to store at least one
+  lookahead token. If it receives one token it tries the first alternative. If
+  the alternative fails on the first token, the parser has to put the token
+  into the lookahead buffer and try the next alternative.
+
+\item Sometimes an alternative fails after having consumed some tokens. In
+  order to process the next alternative the consumed tokens of the first
+  failed alternative have to be stored into some consumption buffer. After
+  failure the tokens of the consumption buffer have to be pushed back onto the
+  lookahead buffer and the next alternative can be tried. This processing is
+  possible only if the first alternative is processed as backtrackable
+  alternative.
+\end{itemize}
+
+Backtracking is costly, therefore it should be avoided if possible. However
+some language constructs can be parsed only with backtracking information.
+
+An incremental parser has to be able to store consumption information and
+lookahead information beside other information (see below). The parser sees a
+certain window of the input stream.
+
+$$
+\underbrace{c_0\,c_1, \ldots}_{\text{consumed}}
+\quad
+\underbrace{b_0\,b_1, \ldots}_{\text{buffered}}
+\quad
+\underbrace{l_0\,l_1, \ldots}_{\text{lookahead}}
+\quad
+\underbrace{u_0\,u_1, \ldots}_{\text{unseen}}
+$$
+%
+Only the buffered (i.e. consumed and buffered) and the lookahead information
+is stored.
+
+
+\subsection{Interface}
+
+The following specifies the needed types and function to operate the parser.
+\begin{ocaml}
+  type state           (* to store e.g. line and column numbers *)
+  type token           (* Consumed one at a time or rejected *)
+  type final           (* Final result of the parser *)
+  type error           (* Possible dead end *)
+
+  type parser
+
+  val put_token:  parser -> token -> parser  (* Process one token *)
+
+  val needs_more: parser -> bool
+  val has_ended:  parser -> bool
+
+  val state:  parser -> state
+
+  val result: parser -> (final,error list) result (* require: has_ended *)
+  val lookahead: parser -> token list             (* require: has_ended *)
+\end{ocaml}
+
+At the end of parsing we can ask for the final result of the parser. The
+parser either returns an object of type \verb!final! or a list of paths it has
+tried which ended in an error i.e. a list of dead ends.
+
+There are intermediate parsers of type \code{'a t} which either succeed with a
+value of type \code{'a} or produce a list of dead ends. There are 3 functions
+to produce elementary intermediate parsers
+%
+\begin{ocaml}
+  val succeed: 'a -> 'a t            (* Immediately succeed *)
+  val fail:    error -> 'a t         (* Immediately fail    *)
+  val token:   (state -> token -> ('a*state,error) result) -> 'a t
+            (* Look at a token and either consume it and succeed or fail *)
+\end{ocaml}
+%
+and further functions to combine intermediate parser to more complex parsers
+%
+\begin{ocaml}
+  val (>>=): 'a t -> ('a -> 'b t) -> 'b t  (* and then     *)
+  val (<|>): 'a t -> 'a t -> 'a t          (* alternatives *)
+  val (<?>): 'a t -> error -> 'a t         (* replace error messages *)
+  val backtrackable: 'a t -> 'a t          (* buffer consumed tokens for backtracking *)
+  val commit: 'a -> 'a t                   (* commit on next consumption,
+                                              only within backtrackable *)
+\end{ocaml}
+%
+and a function to produce a parser from an intermediate parser of the final
+type
+%
+\begin{ocaml}
+  val make_parser: state -> final t -> parser
+  (* Produce a parser which starts at some initial state and is able to
+     return some final result. *)
+\end{ocaml}
+
+
+\subsection{Implementation}
+
+\subsubsection{Final Parser}
+The final parser has two states, either it has ended or it needs more
+tokens. We represent a parser as an algebraic type and implement some
+functions
+%
+\begin{ocaml}
+  type parser =
+  | More  of state * (state -> token -> parser)
+  | Final of state * (final, error list) result * token list
+
+  let needs_more (p:parser): bool =
+    match p with
+    | More _ -> true | Final _ -> false
+
+  let has_ended (p:parser): bool = not (needs_more p)
+
+  let put_token (p:parser) (t:token): parser =
+    match p with
+    | More (st,f) ->
+        f st t
+    | _ ->
+      assert false (* Illegal call *)
+
+  let state (p:parser): state =
+    match p with
+    | More (st,_) | Final (st,_,_) -> st
+
+  let result (p:parser): (final,error list) result =
+    match p with
+    | Final (_,r,_) -> r
+    | _ -> assert false (* Illegal call! *)
+
+  let lookahead (p:parser): token list =
+    match p with
+    | Final (_,_,la) -> la
+    | _ -> assert false (* Illegal call! *)
+\end{ocaml}
+%
+
+
+\subsubsection{Intermediate Parsers}
+An intermediate parser knows just how to produce an intermediate value or a
+list of dead ends. It is not yet a complete parser. It is a function with two
+arguments: a continuation which knows how to parse the remaining input and
+some buffer information
+%
+\begin{ocaml}
+  type 'a t = ('a option -> parser) -> B.t -> parser
+\end{ocaml}
+%
+
+During the implementation of the parser we derive step by step the
+requirements for the buffer module \code{B}. Since the buffer is not visible
+outside the parser we can implement it as a mutable structure.
+
+The implementation of the function \code{parser} looks like
+\begin{ocaml}
+  let make_parser (s:state) (p:final t): parser =
+    let b = B.make s in
+    p (fun o ->  (* continuation function for p *)
+         Final (B.state b,
+                (match o with
+                 | Some x -> Ok x
+                 | None   -> Error (B.errors b)),
+                B.lookahead b))
+      b
+\end{ocaml}
+%
+Note that the buffer is a mutable structure. During the execution of \code{p}
+it will be mutated and the continuation function will be called with the final
+value of the buffer.
+
+
+\subsubsection{Elementary Parsers}
+The elementary parsers \code{succeed} and \code{fail} are
+straightforward.
+\begin{ocaml}
+  let succeed (a:'a) (k:'a option -> parser) (b:B.t): parser =
+    k (Some a)
+
+  let fail (e:error) (k:'a option -> parser) (b:B.t): parser =
+    B.add_error e b;
+    k None
+\end{ocaml}
+%
+Note that the function \verb!fail! modifies the buffer \emph{before} calling
+the continuation. Furthermore note that the type of \code{succeed} is \code{'a
+  -> 'a t} and the type of \code{fail} is \code{error -> 'a t} because the
+type \code{'a t} represents the type of the remaining function.
+
+It is instructive to see which final parsers can be produced from
+\code{succeed} and \code{fail} assuming that \code{'a} represents the final
+type. The function call \code{make\_parser s (succeed v)} returns
+%
+\begin{ocaml}
+  Final (s, Ok v, [])
+\end{ocaml}
+%
+and the function call \code{make\_parser s (fail e)} returns
+%
+\begin{ocaml}
+  Final (s, Error [e], [])
+\end{ocaml}
+%
+This fact can be verified by expanding the definitions of \code{succeed},
+\code{fail} and \code{make\_parser}.
+
+Both parsers do not process any tokens, they immediately succeed or fail with
+the initial state and without leaving a lookahead.
+
+The third elementary parser which processes one token is not complicated
+either.
+\begin{ocaml}
+  let token (f:state -> token -> ('a*state, error) result)
+            (k:'a option -> parser)
+            (b:B.t): parser =
+    More (B.state b,
+          fun s0 t ->
+            match f s0 t with
+            | Ok (a, s1) ->
+                B.consume t s1 b;
+                k (Some a)
+            | Error e ->
+                B.reject t e b;
+                k None)
+\end{ocaml}
+
+Let's see what parser is produced by \code{make\_parser s0 (token
+  f)}. Regardless of \code{f} the returned parser is \code{More (...)} which
+can receive tokens and is not yet in its final state.
+
+Therefore it is better to ask what is produced by
+\begin{ocaml}
+  put_token (make_parser s0 (token f)) t
+\end{ocaml}
+Now it depends on the result of \code{f s0 t}. If the result is \code{Ok
+  (a,s1)} then the result of the above expression is
+%
+\begin{ocaml}
+  Final (s1, Ok a, [])
+\end{ocaml}
+%
+i.e. the token is consumed (therefore no lookahead) and the state \code{s1}
+and the value \code{a} is returned.
+
+If the result of \code{f s0 t} is \code{Error e} then the result of the above
+expression is
+%
+\begin{ocaml}
+  Final (s0, Error [e], [t])
+\end{ocaml}
+%
+i.e. the token is not consumed (therefore the lookahead), the initial state
+and the list of dead ends consisting of one item is returned.
+
+The intermediate parser \code{token f} either consumes a token and returns a
+result or it rejects a token, puts it onto the lookahead buffer and adds a
+dead end to the buffer.
+
+\subsubsection{Building Parsers from Simpler Parsers}
+
+It is not very interesting to produce parsers which either succeed or fail
+immediately or process one token and then succeed or fail. In order to produce
+more interesting parsers we have be able to combine parsers and build step by
+step from the elementary parsers the final parser.
+
+The sequencing combinator \code{>>=} and the alternative combinator \code{<|>}
+(see below) execute the first parser and in case of success or error without
+consumption execute the second parser. Since the first parser might leave
+lookahead tokens in the lookahead buffer, we need a function to apply the
+lookaheads to the second parser.
+
+\begin{ocaml}
+  let apply_lookahead (b:B.t) (p:parser): parser =
+    if B.has_lookahead b && needs_more p  then
+      let t = B.pop_one_lookahead b in
+      put_token p t
+    else
+      p
+\end{ocaml}
+%
+If the parser needs more tokens, then the next elemenary parser must be the
+\code{token} parser. Reason: No other elementary parser produces a \code{More
+  ...}. The \code{put\_token} either consumes the token or puts it back into
+the lookahead buffer.
+
+Both combinators \code{>>=} and \code{<|>} call \code{apply\_lookahead} before
+executing the second parser. Therefore as long as there is an elementary
+\code{token} parser, lookahead tokens are extracted from the buffer and
+applied to the parser. As soon as there is no more elementary \code{token}
+parser, the parsing has ended in a final state.
+
+
+
+\subsubsection{Sequencing \code{>>=}}
+
+If we have an intermediate parser \code{p:'a t} it either produces a result of
+type \code{'a} or a list of dead ends. In sequencing we apply the first parser
+and in case of success we can use the value to compute the next parser or in
+case of failure the whole sequence fails. Therefore the sequencing operator
+\code{>>=} has the signature
+%
+\begin{ocaml}
+  val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+\end{ocaml}
+%
+The implementation is straightforward
+%
+\begin{ocaml}
+  let (>>=) (p:'a t) (f:'a -> 'b t) (k:'b option -> parser) (b:B.t): parser =
+     p (fun o ->  (* continuation function for p *)
+          match o with
+          | Some a ->  (* p might have left over some lookahead *)
+            apply_lookahead b (f a k b)
+          | None ->
+            k None)
+       b
+\end{ocaml}
+
+
+
+\subsubsection{Alternatives \code{<|>}}
+
+If we have two intermediate parsers \code{p} and \code{q} of type \code{'a t}
+then we first execute \code{p} and if successful we take that result as the
+result of the combination \code{p <|> q}. If \code{p} fails without consuming
+tokens then we execute \code{q} and take this as a result of the combination.
+
+In order to see whether \code{p} has consumed tokens we have to reset the
+\emph{consumed} flag in the buffer before executing \code{p} and restore it
+afterwards
+%
+\begin{ocaml}
+  let (<|>) (p:'a t) (q:'a t) (k:'a option -> parser) (b:B.t): parser =
+     assert (B.no_lookahead b);
+     let c0 = B.reset_consumed b in
+     p (fun o ->
+          let c1 = B.has_consumed b in
+          B.set_consumed (c0 || c1) b;
+          match o with
+          | None when not c1 -> (* p did not consume tokens *)
+            apply_lookahead b (q k b)
+          | _ ->
+            (* p either succeeded or failed and consumed tokens *)
+            k o)
+       b
+\end{ocaml}
+
+
+
+
+
+\subsubsection{Replace Error Messages \code{<?>}}
+
+When we execute several alternatives \code{p <|> q <|> ...} and all of them
+fail, each failure leaves some dead end in the buffer structure.
+
+Sometimes we want to replace the list of error messages with a more high level
+error message. In order to do this we have the operator \code{<?>)} with the
+signature
+%
+\begin{ocaml}
+  val (<?>): 'a t -> error list -> 'a t
+\end{ocaml}
+%
+and the implementation
+%
+\begin{ocaml}
+  let (<?>) (p:'a t) (es:error list) (k:'a option -> parser) (b:B.t): parser =
+    assert (B.no_lookahead b);
+    let e0 = B.reset_errors b in
+    p (fun o ->
+          (match o with
+           | None -> B.set_errors es b
+           | _ ->    ());
+          B.update_errors e0 b;
+          k o)
+      b
+\end{ocaml}
+%
+
+
+
+\subsubsection{Backtracking}
+
+Sometimes we want to make a parser \emph{backtrackable} i.e. in case of
+failure where some tokens have already been consumed we want to undo the
+consumption (put them back onto the lookaheads) and pretend that nothing has
+been consumed. Remember other alternatives of a parser can only be tried if
+the preceeding parser has failed without consumption.
+
+
+The implementation of the function \code{backtrackable:'a t -> 'a t} is
+straightforward because we push the complexity of backtracking into the buffer
+structure.
+%
+\begin{ocaml}
+  let backtrackable (p:'a t) (k:'a option -> parser) (b:B.t): parser =
+    let back = B.start_backtrack b in
+    p (fun o ->
+         (match o with
+          | Some _ -> B.end_backtrack_success back b
+          | None ->   B.end_backtrack_fail    back b);
+         k o)
+      b
+\end{ocaml}
+
+
+Sometimes we do not want to make an intermediate parser completely
+backtrackable but only to a certain point. The function \code{commit} marks
+this point. If a backtrackable parser consumes tokens after a \emph{commit}
+then it is no longer backtrackable i.e. that specific path is committed an no
+other alternatives can be explored any more.
+%
+\begin{ocaml}
+  let commit (a:'a) (k:'a option -> parser) (b:B.t): parser =
+    B.commit b;
+    k (Some a)
+\end{ocaml}
+%
+Having this function we can program a pattern
+%
+\begin{ocaml}
+  backtrackable (p >>= commit >>= f)
+\end{ocaml}
+%
+The expression \code{p >>= commit >>= f} works like \code{p >>= f} except that
+after succeesful termination of \code{p} consumed tokens are no more buffered
+and the whole parser is no more backtrackable. Only failures within \code{p}
+are backtrackable.
+
+
+
+
+
+
+
+\subsection{The Buffer of the Parser}
+
+
+\subsubsection{Types}
+
+\begin{ocaml}
+  (* The buffer module, i.e. module B *)
+  type consumed     = bool
+  type is_buffering = bool
+  type consumption_length = int
+
+  type commit = Not | Committing | Committed
+  type back = state * consumed * consumption_length
+              * error list
+              * is_buffering * is_buffering  * commit
+
+  type saved_errors = consumed * error list
+
+  type t = {mutable state: state;
+            mutable consumed:      consumed;
+            mutable consumption:   token list;
+            mutable n_consumption: consumption_length;
+            mutable lookahead:     token list;
+            mutable errors:        error list;
+            mutable isbuf:         is_buffering;
+            mutable isbuf_prev:    is_buffering;
+            mutable commit:        commit;
+           }
+\end{ocaml}
+
+
+
+\subsubsection{Query Functions}
+
+\begin{ocaml}
+  let no_lookahead (b:t): bool = b.lookahead = []
+  let lookahead    (b:t): token list = List.rev b.lookahead
+  let errors       (b:t): error list = List.rev b.errors
+  let has_consumed (b:t): bool = b.consumed
+  let state        (b:t): state = b.state
+\end{ocaml}
+
+
+\subsubsection{Initialization etc.}
+
+\begin{ocaml}
+  let init (s:state): t =
+    {state = s;
+     consumed = false; consumption = []; n_consumption = 0;
+     lookahead = [];
+     errors = [];
+     isbuf = false; isbuf_prev = false; commit = Not}
+
+  let pop_one_lookahead (b:t): token =
+    match b.lookahead with
+    | [] -> assert false (* Illegal call *)
+    | t :: rest ->
+       b.lookahead <- rest;
+       t
+
+  let add_error (e:error) (b:t): unit =
+    b.errors <- e :: b.errors
+\end{ocaml}
+
+\subsubsection{Support for Parser 'token'}
+
+\begin{ocaml}
+  let consume (t:token) (s:state) (b:t): unit =
+    assert (no_lookahead b);
+    b.consumed <- true;
+    b.state    <- s;
+    b.errors   <- [];
+    if b.isbuf then                                    (* 1 *)
+       (b.consumption   <- t :: b.consumption;         (* 2 *)
+        b.n_consumption <- b.n_consumption + 1;
+        if b.commit = Committing then
+          (b.commit <- Committed;                      (* 3 *)
+           if not b.isbuf_prev then                    (* 4 *)
+             b.isbuf <- false))
+\end{ocaml}
+
+\begin{enumerate}
+\item A parser is buffering if it is part of a backtrackable parser which has
+  not yet committed.
+\item Put the consumed token into the consumption buffer.
+\item If a commit has been issued (i.e. \code{Committing}), the next consumed
+  token sets the \code{commit} to \code{Committed}.
+\item A \emph{committed} parser does no longer buffer consumed tokens unless
+  an outer parser is \emph{buffering}.
+\end{enumerate}
+
+\begin{ocaml}
+  let reject (t:token) (e:error) (b:t): unit =
+    assert (no_lookahead b);
+    b.errors <- e :: b.errors;
+    b.lookahead <- [t]
+\end{ocaml}
+
+
+\subsubsection{Support for Combinator \code{<|>}}
+
+\begin{ocaml}
+  let reset_consumed (b:t): bool =
+     let c = b.consumed in
+     b.consumed <- false; c
+  let set_consumed (c:bool) (b:t): unit =
+     b.consumed <- c
+\end{ocaml}
+
+\subsubsection{Support for Combinator \code{<?>}}
+
+\begin{ocaml}
+  let reset_errors (b:t): saved_errors =
+     let saved = b.consumed, b.errors in
+     b.consumed <- false;  (* to be able to check if the next parser has
+                              consumed anything *)
+     b.errors <- [];       (* in order to collect the error messages generated
+                              by the next parser *)
+     saved
+
+  let set_errors (errs:error list) (b:t): unit =
+     b.errors <- errs
+
+  let update_errors ((c,errs):saved_errors) (b:t): unit =
+     if b.consumed then
+       () (* parser has advanced, old errors are obsolete *)
+     else
+       (b.consumed <- c;             (* restore consumption flag *)
+        b.errors <- b.errors @ errs) (* parser has not consumed, old error
+                                        messages are still valid *)
+\end{ocaml}
+%
+
+\subsubsection{Support for \code{backtrackable} and  \code{commit}}
+
+\begin{ocaml}
+  let move_buffered (n:int) (la:bool) (b:t): unit =
+    (* Remove the buffered consumed tokens so that the consumption buffer
+       has only n tokens and put them into the lookahead buffer if the la
+       flag is set. *)
+    assert (n <= b.n_consumption);
+    while n < b.n_consumption do
+      b.n_consumption <- b.n_consumption - 1;
+      match b.consumption with
+      | [] -> assert false (* cannot happen *)
+      | t :: rest ->
+          b.consumption   <- rest;
+          b.n_consumption <- b.n_consumption - 1;
+          if la then
+            b.lookahead <- t :: b.lookahead
+    done
+
+  let start_backtrack (b:t): back =
+    let saved = b.state, b.consumed, b.n_consumption,
+                b.errors, b.isbuf, b.isbuf_prev, b.commit in
+    b.consumed <- false;
+    b.isbuf_prev <- b.isbuf;
+    b.isbuf <- true;
+    b.errors <- [];
+    b.commit <- Not;
+    saved
+
+  let end_backtrack_success ((_,c,n,es,ib,ibp,comm):back) (b:t): unit =
+    if not ib then
+      (* no buffering previously, therefore remove all newly buffered tokens. *)
+      move_buffered n false b;
+    if not b.consumed then
+      (* backtrackable parser has not consumed tokens, errors must be restored *)
+      b.errors <- es;
+    b.consumed   <- c && b.consumed;
+    b.isbuf      <- ib;
+    b.isbuf_prev <- ibp;
+    b.commit     <- comm
+
+  let end_backtrack_fail    ((s,c,n,es,ib,ibp,comm):back) (b:t): unit =
+    if b.commit <> Committed then (* undo consumption *)
+      (move_buffered n true b;
+       b.consumed <- c;
+       b.state <- s;
+       b.errors <- b.errors @ es)
+    else
+       b.consumed   <- c && b.consumed;
+    b.isbuf      <- ib;
+    b.isbuf_prev <- ibp;
+    b.commit     <- comm
+
+  let commit (b:t): unit =
+    if b.isbuf && b.commit = Not then
+      b.commit <- Committing
+\end{ocaml}
+
+
+
+
+
+
+\section{Command Line Parsing}
+
+
+
+\section{Parsing Problems in Alba}
+
+\subsection{Newline as Optional Separator}
+
+A predictive parser cannot work in parsing Alba sourcecode. Reason: Whitespace
+with newline might be significant as a separator.
+
+\begin{alba}
+  id(A:Any, a:A): A :=
+    a        -- nl is separator
+
+  add(i,j:Nat): Nat :=
+    i        -- nl is ignored
+    + j
+\end{alba}
+%
+In the first declaration the newline after the expression \verb!a! is a
+separator and in the second declaration the newline after the operand \verb!i!
+has to be ignored, because the expression continues.
+
+An LL(1) parser cannot decide on seeing the newline whether to terminate the
+declaration and looking for a new declaration or to look for further operands.
+
+We can use the following grammar to describe a sequence of declarations.
+{\scriptsize
+\begin{verbatim}
+    decls   ::= eps | decl declseq
+    declseq ::= eps | sep decl declseq
+    sep     ::= nl  | ';'
+    decl    ::= hd nlopt exp
+    hd      ::= id ... ':='
+    nlopt   ::= eps | nl
+    exp     ::= id ops
+    ops     ::= eps | nlopt op nlopt id ops
+\end{verbatim}
+}
+%
+In order to compute the parsing table for a recursive descent parser we need
+the first and follow set for each nonterminal of the grammar.
+{\scriptsize
+\begin{verbatim}
+    nonterminal       first            follow
+
+    decls             {eps,id}         {$}
+    declseq           {eps, nl, ';'}   {$}
+    sep               {nl, ';'}        {id}
+    hd                {id}             {nl,id}
+    nlopt             {eps,nl}         {op, id}
+    exp               {id}             {$, nl, ';'}
+    ops               {eps,nl,op}      {$, nl, ';'}
+\end{verbatim}
+}
+%
+Parsing table
+{\scriptsize
+\begin{verbatim}
+    entry(decls)   = {id -> decls ::= decl declseq,
+                      $  -> decls ::= eps}
+    entry(declseq) = {(nl,';') -> declseq ::= sep decl declseq,
+                      $        -> declseq ::= eps}
+    entry(sep)     = {nl -> sep ::= nl, ';' -> sep ::= ';'}
+    entry(decl)    = {id -> decl ::= hd nlopt exp}
+    entry(hd)      = {id -> hd ::= id ... ':='}
+    entry(nlopt)   = {nl -> nlopt ::= nl, (op,id) -> nlopt ::= eps}
+    entry(exp)     = {id -> exp ::= id ops}
+    entry(ops)     = {(nl,op) -> ops ::= nlopt op nlopt id ops,
+                      ($,nl,';') -> ops ::= eps}
+\end{verbatim}
+}
+%
+The nonterminal \verb!ops! has two entries for the terminal \verb!nl! i.e. a
+predictive parser cannot decide which of the two productions to use when
+trying to parse \verb!ops! on seeing \verb!nl!.
+
+The only solution for a recursive descent parser is to backtrack i.e. first
+use one production and backtrack as soon as an error occurs and try then the
+other production.
+
+Note: Backtracking is expensive because all tokens need to be bufferend until
+the error occurs and then replayed onto the alternative. Therefore a tokenizer
+should put as much information into the significant whitespace tokens in order
+to minimize the backtracking information.
+
+
+\subsection{Documentation Comments}
+
+The comments serving as documentation are expected.
+
+\begin{alba}
+  add(i,j:Nat): Nat :=
+      -- The sum of the two number i and j
+    i + {: some comment :} j
+\end{alba}
+
+Convention: An expected comment has at least one newline (all comments
+starting with \verb!--! span to the end of line, therefore they have one
+newline). Only nested comments might not have newlines. Nested comments
+without newlines are parsed as whitespace and completely ignored by the
+tokenizer. Comments with newline are returned as an newline token by the
+tokenizer.
+
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

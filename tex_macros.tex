@@ -1,0 +1,90 @@
+\lstdefinelanguage{alba}
+{ basewidth=0.45em,
+  basicstyle=\small\tt,
+  %columns=flexible,
+  keywords={
+    abstract,all,and,assert,
+    case,class,create,
+    do,
+    else,end,
+    ghost,
+    if,inherit,inspect,
+    not,
+    or,
+    require,
+    section,
+    some,
+    then,
+    where
+  },
+  keywordstyle=\color{blue},
+  commentstyle=\color{brown},
+  morecomment=[l]{--},
+  morecomment=[n]{\{:}{:\}}
+}
+
+\lstnewenvironment{alba} {\lstset{language=alba}} {}
+
+
+
+
+
+
+
+\lstdefinelanguage{ocaml}
+{ basewidth=0.45em,
+  basicstyle=\tt\small,
+  %columns=flexible,
+  keywords={
+    and,assert,
+    do,done,
+    else,end,
+    for,fun,functor,
+    if,in,include,
+    let,
+    match,module,mutable,
+    of,
+    rec,
+    sig,struct,
+    then,to,type,
+    val,
+    when,while,with},
+  keywordstyle=\color{blue},
+  commentstyle=\color{brown},
+  morecomment=[n]{(*}{*)}
+}
+
+\lstnewenvironment{ocaml} {\lstset{language=ocaml}} {}
+
+
+
+
+
+
+\lstdefinelanguage{js}
+{ basewidth=0.45em,
+  basicstyle=\small\tt,
+  %columns=flexible,
+  keywords={
+    else,for,function,if,
+    return},
+  keywordstyle=\color{blue},
+  commentstyle=\color{brown},
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+}
+
+\lstnewenvironment{js} {\lstset{language=js}} {}
+
+
+
+
+\newcommand{\code}[1]{{\tt\small #1}}
+\def\Any{\cal{A}}
+\def\Prop{\cal{P}}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
