@@ -43,6 +43,215 @@ Input/Output can be
 
 
 
+\section{IO Models}
+
+
+
+\subsection{Monadic IO}
+
+\noindent Monadic bind operator:
+\begin{ocaml}
+  val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+\end{ocaml}
+
+
+\begin{ocaml}
+  getc fd >>= function
+  | None ->
+    (* error handling *)
+  | Some c ->
+    (* success handling *)
+
+  (* signature *)
+  open_read: string -> file_descriptor option t
+  getc: file_descriptor -> char option t
+
+  (* complete signatures, threading state *)
+  open_read: string -> state -> state * file_descriptor option
+  getc: file_descriptor -> state -> state * char option
+
+  (* because of *)
+  type 'a t = state -> state * 'a
+\end{ocaml}
+%
+
+\begin{itemize}
+\item How to verify that the file descriptor is open?
+
+
+\item Practically all IO operations can fail even if the programmer knows that
+  they cannot fail. E.g. A file descriptor has been successfully opened. The
+  first subsequent close operation must succeed.
+
+\end{itemize}
+
+
+E.g. the open-file operation could in the success case return a file
+descriptor and a proof that the corresponding file descriptor is open.
+
+
+\subsection{Hoare State Monad}
+
+A computation $C(A,S)$ has a value type and a specification. The specification
+is a relation between the prestate, the value and the poststate. The
+computation can be executed only in a possible prestate. Once executed it
+yields a value of type $A$ and ends in a state satisfying the postcondition.
+
+\begin{alba}
+  State: Any := ...
+
+  Spec(A:Any): Any :=  State -> A -> State -> Proposition
+
+  pre(A:Any,r:Spec(A), s1:State): Proposition :=
+    some(a,s2) r(s1,a,s2)
+
+  post(A:Any, r:Spec(A), s1:State, a:A): Proposition :=
+    some(s2) r(s1,a,s2)
+
+
+  Hoare(A:Any, r:Spec(A)): Any := (A, r)
+
+  open_spec (s1:State, fd:Maybe(Descriptor), s2:State): Proposition :=
+    inspect fd case
+      just(fd) :=
+        not s1.open_files.has(fd)
+        and
+        s1.open_files + fd = s2.open_files
+      nothing :=
+        s1 = s2
+\end{alba}
+Note that the precondition of \code{open\_spec} is always satisfied because
+%
+\begin{alba}
+   pre(open_spec,s1) = some (fd,s2) open_spec(s1,fd,s2)
+\end{alba}
+%
+which is trivial to satisfy. Just take \code{fd = nothing} and \code{s1 = s2}.
+
+Now we declare the types of the function \code{open} and the type constructor
+\code{IO} as
+%
+\begin{alba}
+  IO(A:Any, spec:Spec(A)): Any
+
+  open: IO(Descriptor, open_spec)
+\end{alba}
+%
+The type of \code{return} is easy. The call \code{return a} just injects the
+value $a$ into the IO-monad and leaves the state unchanged.
+%
+\begin{alba}
+  return (A:Any, a:A)
+         : IO( A,
+               (s1,x,s2) :=
+                   x  = a and
+                   s1 = s2 )
+\end{alba}
+%
+For the bind operation it is a little bit more difficult. We would expect
+something like
+%
+\begin{alba}
+  (>>=) ( A,B:Any,
+          m:IO(A,r1),
+          f:A -> IO(B,r2)
+        ): IO(B,r3)
+\end{alba}
+%
+where $r_1$ is the specification of the first monad and $r_2$ is the
+specification of the monad $f(a)$ and $r_3$ is the specification of the
+resulting monad \code{m >>= f}. However the specifications $r_1$ and $r_2$
+must be given as arguments (but they are inferable) and the specification
+$r_3$ must be computed as the sequence of both specifications. We end up with
+something like
+
+%
+\begin{alba}
+  (>>=) ( A,B: Any, r1: Spec(A), r2: A -> Spec(B),
+          m: IO(A, r1),       -- r1 inferable from this type!
+          f: all(a)
+               IO(B, r2(a))   -- r2 inferable from this type!
+        )
+        : IO( B,
+              (s1,b,s3) :=
+                  some(a,s2)
+                    r1(s1,a,s2) and
+                    r2(a,s2,b,s3))
+\end{alba}
+%
+
+
+\begin{alba}
+  open (name: String):
+       IO ( Maybe (Descriptor),
+            (s1, fd, s2) :=
+               inspect fd case
+                  just (fd) :=
+                     not s1.open_files.has(fd)
+                     and
+                     s2 = s1[open_files := s1.open_files + fd]
+                  nothing :=
+                     s2 = s1 )
+
+  putc (c:Char, fd:Descriptor)
+       : IO ( Unit,
+              (s1, (), s2) :=
+                  s1.open_files.has(fd) and
+                  s1 = s2 )
+\end{alba}
+
+
+\vspace{3cm}
+\noindent From article ``Hoare State Monad''
+
+\begin{alba}
+  section(A:Any)
+    State: Any := ....
+    Pre: Any := State -> Proposition
+    Post: Any := State -> A -> State -> Proposition
+
+    Hoare (pre:Predicate(State), post: Post): Any :=
+      all(s1:{s:State | pre s}) {(a,s2): (A,State) | post(s1,a,s2)}
+    ...
+\end{alba}
+
+The precondition is just a predicate over the state. The postcondition is a
+relation between the prestate a value and a poststate.
+
+\begin{verbatim}
+  top (s:State): Proposition := true
+
+  return (A:Any) (a:A): Hoare(A,top, (s1,x,s2) := s1 = s2 and x = a) :=
+    (x,s) := (x,s)
+
+  (>>=) (A,B:Any, m:Hoare(A,pre1,post1), f:all(a:A) Hoare(B,pre2(a),
+\end{verbatim}
+
+\subsection{Elm Architecture}
+
+
+\begin{ocaml}
+  update: 'model -> 'msg -> 'model * 'msg Cmd.t
+
+  view: 'model -> 'msg Html.t
+
+  subscriptions: 'model -> 'msg Subscriptions.t
+\end{ocaml}
+
+
+\subsection{CSP}
+
+
+
+
+
+
+
+
+
+
+
+
 
 \section{Synchronous versus Asynchronous IO}
 
