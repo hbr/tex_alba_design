@@ -1,0 +1,234 @@
+\section{Builtin Types}
+
+
+\subsection{Nat/Int}
+
+These are unsigned or signed integers with a bitsize of 32 or 64 according to
+the platform.
+
+In javascript all numbers are floating point numbers i.e. 64 bit
+integers cannot be represented. Therefore we use 32 bit numbers when compiling
+to javascript.
+
+The usual modulo arithmetic is used.
+
+Interface for \code{Nat} in Alba:
+%
+\begin{alba}
+  class Nat       -- opaque type
+
+  0: Nat
+  1: Nat
+  ...
+  9: Nat
+  hex_a:Nat
+  ...
+  hex_f:Nat
+  base10:   Nat
+  base16:   Nat
+  greatest_nat: Nat
+
+  (=) (a,b:Nat): Decision (a = b)
+  (+) (a,b:Nat): Nat
+  (-) (a,b:Nat): Nat
+  (*) (a,b:Nat): Nat
+
+  {: Representation of numbers:
+
+    538    =  (5 * base10 + 3) * base10 + 8
+    0xa91f =  ((hex_a * base16 + 9) * base16 + 1) * base16 + hex_f
+  :}
+
+  (/) (a,b:Nat): Maybe(Nat)
+  (/) (a,b:Nat): b /= 0 -> Nat
+  (mod) (a,b:Nat): Maybe(Nat)
+  (mod) (a,b:Nat): b /= 0 -> Nat
+
+  (<=) (a,b:Nat): Boolean
+  (<)  (a,b:Nat): Boolean
+  (>=) (a,b:Nat): Boolean
+  (>)  (a,b:Nat): Boolean
+
+  1 /= 0
+\end{alba}
+
+\begin{alba}
+  class Int
+  -- same as Nat
+  ...
+  least_int:    Nat
+  greatest_int: Nat
+\end{alba}
+
+
+Potential problems:
+\begin{enumerate}
+\item If the bitsize of the numbers is not fixed, then compiler cannot check
+  number literals for overflow. Furthermore the compiler cannot generate
+  evidence that a literal number is different from 0 (or in any order
+  relation).
+
+  Therefore it might be convenient to fix the bitsize of Nat and Int to 32. 32
+  bit would be the best for javascript compilation, because they can be
+  represented natively.
+
+
+\item Overflow checking on literal \code{Nat}s might be difficult because
+  overflow is valid on \code{Nat}s. During parsing we could check how much
+  bitsize is necessary to hold the number and after typechecking see what
+  actual type has been inferred and report the problem.
+\end{enumerate}
+
+
+\subsection{Byte}
+
+TBD
+
+\subsection{Character}
+
+\begin{alba}
+  class Character
+
+  is_unicode(n:Nat): Proposition :=
+    n <= 0xD7FF or (0xE000 <= n and n <= 0x10FFFF)
+
+  nat (c:Character): Nat
+  character (n:Nat): Maybe(Character)
+  character (n:Nat): n.is_unicode -> Character
+
+  {: Escape sequences
+    '\0'          null character (0x00)
+    '\n'          newline (0x0a)
+    '\r'          carriage return (0x0d)
+    '\f'          formfeed (0x0c)
+    '\t'          tab (0x09)
+    '\v'          vertical tab (0x0b)
+    '\''          single quote (0x27)
+    '\\'          backslash (0x2c)
+    '\xhh'        hexadecimal representation of the character
+    '\uhhhh'      unicode character, 4 hexadecimal digits
+
+    maybe better
+    '\u{hh...}'   unicode character, 1 up to 8 hexadecimal digits
+
+    or directly with conversion
+
+    character(0)  =   just '\0'
+    character(0x09) = just '\t'
+    character(0x0a) = just '\n'
+
+    nat('\a')  = 97
+  :}
+\end{alba}
+
+
+\begin{itemize}
+
+\item A character shall be able to represent an arbitrary unicode character.
+
+\item Three are no characters in javascript. We can either use 32 numbers or
+  strings. If we use 32 bit numbers then the conversion functions
+  \code{nat} and \code{character} are trivial.
+
+\item A valid unicode character is in the ranges \code{0x0000 .. 0xD7FF} or
+  \code{0xE000 .. 0x10FFFF}. The function \code{character} must validate it.
+\end{itemize}
+
+
+
+\subsection{String}
+
+\begin{alba}
+  class String create
+    []
+    (^) (Character,String)
+
+  {:
+    "Hello"   = 'H' ^ 'e' ^ 'l' ^ 'l' ^ 'o' ^ []
+
+    "A \nstring \xa0bla\u{01ab00} with escapes"
+
+    "A string splitted \
+     via a newline. The newline and all blanks following \
+     the newline are removed"
+
+    """
+       A verbatim
+          string
+       where the prefix
+     common to all lines
+       is removed
+     the start """ must be followed by a newline
+     the end """ must follow a newline (plus optional blanks)
+    """
+  :}
+\end{alba}
+
+The compiler implements strings as pairs $(i,s)$ where $(0,s)$ represents the
+whole string and $(i,s)$ represents the string starting from position
+$i$. With this implementation it is easy to implement pattern matching.
+
+Restriction: The maximum length of strings is $2^{32} - 1 =
+4,294,967,295$. Generating a longer string throws a runtime exception and
+terminates the program.
+
+Javascript strings are sequences of 16bit characters i.e. it uses UTF-16
+encoding. Each character represents a character of the first Basic
+Multilingual Plane (BMP).
+
+Characters outside the first basic multilingual plane are represented by
+surrogate pairs. Therefore the length of a string in javascript is the number
+of UTF-16 characters not the number of characters.
+
+Unicode comprises code points between \code{0x00} and \code{0x10FFFF} which are
+1,114,112 code points. They have 17 planes, the basic multilingual plane and
+16 supplementary planes. Therefore the command \code{character(number)} has to
+ignore all values above \code{0x10FFFF} (Note \code{0xFFFFF + 1 = 0x10FFFF}).
+
+$17 \times 2^{16} = 1,114,112$ code points minus $2,048$ technically-invalid
+surrogate code points (i.e. $1,112,064$ valid code points).
+
+
+\subsection{Natural}
+
+Represent arbitrary sized natural numbers.
+%
+\begin{alba}
+  class Natural create
+    0
+    successor(Natural)
+
+  1: Natural := 0.successor
+  ...
+  9: Natural := 8.successor
+  hex_a: Natural := 9.successor
+  ...
+  base10:Natural  := hex_a
+  base16: Natural := hex_f.successor
+
+  fold (A:Any, a:Natural, start:A, next:A->A): A :=
+    inspect a case
+      0 :=
+         start
+      n.successor :=
+         fold(n, start, next).next
+
+  (+) (a,b:Natural): Natural :=
+    fold (a, b, successor)
+
+  (*) (a,b:Natural): Natural :=
+    fold (a, b, (x) := x + b)
+\end{alba}
+
+The compiler does not implement a natural number as an inductive type, but as
+some efficient representation (e.g sequence of Nats).
+
+The compiler replaces the functions \code{(+), (*), (/), (=), (<=), (<), (>),
+  (>=), (mod)} with native functions which do the same job more efficiently.
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
