@@ -636,7 +636,83 @@ are backtrackable.
 
 
 
+\section{Indentation Sensitivity}
 
+Annotate each token and each nonterminal with an indentation. The indentation
+of the token is the column of the first character of the token and the
+indentation of a nonterminal is the minimal indentation of a token within that
+nonterminal.
+
+$$
+\begin{array}{lll}
+  A &::=& (^= \;  A^> \; )^=
+  \\
+    &\mid& [^\ge \; A^> \; ]^\ge
+  \\
+    &\mid& A^= \; A^=
+  \\
+    &\mid& \epsilon
+\end{array}
+$$
+
+{\small
+\begin{verbatim}
+  parse tree for (1 [4 (5 )5 ]7 )1
+
+  1234567890
+  (  [(
+      ) ]
+  )
+
+
+  parse tree for (1 [8 (6 )6 [8 ]9 ]4 (3 )3 )1
+
+  123456789
+  (      [
+       (
+       ) []
+     ]
+    (
+    )
+  )
+\end{verbatim}
+}
+
+
+PEG Grammar
+$$
+\begin{array}{llll}
+  p &::=& \epsilon   &\text{success}
+  \\
+    &\mid& p \, p      &\text{sequence}
+  \\
+    &\mid& p <\mid> p  &\text{biased choice}
+  \\
+    &\mid& p^r         &\text{indentation where $r$ is one of }\{=,>,\ge,-\}
+  \\
+    &\mid& |p|         &\text{absolute alignment}
+\end{array}
+$$
+
+
+In the state we need a set of allowed indentations and a flag for absolute
+alignment. Initially the set of allowed indentations is $\{0,1,2, \ldots\}$
+and the absolute alignment flag is not set.
+
+The set of allowed indentation can be represented by a lower bound $i$ and an
+optional strict upper bound $k$ such that all $j$ with $i \le j < k$ or $i \le
+j$ are allowed. The singleton set $\{i\}$ is represented by the lower bound
+$i$ and the upper bound $i+1$.
+
+
+Landin's offside rule
+\begin{quote}
+  Landin introduced the offside rule, enforcing that in a program of a layout-
+  sensitive language, all the subsequent lines of certain structures of the
+  language should be ``further to the right'' than the first line of the
+  corresponding structure. If the tokens of the subsequent lines occur further
+  to the left than the first line, they are offside, and the structure is
+  invalid.\end{quote}
 
 \section{Command Line Parsing}
 
