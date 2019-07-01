@@ -7,7 +7,11 @@
 \item[Module] A module is the smallest compilation unit. It consists of an
   implementation file \code{<module-name>.al} and an interface file
   \code{<module-name>.ali}. The module name must be a valid lower case Alba
-  identifier (i.e. no hyphens etc.).
+  identifier (i.e. no hyphens etc.). In the use block of a module each used
+  module is either a module of the same package (single name) or a module of a
+  used package (name \code{p.q.m}). I.e. the module name is always the last
+  component of the fully qualified name. A module name must be unique within a
+  package.
 
 \item[Package] A package is a collection of modules. It is located in a
   directory having a file named \code{alba-package.yml} describing the
@@ -212,7 +216,35 @@ library.
 
 
 
+
+
+
 \section{Dependency Management}
+
+
+\subsection{Basics}
+
+\begin{itemize}
+
+\item Explore the workspace
+  \begin{itemize}
+
+  \item Find the nearest ancestor directory having a {\tt\small
+      alba-workspace.yml} file.
+
+  \item Verify that there is no upper workspace directory (workspaces cannot
+    be nested).
+
+  \item Scan all subdirectories to find packages i.e. directories with an
+    {\tt\small alba-package.yml} file and find all illegal nested workspaces.
+  \end{itemize}
+
+\item Analyze the package descriptions
+  \begin{itemize}
+  \item Unavailable packages
+  \item Circular dependencies
+  \end{itemize}
+\end{itemize}
 
 \subsection{\code{.al} Modification}
 
@@ -236,21 +268,34 @@ express that the first one is correct but not yet checked against its
 specification and the second to express correctness and compliance with the
 specification.
 
+
+
 \subsection{\code{alba-package.yml} Modification}
 
 
-Problems with internal consistency:
+\subsubsection{Problems with internal consistency}
+
 \begin{description}
 
-\item[Exported modules] Only available modules can be exported.
+\item[Exported modules] Only available modules can be exported. An exported
+  module which is unavailable is an error in the package description.
 
 \item[Used packages] All actually used packages within modules must be
-  contained.
+  contained. Only packages declared in the package description as used modules
+  can be used in modules of the package. Privately used packages can only be
+  used privately, publicly used packages can be used privately and publicly.
+
+  Using a package not declared in the package description as usable is an
+  error in the corresponding module. Therefore a modification in the package
+  description can invalidate already compiled modules.
+
+  Furthermore it is possible that a package description uses a package which
+  is not existent. This is an error in the package description.
 
 \end{description}
 
 
-Problems with users:
+\subsubsection{Problems with users}
 \begin{description}
 
 \item[Exported modules] Exporting more has no external effects, exporting less
@@ -316,6 +361,11 @@ affectations and loops.
   Decider (A:Any, p:A->Proposition): Any
     := all(x) Decision (p(x))
 \end{alba}
+
+
+
+
+
 
 
 \section{Screwed Up Workspaces or Contexts}
