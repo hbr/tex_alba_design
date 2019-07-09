@@ -119,13 +119,356 @@ minimum indentation, the indentation block is closed.
   outer blocks which are determined by the first indented line of the
   block. Otherwise the indentation might look very flattery.
 
-\item 
+\item
   However it might be better to enforce strict indentation. With strict
   indentation the nesting is explicit. I.e. either put an indented block
   completely on a line or indent exactly the same amount after each newline
   where the indentation of the first indented line determines the needed
   indentation of the block.
 \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Parentheses}
+
+There is the functional programming style like
+%
+\begin{alba}
+  f (x:X) (y:Y) (z:Z) ... : RT
+
+  f x y z ...
+\end{alba}
+%
+and the usual style
+%
+\begin{alba}
+  f (x:X, y:Y, z:Z, ...): RT
+
+  f (x, y, z, ...)
+\end{alba}
+%
+%
+Dot notation
+%
+\begin{alba}
+  set.has(e)                           set `has` e
+                                       e `elem` set
+
+  x.f(a,b,c)                           (x `f` a) b c
+                                       -- note
+                                       x `f` a b c =  x `f` (a b c)
+\end{alba}
+%
+Note that
+%
+\begin{alba}
+  f (x:X, y:Y, z:Z, ...): RT
+\end{alba}
+%
+could be used in functional style as well. Furthermore it could be possible to
+use single quotes to convert identifiers with more than one character into
+binary operators like
+%
+\begin{alba}
+  e 'element_of' set
+
+  set 'has' e
+\end{alba}
+%
+
+Let's look at some more advanced examples:
+%
+\begin{alba}
+  (>>=) ( A,B: Any, r1: Spec(A), r2: A -> Spec(B),
+          m: IO(A, r1),       -- r1 inferable from this type!
+          f: all ( a )
+               IO(B, r2(a))   -- r2 inferable from this type!
+        )
+        : IO( B,
+              (s1, b, s3) :=
+                  some (a, s2)
+                    r1(s1,a,s2) and
+                    r2(a,s2,b,s3))
+
+  -- versus
+
+  (>>=) ( A,B: Any, r1: Spec A, r2: A -> Spec B,
+          m: IO A r1,         -- r1 inferable from this type!
+          f: all ( a )
+               IO B (r2 a)    -- r2 inferable from this type!
+        )
+        : IO  B
+              (s1, b, s3) :=
+                  some (a, s2)
+                    r1 s1 a s2 and
+                    r2 a s2 b s3
+
+\end{alba}
+%
+Since the right hand side of \code{:=} is greedy, parentheses can be avoided
+around the function definition.
+%
+\begin{alba}
+  -- function definition with backslash lambda
+
+          IO  B
+              \ s1 b s3 :=
+                  some (a, s2)
+                    r1 s1 a s2 and
+                    r2 a s2 b s3
+\end{alba}
+%
+does not give us a lot, because with types it looks like
+%
+\begin{alba}
+  \ (a:A, b:B, ...) :=
+        ...
+
+  -- versus
+
+  (a:A, b:B, ...) :=
+        ...
+\end{alba}
+
+
+\begin{alba}
+  open (name: String):
+       IO (Maybe Descriptor)
+          (s1, fd, s2) :=
+             inspect fd case
+                just (fd) :=
+                   s1.open_files `not_has` fd
+                   and
+                   s2 = s1[open_files := s1.open_files + fd]
+                nothing :=
+                   s2 = s1
+
+  putc (c:Char, fd:Descriptor)
+       : IO Unit
+            (s1, _, s2) :=
+                s1.open_files `has` fd and
+                s1 = s2
+\end{alba}
+
+
+\begin{alba}
+  x.f.f.f                  set.has x
+
+  -- instead of
+
+  f (f (f x))              has set x
+                           set `has` x
+  -- is still possible
+\end{alba}
+
+
+
+
+
+
+
+
+\subsection{Operators}
+
+
+\subsubsection{General Remarks}
+
+Binary operators have precedence and associativity.
+
+Unary operators can be viewed as binary operators where the left operand is
+missing. E.g. logical negation $\lnot\, a$ can be viewd as $\cdot\, \lnot\, a$
+where $\cdot$ marks the invisible left operand.
+
+We use juxtaposition for function application i.e. $f \, a$ is the
+application of the function $f$ to the argument $a$. We view the whitespace
+between the function and the argument as an invisible binary operator i.e. we
+can treat $f \, a$ as $f \, \odot\, a$ where $\odot$ is the invisible operator
+with left associativity.
+
+
+
+Precedence and associativity rules can save us parentheses as shown in the
+following examples where $+,\times$ are left associative, $\triangleleft$ is
+right associative, function application is left associative and the unary
+operator $\lnot$ is treated as a binary operator with right associativity.
+%
+$$
+\begin{array}{lll}
+  a + b + c
+  &  \to
+  &   (a + b) + c
+
+  \\
+
+  a \triangleleft b \triangleleft c
+  &  \to
+  & a \triangleleft (b \triangleleft c)
+
+  \\
+
+  a \times b + c
+  &  \to
+  &   (a \times b) + c
+
+  \\
+
+  a + b \times c
+  &  \to
+  &   a + (b \times c)
+
+  \\
+
+  f \odot a \odot b & \to & (f \odot a) \odot b
+
+  \\
+
+  \lnot \, \lnot \, a & \to &  \lnot \, (\lnot \, a)
+
+  \\
+
+  \cdot\, \lnot\, \cdot\, \lnot\, a
+  & \to
+  &  \cdot\, \lnot\, (\cdot\, \lnot\, a)
+\end{array}
+$$
+
+
+We group the operators by precedence levels.
+
+Different operators having the same precedence are treated as the same
+operators. E.g. $+$ and $-$ are addition operators. They have the same
+precedence (lower that multiplication operators, higher than logical operator)
+and are left associative.
+
+
+\subsubsection{Relational Operators}
+
+Relational operators don't have associativity. E.g. having the relational
+expression
+$$
+a \le b < c
+$$
+%
+it does not make sense to parse it as $(a \le b) < c$ or $a \le (b <
+c)$. There are 2 possibilities
+%
+\begin{enumerate}
+
+\item Treat expressions like $a \le b < c$ as syntactically wrong
+
+\item Parse $a \le b < c$ as $a \le b \,\land\, b < c$.
+
+\end{enumerate}
+%
+The first one is simpler to implement, the second one is more elegant and
+closer to usual conventions in mathematics.
+
+
+
+
+\subsubsection{Unary Operators}
+
+The arithmetic negation $-$ is the only operator which can be prefix (unary)
+or infix (binary).
+$$
+%
+\begin{array}{lllll}
+
+  a + b - c
+  & \to
+  & (a + b) - c
+
+  \\
+
+  - a + b
+  & \to
+  & (-a) + b
+  & \quad\mid
+  & (\cdot - a) + b
+
+  \\
+
+  a + -b
+  & \to
+  & a + (-b)
+
+  \\
+
+  - a \times b
+  & \to
+  & (-a) \times b
+
+  \\
+
+  a \times -b
+  & \to
+  & a \times (-b)
+
+  \\
+
+  - a^b
+  & \to
+  & -( a^b)
+  & \quad\mid
+  & \cdot - (a ^ b)
+
+  \\
+
+  \lnot\, a \le b
+  & \to
+  & \lnot\, (a \le b)
+\end{array}
+$$
+%
+Unary minus has a higher precedence than addition and multiplication, but
+lower precedence than exponentiation. Binary minus is an addition
+operator and has the same precedence and associativity as $+$.
+
+
+
+
+\subsubsection{Pretty Printing}
+
+Once the syntax tree is parsed, the parentheses have been stripped off and the
+expression structure is encoded in the syntax tree.
+
+When we want to print an expression we have to insert the necessary
+parentheses. The precedence and associativity of the operators guide the
+insertion.
+
+We assign to each subexpression an optional precedence/assoc information.
+
+When the information is missing then the subexpression is treated as atomic
+i.e. without parentheses.
+
+When the upper node in the syntax tree has higher precedence, then parentheses
+have to be inserted. When the upper node has lower precedence, then no
+parentheses are needed.
+
+If the upper node and the subexpression have the same precedence
+(i.e. equivalent operators with same associativity), then the associativity
+and the location of the subexpression as a left or right operand decides the
+need for parentheses.
+
+Parentheses are needed if the subsexpression is the left operand and we have
+right associativity or the subsexpression is the right operand and we have
+left associativity or if we have non-associativity.
+
+However for non-associativity it might be elegant to print $a \le b < c$
+instead of the more complex $a \le b \,\land\, b < c$. This is not trivial
+because the case $a \le b \,\land\, b < c$ has to be distinguished from the
+case $a \le b \,\land\, c < d$.
+
 
 %%% Local Variables:
 %%% mode: latex
