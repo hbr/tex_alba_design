@@ -121,29 +121,11 @@ subuniverse of a partial order and we can state this fact by
 \end{alba}
 
 
-\subsection{Experimental: Alba Type System in Alba}
 
-\begin{alba}
-  mutual
-    class Object create
-      var(Variable)
-      app(Object,Object)
-      app(Object,Type)
-      lam(Variable,Type,Object)
-      lam(Variable,Kind,Object)
-    class Type create
-      var(Natural)
-      app(Type,Type)
-      app(Type,Object)
-      lam(Variable,Type,Type)
-      lam(Variable,Kind,Type)
-      pi(Variable,Type,Type)
-      pi(Variable,Kind,Type)
-    class Kine create
-      sort(Sort)
-      pi(Variable,Kind,Kind)
-      pi(Variable,Type,Kind)
-\end{alba}
+
+
+
+
 
 %%% Local Variables:
 %%% mode: latex

@@ -1,0 +1,45 @@
+\section{Type Inference}
+
+A global (constant or function) is uniquely found by its name and its
+signature. Many globals can share the same name as long as their signature is
+different.
+
+Looking up the name results in a list of globals. If the list is empty, then a
+global with that name does not exist.
+
+Locals shadow all previously declared names. I.e. either one local or a list
+of globals is returned by looking up a name.
+
+In an expression a name is used with a certain number of essential arguments
+(i.e. with an arity at its call site). This has to be compared with the actual
+arity. The actual arity must be sufficient for the required arity at the call
+site.
+
+If the arity is sufficient, the formal arguments can be pushed into the
+context and a type remains as the result type which must be unified with the
+required result type (possibly instantiating substitutable type variables).
+
+
+\paragraph{Loop up a global} It is a function call with $n$ essential
+arguments. The $n$ arguments and the corresponding type variables and proof
+arguments can be extracted and pushed into the \emph{global} context with
+dummy variables. If the global is not unique we get more than one context. The
+context might have different inferable variables and different types for the
+dummy variables.
+
+\paragraph{Required types}
+If it is explicitly given (result type of a function in a function definition
+or explicitly typed expression), then it is only one type and not a set of
+types.
+
+If the expression is used as an argument of a function then there can be
+multiple required types. Anyhow we have a context (or a set of contexts) and
+for each context an explicit type or a pointer to an argument (whose type is
+the required type).
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
