@@ -102,19 +102,19 @@ yields a value of type $A$ and ends in a state satisfying the postcondition.
 
   Spec(A:Any): Any :=  State -> A -> State -> Proposition
 
-  pre(A:Any,r:Spec(A), s1:State): Proposition :=
-    some(a,s2) r(s1,a,s2)
+  pre(A: Any, r: Spec A , s1:State): Proposition :=
+    some(a,s2) r s1 a s2
 
-  post(A:Any, r:Spec(A), s1:State, a:A): Proposition :=
-    some(s2) r(s1,a,s2)
+  post(A:Any, r: Spec A, s1:State, a:A): Proposition :=
+    some(s2) r s1 a s2
 
 
-  Hoare(A:Any, r:Spec(A)): Any := (A, r)
+  Hoare(A:Any, r: Spec A ): Any := (A, r)
 
-  open_spec (s1:State, fd:Maybe(Descriptor), s2:State): Proposition :=
+  open_spec (s1:State, fd: Maybe Descriptor , s2:State): Proposition :=
     inspect fd case
-      just(fd) :=
-        not s1.open_files.has(fd)
+      just fd  :=
+        not s1.open_files.has fd
         and
         s1.open_files + fd = s2.open_files
       nothing :=
@@ -123,7 +123,7 @@ yields a value of type $A$ and ends in a state satisfying the postcondition.
 Note that the precondition of \code{open\_spec} is always satisfied because
 %
 \begin{alba}
-   pre(open_spec,s1) = some (fd,s2) open_spec(s1,fd,s2)
+   pre open_spec s1  = some (fd,s2) open_spec s1 fd s2
 \end{alba}
 %
 which is trivial to satisfy. Just take \code{fd = nothing} and \code{s1 = s2}.
@@ -132,9 +132,9 @@ Now we declare the types of the function \code{open} and the type constructor
 \code{IO} as
 %
 \begin{alba}
-  IO(A:Any, spec:Spec(A)): Any
+  IO(A:Any, spec: Spec A ): Any
 
-  open: IO(Descriptor, open_spec)
+  open: IO Descriptor open_spec
 \end{alba}
 %
 The type of \code{return} is easy. The call \code{return a} just injects the
@@ -142,8 +142,8 @@ value $a$ into the IO-monad and leaves the state unchanged.
 %
 \begin{alba}
   return (A:Any, a:A)
-         : IO( A,
-               (s1,x,s2) :=
+         : IO  A
+               (\ s1 x s2 :=
                    x  = a and
                    s1 = s2 )
 \end{alba}
@@ -152,10 +152,10 @@ For the bind operation it is a little bit more difficult. We would expect
 something like
 %
 \begin{alba}
-  (>>=) ( A,B:Any,
-          m:IO(A,r1),
-          f:A -> IO(B,r2)
-        ): IO(B,r3)
+  (>>=) ( A B: Any,
+          m: IO A r1 ,
+          f:A -> IO B r2
+        ): IO B r3
 \end{alba}
 %
 where $r_1$ is the specification of the first monad and $r_2$ is the
@@ -167,26 +167,26 @@ something like
 
 %
 \begin{alba}
-  (>>=) ( A,B: Any, r1: Spec(A), r2: A -> Spec(B),
-          m: IO(A, r1),       -- r1 inferable from this type!
+  (>>=) ( A B: Any, r1: Spec A, r2: A -> Spec B,
+          m: IO A r1          -- r1 inferable from this type!
           f: all(a)
-               IO(B, r2(a))   -- r2 inferable from this type!
+               IO B (r2 a)    -- r2 inferable from this type!
         )
-        : IO( B,
-              (s1,b,s3) :=
-                  some(a,s2)
-                    r1(s1,a,s2) and
-                    r2(a,s2,b,s3))
+        : IO  B
+              (\ s1 b s3 :=
+                  some(a, s2)
+                    r1 s1 a s2  and
+                    r2 a s2 b s3 )
 \end{alba}
 %
 
 
 \begin{alba}
   open (name: String):
-       IO ( Maybe (Descriptor),
-            (s1, fd, s2) :=
+       IO (Maybe  Descriptor),
+          (\ s1  fd  s2 :=
                inspect fd case
-                  just (fd) :=
+                  just fd :=
                      not s1.open_files.has(fd)
                      and
                      s2 = s1[open_files := s1.open_files + fd]
@@ -194,38 +194,49 @@ something like
                      s2 = s1 )
 
   putc (c:Char, fd:Descriptor)
-       : IO ( Unit,
-              (s1, (), s2) :=
-                  s1.open_files.has(fd) and
+       : IO  Unit,
+             (\ s1 _ s2 :=
+                  s1.open_files.has fd  and
                   s1 = s2 )
 \end{alba}
 
 
-\vspace{3cm}
-\noindent From article ``Hoare State Monad''
+
+\subsection{General Monad}
 
 \begin{alba}
-  section(A:Any)
-    State: Any := ....
-    Pre: Any := State -> Proposition
-    Post: Any := State -> A -> State -> Proposition
+  Spec (S A: Any): Any
+    := S -> A -> S -> Proposition
 
-    Hoare (pre:Predicate(State), post: Post): Any :=
-      all(s1:{s:State | pre s}) {(a,s2): (A,State) | post(s1,a,s2)}
-    ...
+
+  abstract class
+    Monad (S A: Any): Spec S A -> Any
+
+  section (S A B: Any, M: Monad)
+    return (a:A): M S A
+                    (\s1 x s2 :=  x = a  and  s1 = s2)
+
+    (>>=) (r1: Spec A)
+          (r2: A -> Spec B)
+          (m: M S A r1)
+          (f: all a, M S A (r2 a))
+          : M S B
+              (\s1 b s3 :=
+                  some a s2,
+                    r1 s1 a s2
+                    and
+                    r2 a s2 b s3)
 \end{alba}
 
-The precondition is just a predicate over the state. The postcondition is a
-relation between the prestate a value and a poststate.
 
-\begin{verbatim}
-  top (s:State): Proposition := true
 
-  return (A:Any) (a:A): Hoare(A,top, (s1,x,s2) := s1 = s2 and x = a) :=
-    (x,s) := (x,s)
 
-  (>>=) (A,B:Any, m:Hoare(A,pre1,post1), f:all(a:A) Hoare(B,pre2(a),
-\end{verbatim}
+
+
+
+
+
+
 
 \subsection{Elm Architecture}
 
@@ -237,6 +248,10 @@ relation between the prestate a value and a poststate.
 
   subscriptions: 'model -> 'msg Subscriptions.t
 \end{ocaml}
+
+
+
+
 
 
 \subsection{CSP}
