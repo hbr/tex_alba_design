@@ -1,5 +1,7 @@
 \section{Type Inference}
 
+\subsection{Basics}
+
 A global (constant or function) is uniquely found by its name and its
 signature. Many globals can share the same name as long as their signature is
 different.
@@ -36,6 +38,244 @@ If the expression is used as an argument of a function then there can be
 multiple required types. Anyhow we have a context (or a set of contexts) and
 for each context an explicit type or a pointer to an argument (whose type is
 the required type).
+
+
+
+
+\subsection{Unification}
+
+
+A system of equations is in a \emph{solved form} iff it has the following
+properties
+%
+\begin{enumerate}
+
+\item All equations have the form $x = t$ where $x$ is a variable.
+
+\item A variable that occurs on the left-hand side of an equation does not
+  occur at the right-hand side of any equation.
+
+\item A variable may occur only on one left-hand side.
+\end{enumerate}
+
+The system
+$$
+%
+\begin{array}{lll}
+  x &=& f\, y
+  \\
+  y &=& g\, x
+\end{array}
+$$
+%
+can be made inconsistent by substitution the second equation into the first
+getting $x = f (g\, x)$ where $x$ occurs on the left and on the right-hand side.
+
+The system
+$$
+\begin{array}{lll}
+  x &=& f\, y
+  \\
+  y &=& g\, z
+  \\
+  z &=& c
+\end{array}
+$$
+%
+where $c$ does not contain any variables can be transformed into the solved
+form
+$$
+\begin{array}{lll}
+  x &=& f\, (g \, c)
+  \\
+  y &=& g\, c
+  \\
+  z &=& c
+\end{array}
+$$
+%
+because it has no circularity.
+
+The non-circularity can be maintained easily on a system in solved
+form. Assume we have
+$$
+%
+\begin{array}{lll}
+  x &=& t_x
+  \\
+  y &=& t_y
+\end{array}
+$$
+%
+in solved form (i.e. $t_x$ and $t_y$ contain neither $x$ nor $y$) and we want
+to add a new equation $z = t_z$. We just use
+$$
+%
+\begin{array}{lll}
+  x &=& t_x[z := t_z]
+  \\
+  y &=& t_y[z := t_z]
+  \\
+  z &=& t_z[x,y := t_x, t_y]
+\end{array}
+$$
+%
+and check if any of the variables occurs on the right-hand side of its
+equation. The system remains consistent if $t_z$ does not contain $x,y$ or if
+$t_x,t_y$ do not contain $z$.
+
+
+Question: Is it possible to avoid circularity without transforming the system
+into the solved form on each step? Let's assume we have
+$$
+%
+\begin{array}{lll}
+  x &=& t_x
+  \\
+  y &=& t_y
+\end{array}
+$$
+%
+which is solvable i.e. $t_x$ does not contain $y$ or $t_y$ does not contain
+$x$ and we want to add a new equation $z = t_z$. $z$ might be contained in
+$t_x$ and/or $t_y$ and $x$ or $y$ might be contained in $t_z$.
+
+
+
+
+\subsection{Type Safe Unification}
+
+Since we have a well typed system it might be possible that circularity during
+unification is impossible due to the typing rules.
+
+Assume that $A$ is a type variable and during unification we get the equation
+$A = L\, A$ where $L$ is any type constructor (e.g. \code{List}). Since we can
+substitute equals for equals we would get the infinite chain
+$$
+  A = L\, A = L\, (L\, A) = L\, (L\, (L\, A)) \ldots
+$$
+
+
+
+Example: We want to build a term for the syntactic expression $a + b * c$ in
+the context $\Gamma$. This is possible only if the variables $a, b, c, +, *$
+occur in $\Gamma$ i.e. we assume a context
+$$
+\Gamma = [+:I\to I\to I, *:I\to I\to I, \ldots, a:I, b:I, c:I, \ldots]
+$$
+
+
+We don't know the type of the expression nor a term which
+represents the expression. We add two unknows (i.e. variables) to the context.
+%
+$$
+\Gamma, E: \Any, e: E
+$$
+%
+Now we have to analyze $\cdot + \cdot$ as a binary operator i.e. a function
+with two arguments. In the context we have $+ : I \to I \to I$ where $I$
+represents the type of integer numbers.
+
+We need a placeholder of type $I$ for each argument and get
+$$
+%
+\Gamma,  E: \Any, e: E, u:I, v:I \vdash u + v: I
+$$
+%
+We unify $e:E$ with $u+v:I$ and get the system
+$$
+%
+\begin{array}{lll}
+  E &=& I
+  \\
+  e &=& u + v
+\end{array}
+$$
+%
+Next we analyze the expression $a$ which is not a function call and therefore
+does not need new placeholders.
+$$
+%
+\Gamma,  E: \Any, e: E, u:I, v:I \vdash a:I
+$$
+%
+Unification of $u:I$ and $a:I$ leads to
+$$
+%
+\begin{array}{lll}
+  E &=& I
+  \\
+  e &=& u + v
+  \\
+  u &=& a
+\end{array}
+$$
+%
+Next we analyze $\cdot * \cdot$ and need again two new placeholders
+$$
+%
+\Gamma,  E: \Any, e: E, u:I, v:I, w:I, x:I \vdash w * x: I
+$$
+%
+and unify $v:I$ with $ w * x: I$ to get
+$$
+%
+\begin{array}{lll}
+  E &=& I
+  \\
+  e &=& u + v
+  \\
+  u &=& a
+  \\
+  v &=& w * x
+\end{array}
+$$
+%
+Continuing the process we finally get
+$$
+%
+\Gamma,  E: \Any, e: E, u:I, v:I, w:I, x:I
+$$
+%
+with
+$$
+%
+\begin{array}{lll}
+  E &=& I
+  \\
+  e &=& u + v
+  \\
+  u &=& a
+  \\
+  v &=& w * x
+  \\
+  w &=& b
+  \\
+  x &=& c
+\end{array}
+$$
+%
+This system can be resolved into
+$$
+%
+\begin{array}{lll}
+  E &=& I
+  \\
+  e &=& a + b * c
+  \\
+  u &=& a
+  \\
+  v &=& b * c
+  \\
+  w &=& b
+  \\
+  x &=& c
+\end{array}
+$$
+%
+where only the first two lines are interesting.
+
+
 
 
 
