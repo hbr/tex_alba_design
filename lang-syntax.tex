@@ -189,29 +189,29 @@ binary operators like
 Let's look at some more advanced examples:
 %
 \begin{alba}
-  (>>=) ( A,B: Any, r1: Spec(A), r2: A -> Spec(B),
+  (>>=) ( A B: Any, r1: Spec(A), r2: A -> Spec(B),
           m: IO(A, r1),       -- r1 inferable from this type!
           f: all ( a )
                IO(B, r2(a))   -- r2 inferable from this type!
         )
         : IO( B,
               (s1, b, s3) :=
-                  some (a, s2)
+                  some (a,s2)
                     r1(s1,a,s2) and
                     r2(a,s2,b,s3))
 
   -- versus
 
-  (>>=) ( A,B: Any, r1: Spec A, r2: A -> Spec B,
+  (>>=) ( A B: Any, r1: Spec A, r2: A -> Spec B,
           m: IO A r1,         -- r1 inferable from this type!
-          f: all ( a )
+          f: all a:
                IO B (r2 a)    -- r2 inferable from this type!
         )
         : IO  B
-              (s1, b, s3) :=
-                  some (a, s2)
+              (\ s1 b s3 :=
+                  some a s2:
                     r1 s1 a s2 and
-                    r2 a s2 b s3
+                    r2 a s2 b s3)
 
 \end{alba}
 %
@@ -274,7 +274,37 @@ does not give us a lot, because with types it looks like
 
 
 
+\subsection{Parentheses 2}
 
+\begin{alba}
+  -- function definition
+  f (a: A, b: B, ... ): RT := ...
+      -- ^ comma necessary to terminate type
+
+  -- without arg types
+  f a b ...: RT := ...
+
+  -- without types
+  f a b ... := ...
+
+  -- anonymous
+  \(a: A, b:B, ...): RT := ...
+
+  \ a b ... := ...
+\end{alba}
+
+
+\begin{alba}
+  -- dependent types
+  all (a:A, b:B, ...): RT
+
+  -- without arg types
+  all a b ...: RT
+
+  -- combined
+  f: all(a:A, b:B, ...): RT :=  -- ':=' binds lower than quantifier
+    \ a b ... := ...
+\end{alba}
 
 
 

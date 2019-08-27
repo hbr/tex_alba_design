@@ -168,22 +168,21 @@ something like
 %
 \begin{alba}
   (>>=) ( A B: Any, r1: Spec A, r2: A -> Spec B,
-          m: IO A r1          -- r1 inferable from this type!
-          f: all(a)
-               IO B (r2 a)    -- r2 inferable from this type!
+          m: IO A r1               -- r1 inferable from this type!
+          f: all a: IO B (r2 a)    -- r2 inferable from this type!
         )
         : IO  B
               (\ s1 b s3 :=
-                  some(a, s2)
+                  some a s2:
                     r1 s1 a s2  and
-                    r2 a s2 b s3 )
+                    r2 a s2 b s3)
 \end{alba}
 %
 
 
 \begin{alba}
   open (name: String):
-       IO (Maybe  Descriptor),
+       IO (Maybe  Descriptor)
           (\ s1  fd  s2 :=
                inspect fd case
                   just fd :=
@@ -219,10 +218,10 @@ something like
     (>>=) (r1: Spec A)
           (r2: A -> Spec B)
           (m: M S A r1)
-          (f: all a, M S A (r2 a))
+          (f: all a: M S A (r2 a))
           : M S B
               (\s1 b s3 :=
-                  some a s2,
+                  some a s2:
                     r1 s1 a s2
                     and
                     r2 a s2 b s3)

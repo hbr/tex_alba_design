@@ -44,6 +44,8 @@
 
 
 
+
+
 \section{First Class Modules}
 
 
@@ -79,6 +81,128 @@
   let get_imod (module I:IMOD): int =
     I.value
 \end{ocaml}
+
+
+
+
+
+\section{Continuations}
+
+Classical implementation of a continuation monad:
+%
+\begin{ocaml}
+  module Continuation (A:ANY) =
+  struct
+    type answer = A.t
+    type 'a t = ('a -> answer) -> answer
+    let return (a:'a) (k:'a -> answer): answer =
+      k a
+    let (>>=) (m:'a t) (f:'a -> 'b t) (k:'b -> answer): answer =
+      m (fun a -> f a k)
+    let run (m:answer t): answer =
+       m identity
+  end
+\end{ocaml}
+%
+or maybe better
+\begin{ocaml}
+  module Continuation (A:ANY) =
+  struct
+    type answer = A.t
+    type 'a t = ('a -> answer) -> answer
+    let return (a:'a): 'a t =
+      fun k -> k a
+    let (>>=) (m:'a t) (f:'a -> 'b t): 'b t =
+      fun k -> m (fun a -> f a k)
+    let run (m:answer t): answer =
+       m identity
+  end
+\end{ocaml}
+
+Let's assume we have
+\begin{ocaml}
+   module C = Continuation (Int)
+   let m = return 0 >>= fun i -> return (i + 1) >>= fun i -> return (i + 1)
+\end{ocaml}
+%
+which can be constructed step by step
+\begin{ocaml}
+  return 0 >>= f1
+  =
+  fun k -> return 0 (fun a -> f1 a k)
+  =
+  fun k -> return 0 (fun a -> (fun i -> return (i+1) >>= f2) a k)
+  =
+  fun k -> return
+             0
+             (fun a -> (fun i ->
+                          fun k ->
+                            return
+                              (i+1)
+                              (fun a -> f2 a k)
+                       ) a k)
+  =
+  fun k -> return
+             0
+             (fun a -> (fun i ->
+                          fun k ->
+                            return
+                              (i+1)
+                              (fun a -> (fun i -> return (i+1)) a k)
+                       ) a k)
+\end{ocaml}
+%
+The call stack can get excessively deep in running a continuation monad.
+
+Now we try a different design
+%
+\begin{ocaml}
+  module Continuation (A:ANY) =
+  struct
+    type answer = A.t
+    type state =
+      | Done of answer
+      | More of (unit -> state)
+    ...
+  end
+\end{ocaml}
+%
+and we define the monadic type
+\begin{ocaml}
+  type 'a t = ('a -> state) -> state
+\end{ocaml}
+%
+and the basic monadic functions
+\begin{ocaml}
+  let return (a:'a): 'a t =
+    fun k -> k a
+
+  let (>>=) (m:'a t) (f:'a -> 'b t): 'b t =
+    fun k -> m (fun a -> More (fun () -> f a k))
+\end{ocaml}
+%
+having this the function \code{run} can be implemented iteratively
+\begin{ocaml}
+  let run (m: answer t): answer =
+    let st = ref (m (fun a -> Done a))
+    and goon = ref true
+    in
+    while !goon do
+      match !st with
+      | Done _ ->
+         goon := false
+      | More f ->
+         st := f ()
+    done;
+    match !st with
+    | Done a ->
+       a
+    | _ ->
+       assert false (* cannot happen *)
+\end{ocaml}
+%
+With this design no deeply nested call stack occurs.
+
 
 %%%Local Variables:
 %%% mode: latex
