@@ -22,7 +22,7 @@ context and a type remains as the result type which must be unified with the
 required result type (possibly instantiating substitutable type variables).
 
 
-\paragraph{Loop up a global} It is a function call with $n$ essential
+\paragraph{Look up a global} It is a function call with $n$ essential
 arguments. The $n$ arguments and the corresponding type variables and proof
 arguments can be extracted and pushed into the \emph{global} context with
 dummy variables. If the global is not unique we get more than one context. The
@@ -34,8 +34,8 @@ If it is explicitly given (result type of a function in a function definition
 or explicitly typed expression), then it is only one type and not a set of
 types.
 
-If the expression is used as an argument of a function then there can be
-multiple required types. Anyhow we have a context (or a set of contexts) and
+If the expression is used as an argument of a function, then there can be
+multiple required types. Anyhow, we have a context (or a set of contexts) and
 for each context an explicit type or a pointer to an argument (whose type is
 the required type).
 
