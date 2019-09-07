@@ -1,0 +1,41 @@
+\section{Read Eval Print Loop (repl)}
+
+You can type in an expression and the repl parses the expression, builds a
+well typed term (if possible) and evaluates and prints it (if possible).
+
+Not all terms can be evaluated and printed. A function has usually no print
+representation (is not an instance of \code{show} in Haskell speak).
+
+Values which have a canonical print representation:
+\begin{enumerate}
+
+\item Numbers
+\item Characters
+\item Strings
+\item Arrays if the content type is printable.
+\item Algebraic types if all contained values are printable.
+\end{enumerate}
+
+
+Builtin functions are functions and therefore do not have a print
+representation. However the result of builtin functions is printable if the
+function is applied to a complete set of arguments. E.g. $1 + 6$ can be
+printed, but $(2+)$ not (because it is the function $\lambda x. 2 + x$).
+
+$$
+%
+\begin{array}{lll}
+  3 + 4 &=&  (\lambda x y. x + y)\, 3 \,4
+  \\
+        &=& (\lambda y. 3 + y) \,4
+  \\
+        &=& 3 + 4
+\end{array}
+$$
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:

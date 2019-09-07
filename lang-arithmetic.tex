@@ -1,0 +1,44 @@
+\section{Arbitrary Precision Arithmetic}
+
+We have a base $B$ and digits $0 \le d < B$ i.e. the greatest digit is $B-1$.
+\begin{itemize}
+
+\item The digit sequence $(d_0d_1d_2 \ldots d_{n-1})_B$ is interpreted as the number
+  $(\ldots((d_0 B + d_1)B + d_2) + \ldots) + d_{n-1} $
+
+\item The result of adding two digits is at most $2B-2$.
+
+\item The result of adding two digits and a carry ($0$ or $1$) is at most
+  $2B-1$.
+
+\item For a two digit sequence where the first digit is $1$ we get
+  $(1 d)_B = 1 B + d \le 2 B - 1$
+
+\item For the four digits $a,b,c,d$ we get $a b + c + d < B^2$ because of $a b
+  \le (B - 1)^2 = B^2 - 1 - (2B-2)$ and $c + d \le 2B-2$. Furthermore $(a b +
+  c + d)/B < B$ is valid.
+ \end{itemize}
+
+
+Primitive operations
+\begin{enumerate}
+\item Addition and substraction of one-place integers, giving a one-place
+  answer and a carry.
+
+\item Multiplication of a one-place integer with another giving a two-place
+  answer.
+
+\item Division of a two-place integer by a one-place integer, provided that
+  the quotient is a one-place integer, and yielding also a one-place
+  remainder.
+
+\end{enumerate}
+
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
