@@ -61,7 +61,6 @@
 
 
 
-
 \lstdefinelanguage{js}
 { basewidth=0.45em,
   basicstyle=\small\tt,
@@ -81,8 +80,35 @@
 
 
 \newcommand{\code}[1]{{\tt\small #1}}
+\def\abold{\mathbf{a}}
+\def\bbold{\mathbf{b}}
+\def\Cbold{\mathbf{C}}
+\def\fbold{\mathbf{f}}
+\def\pbold{\mathbf{p}}
+\def\tbold{\mathbf{t}}
+
 \def\Any{{\cal{A}}}
 \def\Prop{{\cal{P}}}
+
+\def\case  {\text{case}}
+\def\fix   {\text{fix}}
+\def\ind   {\text{ind}}
+\def\Inductive    {\mathbb{I}}
+\def\Constructor  {\mathbb{C}}
+
+\def\imp{\Rightarrow}
+\def\reduce{\,\triangleright\,}
+\def\reducestar{\,\triangleright^*\,}
+\def\reduceplus{\,\triangleright^+\,}
+
+
+\newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
+\newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
+
+\theoremstyle{definition} \newtheorem{definition}{Definition}[section]
+\theoremstyle{definition} \newtheorem{theorem}[definition]{Theorem}
+\theoremstyle{definition} \newtheorem{lemma}[definition]{Lemma}
+
 
 
 %%% Local Variables:

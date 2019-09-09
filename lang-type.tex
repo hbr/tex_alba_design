@@ -1,5 +1,403 @@
 \section{Type System}
 
+\subsection{Terms}
+\label{sec:terms}
+
+
+The type system of Alba is based on dependent types with inductive
+constructions. There is no syntactic difference between sorts, terms and
+types. Everthing is a term and every valid term has a type. The type of a term
+is a term as well and not necessarily a type (it can be a sort or a
+kind). This ambiguous wording of a type and a type of a term is often a source
+of confusion. However without inventing a completely new terminology this
+ambiguity is unavoidable.
+
+
+In this paper we use the wording that
+\begin{itemize}
+\item a term is an object, if its type is a type,
+\item a term is a type, if its type is a sort or a kind (sort valued function)
+\item otherwise a term is kind.
+\end{itemize}
+The wording becomes clearer after the introduction of formal typing
+rules~\ref{sec:typing-rules}. In order to understand terms, the intuitive
+definition might be sufficient.
+
+\begin{definition}
+  There are 4 sorts in Alba
+  \begin{enumerate}
+
+  \item $\Any$: The type (or maybe better the sort) of all types. $\Any$ is
+    the type of numbers, strings, characters is $\Any$ i.e. we have the typing
+    judgements \code{Natural} : $\Any$, \code{String} : $\Any$,
+    \code{Character} : $\Any$, etc. In program text $\Any$ is written as
+    \code{Any}.
+
+
+  \item $\Prop$: The type of propositions. In Alba we use the Curry-Howard
+    correspondence with propositions as types. The proposition $i > 0$ is a
+    type whose type is the sort $\Prop$. I.e. we have the typing judgement $i
+    > 0 : \Prop$. A term $p$ of type $i > 0$ (i.e. $p:i > 0$) is a proof of $i
+    > 0$. Sometimes we use the notation $p : i > 0 : \Prop$ to express the two
+    typing judgements with one expression. In program text $\Prop$ is written as
+    \code{Proposition}.
+
+
+  \item $\Box$: The supertype of all types (or sorts). We have the
+    valid typing judgements $\Prop: \Any$, $\Any : \Box$ and because of
+    transitivity $\Prop: \Box$.
+
+
+  \item Abstract datatypes: In Alba abstract datatypes are not types, they are
+    sorts. E.g. \code{Sortable} is an abstract datatype i.e. a sort in
+    Alba. The typing judgement \code{Natural}: \code{Sortable} is valid,
+    because the natural numbers have a decidable linear order i.e. they have
+    an order relation $\le$ and a decision function which given two numbers
+    $a, b$ either returns a proof of $a \le b$ or $\lnot\, a \le b$.
+
+    For all abstract datatypes $A$ the typing judgement $A: \Any$ is
+    valid. We can view $\Any$ as an abstract datatype which imposes no
+    requirements in its subtypes. Therefore any sort $S$ different from $\Any$
+    satisfies the judgment $S: \Any$.
+  \end{enumerate}
+\end{definition}
+
+The set of all sorts has a wellfounded relation $<$. Therefore there are no
+cycles within the sorts. Within sorts the relation $s_1 < s_2$ and the typing
+judgement $s_1 : s_2$ are equivalent. $\Any$ is the supertype of all other
+valid types and the only supertype of $\Any$ is $\Box$.
+
+\begin{definition}
+  A \emph{context} $\Gamma$ is a list of variable/type pairs
+  $$
+  \Gamma = [x_0: T_0, x_1: T_1, x_2: T_2, \ldots]
+  $$
+  where the variables are unique (no duplicates) and the type $T_i$ might
+  contain the variables $x_0, \ldots, x_{i-1}$. Because of the last condition
+  a context is not a set of variable/type pairs, but a list. Swapping
+  variable/type pairs might invalidate this condition.
+
+  We write $\Gamma, x:T$ for the context $\Gamma$ with one more variable $x$
+  of type $T$.
+\end{definition}
+
+
+
+
+
+
+
+
+\begin{definition}
+  Let $i,k$ range over numbers, $s$ range over sorts, $x$ range over
+  variables, $t, a, e, f, A, B, C, T, R$ range over terms and $\Gamma$ range
+  over contexts. We use boldface to indicate a list of something. Terms are
+  defined by the grammar
+  $$
+  \begin{array}{lllll}
+    t &:= & s  & \text{sort}
+    \\
+      & \mid & x & \text{variable}
+    \\
+      & \mid & f \, a & \text{application}
+    \\
+      & \mid & \lambda x^A. e & \text{abstraction}
+    \\
+      & \mid & \Pi x^A.B & \text{dependent product}
+    \\
+      & \mid & \Inductive_{\Gamma,x:T,\Cbold} & \text{inductive type}
+    \\
+      & \mid & \Constructor^i_T & \text{i-th constructor of the inductive type } T
+    \\
+      & \mid & \case(e, \lambda x^T.R, \fbold) & \text{pattern match}
+    \\
+      & \mid & \fix(x^T, t, k) & \text{fixpoint}
+  \end{array}
+  $$
+\end{definition}
+
+The terms $x$, $f a$, $\lambda x^A.e$ are already known from untyped lambda
+calculus except that in untyped lamda calculus the bound variable $x$ in the
+abstraction does not have a type and in our typed calculus the it has the type
+$A$. The terms for products, inductive types, constructors, pattern match and
+fixpoints (recursive function) need some explanation.
+
+\begin{description}
+\item[Dependent product] $\Pi x^A.B$ In simply typed lambda calculus
+  $A \to B$ is the type of a functions from objects of type $A$ to objects of
+  type $B$. But since we have dependent types, a variable of type $A$ might
+  occur in $B$, therefore we need a binder. $\Pi x^A. B$ is the type of a
+  function which maps an object $a$ of type $A$ to an object of type
+  $B[x:=a]$. It is easy to see that $A \to B$ is just an abbreviation for
+  $\Pi x^A.B$ where $x$ does not occur in $B$.
+
+  With dependent types, a type can depend on a variable which is not a
+  type. If the variable $i$ is of type $\mathbb{N}$, then the term $i > 0$ is
+  a type which represents a proposition (i.e. $i > 0: \Prop$ is valid).
+
+  The term $\Pi i^{\mathbb{N}}. i > 0$ is the type of a function which maps
+  any natural number $n$ into a proof of $n > 0$. Obviously such a function
+  cannot exist because it would map the number $0$ into a proof of $0 > 0$
+  which implies a contradiction. In type theory we say that the type
+  $\Pi i^{\mathbb{N}}. i > 0$ is not inhabited. A function of type
+  $\Pi i^{\mathbb{N}}. i \ge 0$ can exist, because it maps any natural number
+  $n$ into a proof of the trivial fact $n \ge 0$.
+
+\item[Inductive type] $\Inductive_{\Gamma,x:T,\Cbold}$ An inductive type
+  consists of a context of parameters $\Gamma = [p_0:P_0, p_1:P_1, \ldots]$, a
+  type $T$ which is valid in a context with the parameters and a variable of
+  this type and an array of constructor types $\Cbold = [C_0, C_1, \ldots]$
+  which are all valid in the context $\Gamma, x:T$ appended to the global
+  context.
+
+  The parameter types $P_i$ are usually $\Any$ so that the parameter variables
+  $p_i$ are type variables. The inductive type of natural numbers has no
+  parameters, the inductive type of list has one parameter (therefore it makes
+  sense to talk about a list of elements of type $A$).
+
+  Two examples to illustrate the definition:
+  $$
+  %
+  \begin{array}{lllll}
+    \mathbb{N}
+    &:=& \Inductive_{[], I:\Any, [I, I \to I]}
+    &:& \Any
+    \\
+    \mathbb{L}
+    &:=& \Inductive_{[A:\Any],  I:\Any,  [I, A \to I \to I]}
+    &:& \Any \to \Any
+  \end{array}
+  $$
+  The type of natural numbers needs two constructors, a constant zero and a
+  successor function.
+
+  The type of list has one type parameter and two constructors. One to
+  construct the empty list, and one which prepends an element in front of an
+  existing list. Note that the variable $I$ in the list definition already
+  represents a list of $A$.
+
+  Since $\mathbb{N}$ has no parameters, its type is the same as the type as
+  its bound variable $I$ i.e. it is the sort $\Any$.
+
+  Since $\mathbb{L}$ has one parameter, its type is a function of the
+  parameter type to the type of its bound variable i.e. its type is the kind
+  $\Any \to \Any$ (sort valued function type). The term $\mathbb{L}$ is not a
+  type, it is a type constructor which needs one argument to generate an
+  actual type. The term $\mathbb{L} \, \mathbb{N}$ represents the type of
+  lists of natural numbers.
+
+  In program text we write
+  \begin{alba}
+      class Natural: Any create
+        0: Natural
+        succ: Natural -> Natural
+      class List (A:Any): Any create
+        []: List A
+        (^): A -> List A -> List A
+  \end{alba}
+  to express the same types.
+
+  Note that in the mathematical definition of an inductive type the name of
+  the bound variable $I$ is completely arbitrary and the constructors don't
+  need names, just the types are needed. Names are for humans, therefore in
+  the program text we use the names for the inductive types and the
+  constructors. In the mathematical formulae the term
+  $\Inductive_{[], I:\Any, [I, I \to I]}$ completely specifies the type and
+  $\mathbb{N}$ is just a name for it.
+
+
+
+
+\item[Constructor] $\Constructor^i_T$ This term specifies the $i$-th
+  constructor of the inductive type $T$. It is the actual constructor object
+  and not the constructor type. The following typing judgements are valid.
+  $$
+  %
+  \begin{array}{lll}
+    \Constructor^0_\mathbb{N}
+    &:& \mathbb{N}
+    \\
+    \Constructor^1_\mathbb{N}
+    &:& \mathbb{N} \to \mathbb{N}
+    \\
+    \Constructor^0_\mathbb{L}
+    &:& \Pi A^\Any. \mathbb{L} \, A
+    \\
+    \Constructor^1_\mathbb{L}
+    &:& \Pi A^\Any. A \to \mathbb{L}\, A -> \mathbb{L}\,A
+  \end{array}
+  $$
+  %
+  The term $\Constructor^0_{\mathbb{N}}$ represents the number $0$ and
+  therefore has the type $\mathbb{N}$. The term $\Constructor^1_{\mathbb{N}}$
+  represents the successor function and therefore has type
+  $\mathbb{N}\to\mathbb{N}$.
+
+  The parameters of an inductive type are arguments for the constructors and
+  have to be provided to get an object of the inductive type. Usually the
+  parameters occur within the constructor types (otherwise they would be
+  meaningless) and therefore e.g. the type of $\Constructor^0_{\mathbb{L}}$ is
+  a dependent product. In order construct an empty list of natural numbers we
+  need the term
+  $$
+  %
+  \Constructor^0_{\mathbb{L}} \, \mathbb{N}
+  $$
+  and the term
+  $$
+  \Constructor^1_{\mathbb{L}}
+  \,
+  \mathbb{N}
+  \,
+  \underbrace{\Constructor^0_{\mathbb{N}}}_{\text{zero}}
+  \,
+  (\underbrace{\Constructor^0_{\mathbb{L}} \, \mathbb{N}}_{\text{empty list}})
+  $$
+  constructs a singleton list of natural numbers with the element zero.
+
+
+\item[Pattern match] $\case(e,\lambda x^T.R, \fbold)$ A pattern match term has
+  an expression $e$ whose type is the inductive type $T$ i.e. the typing
+  judgement $e:T$ must be valid. $T$ must be a type and not only a type
+  constructor. E.g. $\mathbb{N}$ and $\mathbb{L}\, \mathbb{N}$ are types, but
+  $\mathbb{L}$ is not a type (only a type constructor).
+
+  The subterm $\lambda x^T.R$ is the elimination predicate. It determines the
+  result type of the pattern match expression. It is a function which maps the
+  expression $e$ to $R[x:=e]$ which is the result type of the expression. In
+  many simple cases $R$ does not depend on $x$ therefore the result type is
+  the same for all cases of the pattern match. However the elimination
+  predicate becomes important as soon as each case returns an object of a
+  different type. As described later in the section of propositional
+  types~\ref{sec:propositional-types} the elimination predicate needs not only
+  an argument $x$ of the inductive type $T$ but some more arguments.
+
+  The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
+  constructor of the inductive type. The function $f_i$ maps the arguments of
+  the $i$-th constructor to an object of the corresponding result type of the
+  case.
+
+  The following two functions are used to illustrate a pattern match term.
+  {\def\Nat{\mathbb{N}}
+    $$
+    %
+    \begin{array}{l}
+      \lambda i^\Nat.
+      \case(i, \lambda x^\Nat. \Nat, [0,\, \lambda i^\Nat. 1])
+
+      \\
+
+      \lambda i^\Nat.
+      \case(i, \lambda x^\Nat. \Nat, [0,\, \lambda i^\Nat. i])
+
+    \end{array}
+    $$
+    where $0$ is an abbreviation for $\Constructor^0_\Nat$ and $1$ is an
+    abbreviation for $\Constructor^1_\Nat\, \Constructor^0_\Nat$
+    (i.e. successor of zero).
+  }
+
+  The first function maps the number zero to the number zero and every other
+  number to the number one. The second one computes a predecessor function
+  which maps the number zero to zero and every other number to its
+  predecessor. Since every number different from zero is constructed by
+  applying the second constructor to its predecessor, the needed function in
+  the case expression is just the identity function.
+
+  Note that the elimination predicate is trivial in both examples because a
+  natural number is returned in each case of the pattern match.
+
+  {\def\Nat{\mathbb{N}} \def\List{\mathbb{L}}
+
+    In the calculus some weird function can be defined. E.g.
+    $$
+    F :=
+    \lambda i^\Nat.
+    \case(i, \lambda i^\Nat. \Any, [\Nat,\, \lambda i^\Nat. \List\, \Nat])
+    $$
+    defines a function $F$ which maps the number zero to the type of natural
+    numbers and every other number to the type of list of natural
+    numbers. Therefore $F$ is a type valued function whose argument is a
+    number i.e. an object.
+
+    We can use the function $F$ as an elimination predicate to define a
+    function which maps the number zero to the number zero and every other
+    number to an empty list of natural numbers.
+    $$
+    \lambda i^\Nat.
+    \case(i, F, [\Constructor^0_\Nat,\, \Constructor^0_\List\, \Nat])
+    $$
+  }
+\item[Fixpoint] $\fix(x^T, t, k)$
+\end{description}
+
+
+
+\subsection{Propositional Types}
+\label{sec:propositional-types}
+
+$$
+\le
+:= \Inductive_{
+  [],
+  r:\mathbb{N} \to \mathbb{N} \to \Prop,
+  [\Pi i. r 0 i , \Pi i^\mathbb{N} j^\mathbb{N}. r i j \to r i (j+1)]}
+: \mathbb{N} \to \mathbb{N} \to \Prop
+$$
+
+\subsection{Reduction}
+\label{sec:reduction}
+
+\begin{definition}
+  The reduction relation $a \reduce b$ is defined as the compatible closure of
+  the relation defined by the following rules
+  \begin{enumerate}
+
+  \item Beta reduction
+    $$
+    (\lambda x^A.e)\,a \reduce e[x:=a]
+    $$
+
+  \item Pattern match
+    $$
+    \ruleh
+    {|\Gamma| = |\pbold|}
+    {
+      \case(
+      \Constructor^j_{\Inductive_{\Gamma,x:T,\Cbold}}\,\pbold\,\abold,
+      \lambda x^A.R,
+      \fbold)
+      \reduce f_j \, \abold
+    }
+    $$
+
+  \item Fixpoint
+    $$
+    \ruleh
+    {|\abold| = k}
+    {
+      \fix(x^T, t, k) \,
+      \abold \,
+      (\Constructor^i_{\Inductive_{\Gamma,y:U,\Cbold}} \, \bbold)
+      \reduce
+      t[x := \fix(x^T, t, k)] \,
+      \abold \,
+      (\Constructor^i_{\Inductive_{\Gamma,y:U,\Cbold}} \, \bbold)
+    }
+    $$
+  \end{enumerate}
+  Compatible closure means that a term can be reduced by reducing one of its
+  subterms.
+\end{definition}
+
+
+\subsection{Typing Rules}
+\label{sec:typing-rules}
+
+
+
+\subsection{Draft}
+
 Types live in \emph{universes}. Initially there are the three universes
 \code{Proposition}, \code{Any} and \code{Box} ($\Prop$, $\Any$ and $\Box$ in
 mathematical formulas).
