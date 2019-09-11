@@ -1,5 +1,36 @@
 \section{Type System}
 
+In this chapter the intermedicate language of the Alba compiler is defined. It
+is a typed lambda calculus with inductive types.
+
+As opposed to untyped lambda calculus all bound variables have types i.e. the
+calculus is Church style.
+
+Notational conventions:
+\begin{enumerate}
+\item The types of bound variables are written as exponents. The term
+  $\lambda x^A. e$ is a function term mapping any term $a$ of type $A$ to the
+  term $e[x:=a]$.
+
+\item As usual in lambda calculi function application is written by
+  juxtaposition. The term $f\,a$ is the application of the function $f$ to the
+  argument $a$. We can apply a function to many arguments by $f \, a \, b \,
+  \ldots$.
+
+\item Function application associates to the left $f a b = (f a) b$.
+
+\item Multiple arguments in function terms $\lambda x^A. \lambda y^B . e$
+  can be abbreviated by $\lambda x^A y^B. e$.
+
+\item We use boldface to express arrays of terms. The expression $\abold$ must
+  be read as $[a_0, a_1, \ldots]$ and $|\abold|$ is the size of the array.
+
+\item The term $f \, \abold$ must be read as $f \, a_0 \, a_1 \, \ldots$.
+
+\item We use boldface to abreviate $\lambda x_0^{A_0} x_1^{A_1} \ldots . e$ by
+  $\lambda \xbold^\Abold. e$ and $[x_0: T_0, x_1:T_1, \ldots]$ by $[\xbold: \Tbold]$
+\end{enumerate}
+
 \subsection{Terms}
 \label{sec:terms}
 
@@ -328,22 +359,62 @@ fixpoints (recursive function) need some explanation.
     \case(i, F, [\Constructor^0_\Nat,\, \Constructor^0_\List\, \Nat])
     $$
   }
-\item[Fixpoint] $\fix(x^T, t, k)$
+\item[Fixpoint] $\fix(x^T, t, k)$ A Fixpoint encodes a recursive function. It
+  consists of a bound variable $x$ and its type $T$, a term $t$ using this
+  bound variable an a number $k$ indicating that the $k$-th argument of the
+  function is decreasing. The fixpoint and the bound variable have the same
+  type
+  $$
+  \begin{array}{lll}
+    x &:& T
+    \\
+    \fix(x^T, t, k) &:& T
+  \end{array}
+  $$
+  i.e. $T$ must be a function type $\Pi x^A y^B \ldots . R$ with at least $k$
+  arguments. Because the bound variable and the fixpoint have the same type,
+  it is possible to replace the bound variable $x$ in $t$ with the fixpoint
+  $t[x := \fix(x^T, t, k)]$. In order to avoid infinite recursion, some
+  argument must be decreased on each substitution (see chapter
+  \ref{sec:reduction}~Reduction and \ref{sec:typing-rules}~Typing Rules).
+
+  { \def\Nat{\mathbb{N}}
+
+    As an example for a fixpoint aka recursive function we use the function
+    which given an number $n$, a start value $a$ and an iteration function $g$
+    computes the $n$-th iteration of $g$ with the start $a$ i.e. $g^n a$. The
+    start value can be on any type $A$ and correspondingly the iteration
+    function must have type $A \to A$. The type $T$ of the recursive function
+    is $\Pi A^\Any. \Nat \to A \to (A \to A) \to A$. The recursive function is
+    defined by the fixpoint term
+    $$
+    \fix (
+    f^T,
+    \lambda A n a g.
+      \case(n,
+            \lambda n^\Nat. A,
+            [a, \lambda i. g (f A i a g)]
+      ),
+      1)
+    $$
+  }%
+  Note that we ommitted the type annotations in the inner function term
+  because the types are clear by looking at $T$.
+
+  In program text we write the recursive function as
+  \begin{alba}
+    fold: all(A:Any): Natural -> A -> (A -> A) -> A
+    fold A n a g :=
+       inspect n case
+          0 := a
+          succ i := g (fold A i a g)
+  \end{alba}
 \end{description}
 
 
 
-\subsection{Propositional Types}
-\label{sec:propositional-types}
 
-$$
-\le
-:= \Inductive_{
-  [],
-  r:\mathbb{N} \to \mathbb{N} \to \Prop,
-  [\Pi i. r 0 i , \Pi i^\mathbb{N} j^\mathbb{N}. r i j \to r i (j+1)]}
-: \mathbb{N} \to \mathbb{N} \to \Prop
-$$
+
 
 \subsection{Reduction}
 \label{sec:reduction}
@@ -389,6 +460,22 @@ $$
   Compatible closure means that a term can be reduced by reducing one of its
   subterms.
 \end{definition}
+
+
+
+
+\subsection{Propositional Types}
+\label{sec:propositional-types}
+
+$$
+\le
+:= \Inductive_{
+  [],
+  r:\mathbb{N} \to \mathbb{N} \to \Prop,
+  [\Pi i. r 0 i , \Pi i^\mathbb{N} j^\mathbb{N}. r i j \to r i (j+1)]}
+: \mathbb{N} \to \mathbb{N} \to \Prop
+$$
+
 
 
 \subsection{Typing Rules}
