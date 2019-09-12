@@ -19,8 +19,9 @@ Notational conventions:
 
 \item Function application associates to the left $f a b = (f a) b$.
 
-\item Multiple arguments in function terms $\lambda x^A. \lambda y^B . e$
-  can be abbreviated by $\lambda x^A y^B. e$.
+\item Multiple arguments in function terms $\lambda x^A. \lambda y^B . e$,
+  which is parsed as $\lambda x^A. (\lambda y^B . e)$, can be abbreviated by
+  $\lambda x^A y^B. e$.
 
 \item We use boldface to express arrays of terms. The expression $\abold$ must
   be read as $[a_0, a_1, \ldots]$ and $|\abold|$ is the size of the array.
@@ -30,6 +31,9 @@ Notational conventions:
 \item We use boldface to abreviate $\lambda x_0^{A_0} x_1^{A_1} \ldots . e$ by
   $\lambda \xbold^\Abold. e$ and $[x_0: T_0, x_1:T_1, \ldots]$ by $[\xbold: \Tbold]$
 \end{enumerate}
+
+
+
 
 \subsection{Terms}
 \label{sec:terms}
@@ -58,13 +62,6 @@ definition might be sufficient.
   There are 4 sorts in Alba
   \begin{enumerate}
 
-  \item $\Any$: The type (or maybe better the sort) of all types. $\Any$ is
-    the type of numbers, strings, characters is $\Any$ i.e. we have the typing
-    judgements \code{Natural} : $\Any$, \code{String} : $\Any$,
-    \code{Character} : $\Any$, etc. In program text $\Any$ is written as
-    \code{Any}.
-
-
   \item $\Prop$: The type of propositions. In Alba we use the Curry-Howard
     correspondence with propositions as types. The proposition $i > 0$ is a
     type whose type is the sort $\Prop$. I.e. we have the typing judgement $i
@@ -72,6 +69,13 @@ definition might be sufficient.
     > 0$. Sometimes we use the notation $p : i > 0 : \Prop$ to express the two
     typing judgements with one expression. In program text $\Prop$ is written as
     \code{Proposition}.
+
+
+  \item $\Any$: The type (or maybe better the sort) of all types. $\Any$ is
+    the type of numbers, strings, characters is $\Any$ i.e. we have the typing
+    judgements \code{Natural} : $\Any$, \code{String} : $\Any$,
+    \code{Character} : $\Any$, etc. In program text $\Any$ is written as
+    \code{Any}.
 
 
   \item $\Box$: The supertype of all types (or sorts). We have the
@@ -98,6 +102,25 @@ cycles within the sorts. Within sorts the relation $s_1 < s_2$ and the typing
 judgement $s_1 : s_2$ are equivalent. $\Any$ is the supertype of all other
 valid types and the only supertype of $\Any$ is $\Box$.
 
+Remarks:
+\begin{enumerate}
+\item The status of abstract datatypes is still draft. You can ignore them and
+  read the following with $\Any$, $\Prop$ and $\Box$ as the only sorts.
+
+\item It might be necessary to introduce an infinite sort hierachy
+  $\Any_0, \Any_1 \ldots$ where $\Any_0$ corresponds to $\Any$ and we have the
+  typing judgement $\Any_i : \Any_{i+1}$. The above description corresponds to
+  a cut of the sort hierarchy at $\Any_1$ where $\Any_1$ corresponds to
+  $\Box$. If we introduce the infinite type hierarchy, then the type system
+  without inductive types corresponds to the extented calculus of
+  constructions (ECC~\cite{luo1990}).
+\end{enumerate}
+
+
+
+
+
+%%% Context %%%%
 \begin{definition}
   A \emph{context} $\Gamma$ is a list of variable/type pairs
   $$
@@ -226,7 +249,7 @@ fixpoints (recursive function) need some explanation.
         []: List A
         (^): A -> List A -> List A
   \end{alba}
-  to express the same types.
+  to express the type of natural numbers and the type of lists.
 
   Note that in the mathematical definition of an inductive type the name of
   the bound variable $I$ is completely arbitrary and the constructors don't
@@ -293,14 +316,14 @@ fixpoints (recursive function) need some explanation.
   constructor. E.g. $\mathbb{N}$ and $\mathbb{L}\, \mathbb{N}$ are types, but
   $\mathbb{L}$ is not a type (only a type constructor).
 
-  The subterm $\lambda x^T.R$ is the elimination predicate. It determines the
+  The subterm $\lambda x^T.R$ is the elimination function. It determines the
   result type of the pattern match expression. It is a function which maps the
   expression $e$ to $R[x:=e]$ which is the result type of the expression. In
   many simple cases $R$ does not depend on $x$ therefore the result type is
   the same for all cases of the pattern match. However the elimination
-  predicate becomes important as soon as each case returns an object of a
+  function becomes important as soon as each case returns an object of a
   different type. As described later in the section of propositional
-  types~\ref{sec:propositional-types} the elimination predicate needs not only
+  types~\ref{sec:propositional-types} the elimination function needs not only
   an argument $x$ of the inductive type $T$ but some more arguments.
 
   The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
@@ -335,7 +358,7 @@ fixpoints (recursive function) need some explanation.
   applying the second constructor to its predecessor, the needed function in
   the case expression is just the identity function.
 
-  Note that the elimination predicate is trivial in both examples because a
+  Note that the elimination function is trivial in both examples because a
   natural number is returned in each case of the pattern match.
 
   {\def\Nat{\mathbb{N}} \def\List{\mathbb{L}}
@@ -351,7 +374,7 @@ fixpoints (recursive function) need some explanation.
     numbers. Therefore $F$ is a type valued function whose argument is a
     number i.e. an object.
 
-    We can use the function $F$ as an elimination predicate to define a
+    We can use the function $F$ as an elimination function to define a
     function which maps the number zero to the number zero and every other
     number to an empty list of natural numbers.
     $$
@@ -381,9 +404,9 @@ fixpoints (recursive function) need some explanation.
   { \def\Nat{\mathbb{N}}
 
     As an example for a fixpoint aka recursive function we use the function
-    which given an number $n$, a start value $a$ and an iteration function $g$
+    which given a number $n$, a start value $a$ and an iteration function $g$
     computes the $n$-th iteration of $g$ with the start $a$ i.e. $g^n a$. The
-    start value can be on any type $A$ and correspondingly the iteration
+    start value can be of any type $A$ and correspondingly the iteration
     function must have type $A \to A$. The type $T$ of the recursive function
     is $\Pi A^\Any. \Nat \to A \to (A \to A) \to A$. The recursive function is
     defined by the fixpoint term
