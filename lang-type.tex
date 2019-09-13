@@ -1,7 +1,10 @@
-\section{Type System}
+\section{Intermediate Typed Language}
 
 In this chapter the intermedicate language of the Alba compiler is defined. It
 is a typed lambda calculus with inductive types.
+
+The compiler transforms the Alba source code into the typed intermediate
+language.
 
 As opposed to untyped lambda calculus all bound variables have types i.e. the
 calculus is Church style.
@@ -31,6 +34,9 @@ Notational conventions:
 \item We use boldface to abreviate $\lambda x_0^{A_0} x_1^{A_1} \ldots . e$ by
   $\lambda \xbold^\Abold. e$ and $[x_0: T_0, x_1:T_1, \ldots]$ by $[\xbold: \Tbold]$
 \end{enumerate}
+
+
+
 
 
 
@@ -143,7 +149,7 @@ Remarks:
 
 
 \begin{definition}
-  Let $i,k$ range over numbers, $s$ range over sorts, $x$ range over
+  Let $i,k$ range over numbers, $s$ range over sorts, $x,y$ range over
   variables, $t, a, e, f, A, B, C, T, R$ range over terms and $\Gamma$ range
   over contexts. We use boldface to indicate a list of something. Terms are
   defined by the grammar
@@ -163,7 +169,7 @@ Remarks:
     \\
       & \mid & \Constructor^i_T & \text{i-th constructor of the inductive type } T
     \\
-      & \mid & \case(e, \lambda x^T.R, \fbold) & \text{pattern match}
+      & \mid & \case(e, \lambda \ybold^\Abold x^T.R, \fbold) & \text{pattern match}
     \\
       & \mid & \fix(x^T, t, k) & \text{fixpoint}
   \end{array}
@@ -259,7 +265,16 @@ fixpoints (recursive function) need some explanation.
   $\Inductive_{[], I:\Any, [I, I \to I]}$ completely specifies the type and
   $\mathbb{N}$ is just a name for it.
 
-
+  Furthermore note that the type $T$ in $\Inductive_{\Gamma, x:T, \Cbold}$
+  might have the form $\Pi \ybold^\Abold. \ldots$ i.e. in order to build a
+  type term other arguments beside the parameters might be needed. Therefore
+  in general an inductive type (and not only a type constructor) has the form
+  $$
+  \Inductive_{\Gamma, x:T, \Cbold} \; \pbold \; \abold
+  $$
+  where $\pbold$ is the array of parameters and $\abold$ is the arrary of
+  other arguments. The arguments beside the parameters of an inductive type
+  are sometimes called the index or the indices of the inductive type.
 
 
 \item[Constructor] $\Constructor^i_T$ This term specifies the $i$-th
@@ -310,21 +325,23 @@ fixpoints (recursive function) need some explanation.
   constructs a singleton list of natural numbers with the element zero.
 
 
-\item[Pattern match] $\case(e,\lambda x^T.R, \fbold)$ A pattern match term has
-  an expression $e$ whose type is the inductive type $T$ i.e. the typing
-  judgement $e:T$ must be valid. $T$ must be a type and not only a type
-  constructor. E.g. $\mathbb{N}$ and $\mathbb{L}\, \mathbb{N}$ are types, but
-  $\mathbb{L}$ is not a type (only a type constructor).
+\item[Pattern match] $\case(e,\lambda \ybold^\Abold x^T.R, \fbold)$ A pattern
+  match term has an expression $e$ whose type is the inductive type
+  $\Inductive_{\ldots} \pbold \abold$ i.e. the typing judgement
+  $e : \Inductive_{\ldots} \pbold \abold$ must be valid. The inductive type
+  must be a type and not only a type constructor i.e. it must have enough
+  arguments to be a type. E.g. $\mathbb{N}$ and
+  $\mathbb{L}\, \mathbb{N}$ are types, but $\mathbb{L}$ is not a type (only a
+  type constructor).
 
-  The subterm $\lambda x^T.R$ is the elimination function. It determines the
-  result type of the pattern match expression. It is a function which maps the
-  expression $e$ to $R[x:=e]$ which is the result type of the expression. In
-  many simple cases $R$ does not depend on $x$ therefore the result type is
-  the same for all cases of the pattern match. However the elimination
-  function becomes important as soon as each case returns an object of a
-  different type. As described later in the section of propositional
-  types~\ref{sec:propositional-types} the elimination function needs not only
-  an argument $x$ of the inductive type $T$ but some more arguments.
+  The subterm $\lambda \ybold^\Abold x^T.R$ is the elimination function. It
+  determines the result type of the pattern match expression. It is a function
+  which maps the expression $e$ of type
+  $\Inductive_{\ldots} \, \pbold \, \abold$ to $R[\ybold := \abold, x:=e]$
+  which is the result type of the expression. In many simple cases $R$ does
+  not depend on its arguments and therefore the result type is the same for
+  all cases of the pattern match. However the elimination function becomes
+  important as soon as each case returns an object of a different type.
 
   The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
   constructor of the inductive type. The function $f_i$ maps the arguments of
@@ -487,17 +504,390 @@ fixpoints (recursive function) need some explanation.
 
 
 
-\subsection{Propositional Types}
-\label{sec:propositional-types}
+\subsection{Inductive Types}
+\label{sec:inductive-types}
 
+In this chapter we explain more in detail the inductive types. It is worth
+noting that the calculus does not gain expressive power by inductive
+types. All functions which can be defined with inductive types can be defined
+without inductive types by using church encoding (e.g. church numerals) to
+encoded inductive objects. However inductive types allow for more efficient
+runtime evaluation of functions and are closer to intuition.
+
+\begin{definition}
+  A \emph{kind} is either a sort or a sort valued functions. Let $k$ range
+  over kinds, $A$ over terms and $s$ over sorts. Kinds are defined by the
+  grammar
+  $$
+  \begin{array}{lll}
+    k
+    &:=& s
+    \\
+    &\mid& \Pi x^A. k
+  \end{array}
+  $$
+  i.e. a term of the form
+  $$
+  \Pi x^A y^B \ldots . s
+  $$
+  where $s$ is a sort is a kind and $x, y, \ldots$ are the arguments of the
+  kind and $A, B \ldots$ are the argument types of the kind. Clearly a kind
+  might have no arguments.
+
+  We are sometimes sloppy in our wording and say that a term is a kind if it
+  reduces to a kind. But since kinds are defined by syntax this is not 100\%
+  correct.
+
+  The final type of a kind is always a sort and it is \emph{the} sort of the
+  kind. Therefore it makes sense to talk about the sort of a kind. The
+  argument types might be sorts (or even kinds) as well, but this is not
+  relevant.
+\end{definition}
+
+Now recall the definition of a term describing an inductive type
 $$
-\le
-:= \Inductive_{
+\Inductive_{\Gamma, \; I:T, \; \Cbold}
+$$
+where $\Gamma = [p_0:P_0, p_1: P_1, \ldots]$ are the parameters of the
+inductive type and $\Cbold = [C_0, C_1, \ldots]$ its constructor types.
+
+In order to define an inductive type the type $T$ of the bound variable $I$
+must reduce to a kind i.e. $T \reducestar \Pi \xbold^\Abold. s$. The arguments
+of $T$ are the arguments of the inductive type. In the literature the
+arguments of an inductive type are called the index or indices of the
+inductive type in order distinguish them clearly from the parameters.
+
+\begin{definition}
+  The \emph{type of a constructor} for the bound variable $I$ is defined by
+  the grammar
+  $$
+  \begin{array}{lll}
+    C
+    &:= & I \abold
+    \\
+    &\mid& \Pi x^A . C
+  \end{array}
+  $$
+  where $C$ ranges over type of constructors and $\abold$ is an array of
+  terms. I.e. the type of a constructor for the bound variable $I$ has the
+  form $\Pi \xbold^\Abold. I \abold$ where $|\abold|$ corresponds to the
+  number of arguments (indices) of the inductive type.
+\end{definition}
+
+All constructor types of an inductive definition must reduce to a type of a
+constructor for the corresponding bound variable. This condition implies that
+constructors really construct object of the corresponding inductive type.
+
+
+\begin{definition}
+  The type of a constructor $\Pi \xbold^\Abold. I \ldots$ satisfies the
+  \emph{positivity condition} for the bound variable $I$ if for all argument
+  types $A_i$ one of the following conditions are satisfied.
+  \begin{itemize}
+  \item The bound variable $I$ does not occur in $A_i$
+
+  \item $A_i$ has the form $\Pi \zbold^\Bbold . I \ldots$ where the bound
+    variable $I$ does not occur in any $B_j$.
+  \end{itemize}
+\end{definition}
+
+All constructor types of an inductive definition must satisfy the positivity
+condition. The positivity condition is needed to guarantee the termination of
+recursive functions. In a pattern match all constructor arguments (beside the
+parameters) are considered structurally smaller than the matched
+expression. This must be valid even if the argument of the constructor is a
+function returning an object of the inductive type. The returned object of a
+function argument is considered structurally smaller than the match object as
+well. However if we allow arbitrary functions (e.g. the identity function) as
+arguments to constructors we can feed any object of the inductive type which
+is not structurally smaller as an argument to the function and get a result
+which is not structurally smaller either and the termination condition is
+broken.
+
+Example of an \emph{invalid} inductive type:
+$$
+\Inductive_{[],\; I:\Any,\, [I,\, I \to I, \, (I \to I) \to I]}
+$$
+If you look at the first two constructors this definition is equal to the
+definition of natural numbers. However the third constructor does not satisfy
+the positivity condition becaues the first argument type of the constructor is
+a function type which has $I$ as an argument type. Therefore the term is
+invalid.
+
+If we modify the term slightly we get the \emph{valid} inductive type of
+ordinals
+$$
+\Inductive_{[],\; I:\Any,\, [I,\, I \to I, \, (\Natural \to I) \to I]}
+$$
+Note that $I$ in the argument function type of the constructor has been
+replace by a type in which $I$ does not occur.
+
+
+\begin{definition}
+  The elimination function
+  $$
+  \lambda \ybold^\Bbold x^T.R : \Pi \ybold^\Bbold. s_R
+  $$
+  is a
+  %
+  \emph{valid elimination function}
+  %
+  for the inductive type
+  $$
+  T = \Inductive_{\Gamma,I:\Pi \ybold^\Abold.s_I,\Cbold} \, \pbold \,
+  \abold
+  $$
+  in the following cases
+  \begin{itemize}
+
+  \item $s_I = \Any$
+
+  \item $s_I = \Prop$ and $s_R = \Any$ and $T$ has either no constructor or
+    one constructor with propositional arguments only.
+
+  \end{itemize}
+\end{definition}
+In a case expression only valid elimination function can be used for the
+following reasons:
+\begin{itemize}
+
+\item If $s_I = \Any$ then the inductive object is a computational object
+  which exists at runtime. It is possible to return any other object by
+  pattern match either a proof object or another computational object.
+
+\item If $s_I = \Prop$ then the inductive object is a proof which will be
+  erased in the runtime i.e. it does not exist during runtime.
+
+  If the inductive type has no constructor, then the object cannot exist
+  i.e. the path will never be entered at runtime.
+
+  If the inductive object has one constructor with propositional arguments
+  only (i.e. proofs only) then the remaining code will make sure that no
+  computational information is extracted from the proof arguments. Furthermore
+  there is only one constructor. Therefore no decision is made in the pattern
+  match.
+
+  If the inductive object has one constructor with a computational argument
+  then then remaining code might use this argument for further processing
+  which would make erasion of proofs impossible. Therefore it is not allowed.
+
+  If the inductive object has more than one constructor then the pattern match
+  makes a decision based on the actual constructor used. This decision is
+  impossible in the runtime if the proof has been erased.
+\end{itemize}
+
+
+
+
+Now let us look into some more examples of inductive types. We have already
+defined the type of natural numbers and lists in the chapter
+\ref{sec:terms}~Terms.
+%
+The simplest propositional inductive type with no parameters and no
+constructors is
+$$
+\text{false} := \Inductive_{[], I:\Prop, []} : \Prop
+$$
+and represents the proposition $\text{false}$. Since it has no constructors,
+it is impossible to construct an object of this type. An object of this type
+can only be an assumption or a consequence of a false assumption.
+
+
+From an inhabitant of false we can construct an inhabitant of any type i.e. it
+is possible to define a function of type $\Pi A^\Any. \text{false} \to A$
+which corresponds to the notion of logic \emph{ex falso quodlibet} or
+\emph{from a wrong assumption you can conclude everything}.
+%
+Such a function can be defined as
+$$
+\lambda A^\Any p^\text{false}. \case(p, \lambda x^\text{false}. A, [])
+: \Pi A^\Any. \text{false} \to A
+$$
+%
+Every branch of the case expression returns an object of type $A$, but there
+is no branch because the type has no constructors.
+
+In source code we write
+\begin{alba}
+  class false: Proposition create
+    -- no constructors
+
+  ex_falso: all(A:Any): false -> A
+  ex_falso A p :=
+    inspect p case
+      -- no cases
+\end{alba}
+
+If we add one trivial constructor we can encode the proposition $\text{true}$
+as an inductive type.
+%
+$$
+\text{true} := \Inductive_{[], I:\Prop, [I]} : \Prop
+$$
+whose unique inhabitant is the term $\Constructor^0_{\text{true}}$. The type
+$\text{true}$ corresponds to the unit type of many functional languages here
+defined for the sort $\Prop$.
+
+Logical disjunction can be expressed by the inductive type
+$$
+(\lor)
+:=
+\Inductive_{[a:\Prop, b:\Prop], I:\Prop, [a \to I, b \to I]}
+:
+\Prop \to \Prop \to \Prop
+$$
+%
+In order to prove $a \lor b$ we need either a proof of the proposition $a$ or
+a proof of the proposition $b$ and use the corresponding constructor to
+construct a proof of $a \lor b$. The two propositions are parameters. If we
+have a term $p_a: a$ then the term $\Constructor^0_{(\lor)} \, a \, b \, p_a$ has
+type $a \lor b$. Note that the two propositions $a$ and $b$ are parameters and
+therefore have to be provided as arguments to the constructor.
+
+Since all proofs and propositions are erased in the runtime (we say that
+proofs are computationally irrelevant) we cannot use a proof of $a \lor b$ to
+make any computationally relevant decisions. But if we define the same
+inductive type in the sort $\Any$ we get the type of decisions which are
+usable in computations.
+$$
+\Decision
+:=
+\Inductive_{[a:\Prop, b:\Prop], I:\Any, [a \to I, b \to I]}
+:
+\Prop \to \Prop \to \Any
+$$
+If we have a term $p_a:a$ then the term
+$$
+\Constructor^0_\Decision \, a \, b \, p_a
+:
+\Decision \, a \, b
+$$
+has the type of a decision and we can pattern match on the decision term in
+computationally relevant parts of the program. A case expression matching on
+the first constructor makes a proof of the first proposition available to the
+first function of the case expression and matching on the second constructor
+makes a proof of the second proposition available to the second function of
+the case expression.
+
+In source code we express the inductive type $\Decision$ as
+%
+\begin{alba}
+  class Decision (a b:Proposition): Any create
+    left:  a -> Decision a b
+    right  b -> Decision a b
+\end{alba}
+
+
+In many functional languages there is a boolean type with two argumentless
+constructors. Such a boolean type can be expressed in the calculus as
+$$
+\Boolean
+:=
+\Inductive_{[], I:\Any, [I, I]}
+:
+\Any
+$$
+A boolean type has the disadvantage that it encodes a decision but carries no
+information about the decision it encodes. Therefore it is preferable to work
+with decision types instead of boolean types.
+
+
+
+
+The order relation $\le$ on natural numbers has the type $\Natural \to
+\Natural \to \Prop$ i.e. $i \le j$ is a proposition expressing the fact that
+$i$ is less or equal $j$. Being a propositions it is a type. An object of this
+type is a proof of the fact.
+$$
+(\le)
+:=
+\Inductive_{
   [],
-  r:\mathbb{N} \to \mathbb{N} \to \Prop,
-  [\Pi i. r 0 i , \Pi i^\mathbb{N} j^\mathbb{N}. r i j \to r i (j+1)]}
-: \mathbb{N} \to \mathbb{N} \to \Prop
+  r:\Natural \to \Natural \to \Prop,
+  [\Pi i^\Natural r 0 i ,\, \Pi i^\Natural j^\Natural. r i j \to r (i+1) (j+1)]
+}
+:
+\Natural \to \Natural \to \Prop
 $$
+%
+This is the first inductive type with arguments (i.e. indices) and no
+parameters. Therefore the type of the bound variable in the inductive type is
+not a sort as in all previously defined inductive types, it is the kind
+$\Natural \to \Natural \to \Prop$ which is an abbreviation for
+$\Pi x^\Natural y^\Natural. \Prop$.
+
+There are two ways to construct an object of type $a \le b$. Either $a$ is
+zero, then we can use the first constructor to generate the proof
+$\Constructor^0_{(\le)} b: 0 \le b$. Or we have already a proof $p: i \le j$
+and $a$ is the successor of $i$ and $b$ is the successor of $j$. Then we
+generate the proof $\Constructor^1_{(\le)} i j p: a \le b$.
+
+Our intuition about the order relation on natural numbers tells us that given
+$n \le m$ we should be able to prove $n \le m + 1$. A proof of this
+proposition is an object of type
+$$
+%
+T = \Pi n^\Natural m^\Natural. n \le m \to n \le m + 1
+$$
+%
+i.e. a function which takes two natural numbers $n$ and $m$ and a proof of the
+proposition $n \le m$ and returns a proof of $n \le m + 1$.
+
+A proof of $n \le m$ must have been constructed by an initial proof of $0 \le
+m - n$ by using $\Constructor^0_{(\le)} (m - n)$ and then applying the second
+constructor $n$ times.
+
+A proof of $T$ is a recursive function (i.e. a fixpoint) which iterates over a
+proof of $n \le m$.
+%
+$$
+\begin{array}{l}
+  \lambda n^\Natural m^\Natural p^{n \le m}.
+  \\
+  \quad\fix(
+  \\
+  \quad\quad f^T,
+  \\
+  \quad\quad \case (
+  \\
+  \quad\quad\quad
+    p, \;
+    \lambda i^\Natural j^\Natural q^{i \le j}\,.\, i \le j+1,
+  \\
+  \quad\quad\quad [
+  \lambda j. \Constructor^0_{(\le)} (j+1),
+  \\
+  \quad\quad\quad\,
+  \lambda i j q. \Constructor^1_{(\le)} i (j+1) (f i j q)])
+  \\
+  \quad\quad 2)
+\end{array}
+$$
+The body of the recursive function is a pattern match on the proof $p: n \le
+m$ which distinguishes two cases.
+\begin{enumerate}
+\item $n = 0$ and $p$ has been constructed by the first constructor which
+  proves $0 \le m$. In this case we can use the first constructor to prove $0
+  \le m + 1$.
+
+\item $n$ and $m$ have predecessors $i$ and $j$ and the proof of $n \le m$ has
+  been constructed by applying the second constructor to the arguments $i$,
+  $j$ and a proof $q$ of $i \le j$. By applying the bound variable $f$ which
+  has the same type $T$ to $i$, $j$ and $q:i \le j$ we get a proof of
+  $i \le j + 1$ which can be converted by applying the second constructor to a
+  proof of $\underbrace{i + 1}_{= n} \le \underbrace{j + 1}_{=m} + 1$ which is
+  a proof of $n \le m + 1$.
+
+  The proof $q:i \le j$ is structurally smaller than the proof $p: n \le
+  m$. Therefore the recursive function is guaranteed to terminate. The
+  fixpoint decreases on its third argument.
+\end{enumerate}
+
+This simple example demonstrates that it is mechanical but not trivial to
+generate inductive proofs in the intermediate language. It is the task of the
+compiler to do a lot of work to generate such an induction proof from little
+guidance by the user. The compiler has to do a lot of type inference and proof
+term generation.
 
 
 
@@ -506,7 +896,7 @@ $$
 
 
 
-\subsection{Draft}
+\subsection{Old Material}
 
 Types live in \emph{universes}. Initially there are the three universes
 \code{Proposition}, \code{Any} and \code{Box} ($\Prop$, $\Any$ and $\Box$ in
