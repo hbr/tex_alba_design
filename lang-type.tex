@@ -1198,7 +1198,87 @@ term generation.
 \subsection{Abstract Datatypes}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-TODO
+\noindent Status: Draft
+
+An abstract datatype is a type with certain properties. In order to define the
+type we need a bound variable as a representant of the type and a context
+describing postulated properties of that type
+$$
+\Abstract_{T:K, \Gamma}
+$$
+where $K$ is a kind (i.e. $T$ can represent a type constructor needing
+arguments), $\Gamma = [d_0:D_0, d_1: D_1, \ldots]$ and the bound variable $T$
+occurs in each $D_i$.
+
+
+
+\subsubsection{Example: Group}
+The type of the bound variable $T$ of a group is $\Any$ i.e. it represents a
+type which is the type of a group element. The context $\Gamma$ is defined as
+$$
+\begin{array}{llll}
+  \Gamma =
+  &[
+  & 0: T
+  & \text{neutral element}
+  \\
+  &
+  & (+): T \to T \to T
+  & \text{binary function}
+  \\
+  &
+  & (-): T \to T
+  & \text{inversion}
+  \\
+  &
+  & a: \Pi x^T y^T z^T. x + y + z = x + (y + z)
+  & \text{associativity}
+  \\
+  &
+  & n: \Pi x^T. x + 0 = x
+  & 0 \text{ is neutral with respect to } +
+  \\
+  &
+  & i: \Pi x^T. x + (-x) = 0
+  & -x \text{ is the inverse element of } x
+  \\
+  &]
+\end{array}
+$$
+
+
+
+
+
+
+\subsubsection{Example: Sortable}
+
+The type of the bound variable $T$ of a sortable is $\Any$ i.e. it represents
+a type which is the type of sortable elements. The context $\Gamma$ is defined
+as
+$$
+\begin{array}{llll}
+  \Gamma =
+  &[
+  & (\le): T \to T \to \Prop,
+  & \text{order relation}
+  \\
+  &
+  & (\le_d): \Pi x^T y^T . \Decision\,(x \le y)\, (\lnot\, x \le y)
+  & \text{decision function}
+  \\
+  &
+  & r: \Pi x^T y^T. x \le y
+  & \text{reflexivity}
+  \\
+  &
+  & t: \Pi x^T y^T z^T. x \le y \to y \le z \to x \to z
+  & \text{transitivity}
+  \\
+  &]
+\end{array}
+$$
+
 
 
 
