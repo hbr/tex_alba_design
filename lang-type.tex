@@ -1,4 +1,4 @@
-\section{Intermediate Typed Language}
+\section{Intermediate Language}
 
 In this chapter the intermedicate language of the Alba compiler is defined. It
 is a typed lambda calculus with inductive types.
@@ -15,7 +15,7 @@ Notational conventions:
   $\lambda x^A. e$ is a function term mapping any term $a$ of type $A$ to the
   term $e[x:=a]$.
 
-\item As usual in lambda calculi function application is written by
+\item As usual in lambda calculi, function application is written by
   juxtaposition. The term $f\,a$ is the application of the function $f$ to the
   argument $a$. We can apply a function to many arguments by $f \, a \, b \,
   \ldots$.
@@ -57,7 +57,10 @@ ambiguity is unavoidable.
 In this paper we use the wording that
 \begin{itemize}
 \item a term is an object, if its type is a type,
-\item a term is a type, if its type is a sort or a kind (sort valued function)
+\item a term is a type, if its type is a sort
+\item a term is a type constructor if its type is a kind (sort valued
+  function) {\small Note: Since sorts are kinds a type is a type constructor
+    with no arguments}
 \item otherwise a term is kind.
 \end{itemize}
 The wording becomes clearer after the introduction of formal typing
@@ -103,10 +106,6 @@ definition might be sufficient.
   \end{enumerate}
 \end{definition}
 
-The set of all sorts has a wellfounded relation $<$. Therefore there are no
-cycles within the sorts. Within sorts the relation $s_1 < s_2$ and the typing
-judgement $s_1 : s_2$ are equivalent. $\Any$ is the supertype of all other
-valid types and the only supertype of $\Any$ is $\Box$.
 
 Remarks:
 \begin{enumerate}
@@ -120,8 +119,24 @@ Remarks:
   $\Box$. If we introduce the infinite type hierarchy, then the type system
   without inductive types corresponds to the extented calculus of
   constructions (ECC~\cite{luo1990}).
+
+\item If we remove the sort $\Box$ i.e. cut the type hierarchy at $\Any$ and
+  remove inductive constructions, then the calculus is the same as the
+  calculus of constructions (sometimes abbreviated as CC or CoC).
 \end{enumerate}
 
+
+
+The set of all sorts has an order relation relation $\prec$ which must be free
+of cycles. Without considering abstract datatypes the order is
+$$
+\Prop \prec \Any \prec \Box
+$$
+or
+$$
+\Prop \prec \Any_0 \prec \Any_1 \prec \ldots
+$$
+in the case of an infinite type hierachy.
 
 
 
@@ -139,6 +154,18 @@ Remarks:
 
   We write $\Gamma, x:T$ for the context $\Gamma$ with one more variable $x$
   of type $T$.
+
+  Note that a context is just a list of variables with their corresponding
+  types. Therefore we can use a context in any binder (abstraction, dependent
+  product, etc.) e.g.
+  $$
+  \lambda x_0^{T_0} x_1^{T_1} \ldots \, e
+  $$
+  can be abbreviated by
+  $$
+  \lambda \Gamma . e
+  $$
+  where $\Gamma = [x_0: T_0, x_1: T_1, \ldots]$
 \end{definition}
 
 
@@ -196,7 +223,7 @@ fixpoints (recursive function) need some explanation.
   a type which represents a proposition (i.e. $i > 0: \Prop$ is valid).
 
   The term $\Pi i^{\mathbb{N}}. i > 0$ is the type of a function which maps
-  any natural number $n$ into a proof of $n > 0$. Obviously such a function
+  any natural number $n$ to a proof of $n > 0$. Obviously such a function
   cannot exist because it would map the number $0$ into a proof of $0 > 0$
   which implies a contradiction. In type theory we say that the type
   $\Pi i^{\mathbb{N}}. i > 0$ is not inhabited. A function of type
@@ -236,7 +263,7 @@ fixpoints (recursive function) need some explanation.
   existing list. Note that the variable $I$ in the list definition already
   represents a list of $A$.
 
-  Since $\mathbb{N}$ has no parameters, its type is the same as the type as
+  Since $\mathbb{N}$ has no parameters, its type is the same as the type of
   its bound variable $I$ i.e. it is the sort $\Any$.
 
   Since $\mathbb{L}$ has one parameter, its type is a function of the
@@ -504,8 +531,12 @@ fixpoints (recursive function) need some explanation.
 
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Inductive Types}
 \label{sec:inductive-types}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 In this chapter we explain more in detail the inductive types. It is worth
 noting that the calculus does not gain expressive power by inductive
@@ -513,6 +544,9 @@ types. All functions which can be defined with inductive types can be defined
 without inductive types by using church encoding (e.g. church numerals) to
 encoded inductive objects. However inductive types allow for more efficient
 runtime evaluation of functions and are closer to intuition.
+
+
+\subsubsection{Kinds}
 
 \begin{definition}
   A \emph{kind} is either a sort or a sort valued functions. Let $k$ range
@@ -544,6 +578,10 @@ runtime evaluation of functions and are closer to intuition.
   relevant.
 \end{definition}
 
+
+
+\subsubsection{Inductive Type}
+
 Now recall the definition of a term describing an inductive type
 $$
 \Inductive_{\Gamma, \; I:T, \; \Cbold}
@@ -556,6 +594,9 @@ must reduce to a kind i.e. $T \reducestar \Pi \xbold^\Abold. s$. The arguments
 of $T$ are the arguments of the inductive type. In the literature the
 arguments of an inductive type are called the index or indices of the
 inductive type in order distinguish them clearly from the parameters.
+
+
+\subsubsection{Constructor}
 
 \begin{definition}
   The \emph{type of a constructor} for the bound variable $I$ is defined by
@@ -623,6 +664,10 @@ Note that $I$ in the argument function type of the constructor has been
 replace by a type in which $I$ does not occur.
 
 
+
+
+\subsubsection{Elimination Function}
+
 \begin{definition}
   The elimination function
   $$
@@ -678,6 +723,7 @@ following reasons:
 
 
 
+\subsubsection{Example: false}
 
 Now let us look into some more examples of inductive types. We have already
 defined the type of natural numbers and lists in the chapter
@@ -718,6 +764,9 @@ In source code we write
       -- no cases
 \end{alba}
 
+
+\subsubsection{Example: true}
+
 If we add one trivial constructor we can encode the proposition $\text{true}$
 as an inductive type.
 %
@@ -727,6 +776,10 @@ $$
 whose unique inhabitant is the term $\Constructor^0_{\text{true}}$. The type
 $\text{true}$ corresponds to the unit type of many functional languages here
 defined for the sort $\Prop$.
+
+
+
+\subsubsection{Example: Disjunction}
 
 Logical disjunction can be expressed by the inductive type
 $$
@@ -749,6 +802,10 @@ proofs are computationally irrelevant) we cannot use a proof of $a \lor b$ to
 make any computationally relevant decisions. But if we define the same
 inductive type in the sort $\Any$ we get the type of decisions which are
 usable in computations.
+
+
+\subsubsection{Example: Decision}
+
 $$
 \Decision
 :=
@@ -778,6 +835,8 @@ In source code we express the inductive type $\Decision$ as
 \end{alba}
 
 
+\subsubsection{Example: Boolean}
+
 In many functional languages there is a boolean type with two argumentless
 constructors. Such a boolean type can be expressed in the calculus as
 $$
@@ -793,6 +852,8 @@ with decision types instead of boolean types.
 
 
 
+
+\subsubsection{Example: Order Relation on Natural Numbers}
 
 The order relation $\le$ on natural numbers has the type $\Natural \to
 \Natural \to \Prop$ i.e. $i \le j$ is a proposition expressing the fact that
@@ -891,12 +952,228 @@ term generation.
 
 
 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Typing Rules}
 \label{sec:typing-rules}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}
+  The strict order relation $\prec$ on sorts is extended to terms by the following
+  rule
+  $$
+  \ruleh
+  {T \prec U}
+  {\Pi x^A.T \prec \Pi x^A. U}
+  $$
+  i.e. if the result types of two function types with the same arguments type
+  figure in the relation $\prec$ the the function types figure in the relation
+  as well.
+\end{definition}
+
+\begin{definition}
+  The reflexive, transitive and reduction closure of $\prec$ is used as the
+  order relation $\le$ on terms and defined inductively by the rules
+  \begin{description}
+  \item[reflexive]
+    $$
+    T \le T
+    $$
+
+  \item[transitive]
+    $$
+    \rulev
+    {T \le U \\ U \le V}
+    {T \le U}
+    $$
+
+  \item[reduction]
+    $$
+    \ruleh
+    {A \reduce B \, \lor B \reduce A}
+    {A \le B}
+    $$
+  \end{description}
+\end{definition}
+
+
+\begin{definition}
+  The \emph {typing relation} $\Gamma \vdash t:T$ which reads ``in the context
+  $\Gamma$ the term $t$ has type $T$'' is defined by the rules
+  \begin{description}
+  \item[axiom]
+    $$
+    \ruleh
+    {s_1 \prec s_2}
+    {[] \vdash s_1 : s_2}
+    $$
+
+  \item[variable]
+    $$
+    \ruleh
+    {\Gamma \vdash A: s}
+    {\Gamma, x:A \vdash x:A}
+    $$
+    This rule allows to introduce a variable $x$ of type $A$ if the type of
+    $A$ is a sort. Since $\Prop : \Any$ and $\Any : \Box$ are valid in the
+    empty context we can always introduce a variable and get the valid
+    judgements $[A: \Prop] \vdash A : \Prop$ and $[A: \Any] \vdash A : \Any$.
+
+  \item[weaken]
+    $$
+    \rulev
+    {\Gamma \vdash t: T
+      \\
+      \Gamma, x:A \vdash x:A}
+    {\Gamma, x:A \vdash t : T}
+    $$
+    i.e. the introduction of a new variable does not invalidate a valid typing
+    judgement.
+
+  \item[product]
+    $$
+    \rulev
+    {\Gamma \vdash A: s_1
+      \\
+      \Gamma,x:A \vdash B:s_2
+      \\
+      s_2 = \Prop \lor s_1 = s_2
+    }
+    {\Gamma \vdash \Pi x^A . B: s_2}
+    $$
+
+  \item[abstraction]
+    $$
+    \rulev
+    {\Gamma \vdash \Pi x^A . B: s
+      \\
+      \Gamma,x:A \vdash e:B
+    }
+    {\Gamma \vdash \lambda x^A . e : \Pi x^A . B}
+    $$
+
+  \item[application]
+    $$
+    \rulev
+    {\Gamma \vdash f: \Pi x^A . B
+      \\
+      \Gamma \vdash a:A
+    }
+    {\Gamma \vdash f \, a : B[x:=a]}
+    $$
+
+  \item[reduction]
+    $$
+    \rulev
+    {\Gamma \vdash t : T
+      \\
+      T \reduce U \lor U \reduce T
+    }
+    {\Gamma \vdash t: U}
+    $$
+
+  \item[subtype]
+    $$
+    \rulev
+    {\Gamma \vdash t : T
+      \\
+      T \prec U
+    }
+    {\Gamma \vdash t: U}
+    $$
+    in words: If a term $t$ has type $T$ and $U$ is a supertype of type $T$,
+    then the supertype $U$ is a type of $t$ as well.
+
+  \item[inductive type]
+    $$
+    \rulev
+    { T = \Pi \xbold^\Abold.s
+      \\
+      \Gamma, \pbold:\Pbold, I:T \vdash I:T
+      \\
+      \forall i\;.\; C_i = \Pi \ybold^{\Bbold_i}. I \, \abold_i
+      \;\text{\small(constructor type with positivity)}
+      \\
+      \forall i\;.\, \Gamma, \pbold:\Pbold, I:T \vdash C_i : s
+    }
+    {
+      \Gamma \vdash
+      \Inductive_{[\pbold:\Pbold], I:T, [C_0,C_1,\ldots]}
+      :
+      \Pi \pbold^\Pbold . T
+    }
+    $$
+    where the conditions above the line require
+    \begin{enumerate}
+    \item $T$ must be a kind.
+
+    \item $T$ is a valid type in a context with all parameters so that a
+      variable can be defined which has that type.
+
+    \item The types $C_i$ are constructor types for the variable $I$ which
+      satisfy the positivity condition (if the inductive
+      type appears in an argument type is either the argument type or a
+      function type where the inductive type does not occur in the argment
+      types, only in the result type).
+
+    \item The constructor types $C_i$ are valid types in a context with the
+      parameters and a bound variable $I$ of type $T$.
+    \end{enumerate}
+
+
+  \item[constructor]
+    $$
+    \rulev
+    {
+      U = \Inductive_{[\pbold:\Pbold], I:T, \Cbold}
+      \\
+      \Gamma
+      \vdash
+      U
+      :
+      \Pi \pbold^\Pbold.T
+      \\
+      j < |\Cbold|
+    }
+    {
+      \Gamma \vdash
+      \Constructor^j_U
+      :
+      \Pi \pbold^\Pbold \,.\, C_j[I := U]
+    }
+    $$
+    This rule says that the type of a constructor expression
+    $\Constructor^j_{\Inductive_{\ldots}}$ is the corresponding constructor type
+    of the inductive definition where the bound variable $I$ has been
+    substituted by the actual inductive type.
+
+
+  \item[pattern match]
+    TODO
+
+  \item[fixpoint]
+    TODO
+
+  \end{description}
+\end{definition}
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Abstract Datatypes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+TODO
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Old Material}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Types live in \emph{universes}. Initially there are the three universes
 \code{Proposition}, \code{Any} and \code{Box} ($\Prop$, $\Any$ and $\Box$ in
