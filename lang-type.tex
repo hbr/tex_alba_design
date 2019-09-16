@@ -1201,23 +1201,25 @@ term generation.
 \noindent Status: Draft
 
 An abstract datatype is a type with certain properties. In order to define the
-type we need a bound variable as a representant of the type and a context
-describing postulated properties of that type
+type we need a context of parameters, a bound variable as a representant of
+the type and a context describing postulated properties of that type
 $$
-\Abstract_{T:K, \Gamma}
+\Abstract_{\Gamma, T:K, \Delta}
 $$
-where $K$ is a kind (i.e. $T$ can represent a type constructor needing
-arguments), $\Gamma = [d_0:D_0, d_1: D_1, \ldots]$ and the bound variable $T$
-occurs in each $D_i$.
+where $\Gamma = [p_0:P_0, p_1:P_1, \ldots]$ is a context parameters, $K$ is a
+kind (i.e. $T$ can represent a type constructor needing arguments),
+$\Delta = [d_0:D_0, d_1: D_1, \ldots]$ and the bound variable $T$ occurs in
+each $D_i$.
 
 
 
 \subsubsection{Example: Group}
-The type of the bound variable $T$ of a group is $\Any$ i.e. it represents a
-type which is the type of a group element. The context $\Gamma$ is defined as
+A group has no parameters. The type of the bound variable $T$ of a group is
+$\Any$ i.e. it represents a type which is the type of a group element. The
+context $\Delta$ is defined as
 $$
 \begin{array}{llll}
-  \Gamma =
+  \Delta =
   &[
   & 0: T
   & \text{neutral element}
@@ -1253,9 +1255,9 @@ $$
 
 \subsubsection{Example: Sortable}
 
-The type of the bound variable $T$ of a sortable is $\Any$ i.e. it represents
-a type which is the type of sortable elements. The context $\Gamma$ is defined
-as
+A sortable has no parameters. The type of the bound variable $T$ of a sortable
+is $\Any$ i.e. it represents a type which is the type of sortable
+elements. The context $\Delta$ is defined as
 $$
 \begin{array}{llll}
   \Gamma =
@@ -1278,6 +1280,65 @@ $$
   &]
 \end{array}
 $$
+
+
+\subsubsection{Example: Monad}
+
+A monad has no parameters. The type of the bound variable $T$ is $\Pi
+A^\Any. \Any$, i.e. $T$ is a type constructor needing one type argument like
+e.g. list.  The context $\Delta$ is defined as
+$$
+\begin{array}{llll}
+  \Gamma =
+  &[
+  & r: \Pi A^\Any x^A. T A,
+  & \text{return}
+  \\
+  &
+  & b: \Pi A^\Any B^\Any m^{T A} f^{A\to T B}. T B
+  & \text{bind}
+  \\
+  &
+  & u: \Pi A^\Any B^\Any x^A f^{A\to T B}. b A B (r A x) f = f x
+  & \text{unit}
+  \\
+  &
+  & a: \Pi \ldots . b B C (b A B m f) g = b A C m (\lambda x^A. b B C (f x) g)
+  & \text{associativity}
+  \\
+  &]
+\end{array}
+$$
+Associativity is not spelled out completely in detail here, because the
+expression becomes too long. The many needed type arguments obscure a little
+bit the essence of the axioms. By being sloppy and leaving out the type
+arguments the associativity condition becomes
+$$
+  b (b m f) g = b m (\lambda x. (f x) g)
+$$
+which says that doing the bind step by step and first combining the two
+functions and then doing the bind must be the same.
+
+In program text we define a monad by
+\begin{alba}
+   abstract class
+     Monad: Any -> Any
+   section (A B C:Any) (M:Monad) :=
+     return (x:A): M A
+
+     (>>=) (m:M A) (f:A -> M B): M B
+
+     unit (a:A) (f:A -> M B): return a >>= f = f a
+
+     assoc (m:M A)
+           (f:A -> M B)
+           (g:B -> M B)
+           : m >>= f >>= g  =  m >>= (\a := f a >>= g)
+\end{alba}
+
+Remark: This is not yet very clean and needs some rework. In the class header
+the name \code{Monad} is used as if it were the type constructor. In the
+section part the name is used as if it were the type of the type constructor.
 
 
 
