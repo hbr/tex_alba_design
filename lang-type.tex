@@ -851,6 +851,37 @@ information about the decision it encodes. Therefore it is preferable to work
 with decision types instead of boolean types.
 
 
+\subsubsection{Example: Equality}
+
+We can define the equality relation as an inductive type. In Alba two terms
+are equal if and only if they are not distinguishable i.e. have the same
+properties. This type of equality is called \emph{Leibniz equality}.
+%
+$$
+(=)
+:=
+\Inductive_{[A:\Any, x:A], I:A\to\Prop, [I x]}
+:
+\Pi A^\Any. A \to A \to \Prop
+$$
+%
+This definition is an example showing the difference between parameters and
+index arguments. The definition has two parameters, the type of the terms to
+be compared and a term of this type. The bound variable $I$ has type
+$A\to\Prop$ which is a predicate describing if other terms of type $A$ are
+equal to the parameter $x$.
+
+This inductive definition has only one constructor which expresses the
+triviality that $x$ is equal to itself. Since it is the only constructor, this
+inductive definition allows to generate proofs of $e = e$ for any expression
+$e$ {\scriptsize (note that the type of $e$ is treated as an implicit argument, to
+  be precise we would have to write $(=) \, E \, e \, e$ where $E$ is the type
+  of $e$)}.
+
+However due to reduction in case of $d \reduce e$ we can conclude $e = d$ from
+$e = e$ which allows to prove more complex equalities than the trivial
+reflexivity.
+
 
 
 \subsubsection{Example: Order Relation on Natural Numbers}
