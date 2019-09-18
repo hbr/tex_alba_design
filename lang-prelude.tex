@@ -1,0 +1,164 @@
+\section{Prelude}
+
+The compiler makes sure that the following definitions are always
+available. It is as if there were a module \code{alba.core.prelude} and each
+module would start with
+\begin{alba}
+  use
+     alba.core.prelude
+     ...
+\end{alba}
+
+
+
+\subsection{Propositions}
+\label{sec:prelude-propositions}
+
+
+\subsubsection{Implication}
+%
+\begin{alba}
+  (=>) (a b:Prop): Proposition
+    := a -> b
+\end{alba}
+
+Propositions are types but unlike normal types we express propositions by
+lowercase identifiers. The variables $a$ and $b$ are propositions, a term $p$
+of type $a$ i.e. $p:a$ is a proof of the proposition.
+
+The term $a\to b$ is just a shorthand for $\Pi x^a.b$ or
+\begin{alba}
+  all(x:a) b
+\end{alba}
+in program text. Therefore the term $0 < i \Rightarrow 0 \le i$ is a function
+application with the value $\Pi p^{0 < i}. 0 \le i$.
+
+
+\subsubsection{False}
+\begin{alba}
+  class
+    false: Proposition
+  create
+    -- no constructors
+\end{alba}
+
+
+\subsubsection{Negation}
+%
+\begin{alba}
+  (not) (a:Proposition): Proposition
+    := a => false
+\end{alba}
+
+
+\subsubsection{Disjunction}
+%
+\begin{alba}
+  class
+    (or) (a b:Proposition): Proposition
+  create
+    left:  a => a or b
+    right: b => a or b
+\end{alba}
+
+There are two ways to prove the expression \code{a or b} is to provide a proof
+of the proposition $a$ and map it with the first constructor into a proof of
+$a \lor b$ or provide a proof of $b$ and map it with the second constructor
+into a proof of $a \lor b$.
+
+The term \code{a => a or b} is a function application which evaluates to
+\code{all (p:a) a or b} which is according to the typing rules a proposition
+as well.
+
+
+
+\subsubsection{Conjunction}
+%
+\begin{alba}
+  class
+    (and) (a b:Proposition): Proposition
+  create
+    conjunction: a => b => a and b
+\end{alba}
+
+In order to prove the proposition $a \land b$ we need a proof of $a$ and a
+proof of $b$. The type of the constructor is a function type which maps a
+proof of $a$ and a proof of $b$ to a proof of $a \land b$.
+
+
+\subsubsection{Existential Quantification}
+
+\begin{alba}
+  class
+     exist (A:Any) (f:A -> Proposition): Proposition
+  create
+     witness: all (a:A) f a -> exist A f
+\end{alba}
+
+\begin{itemize}
+\item The type variable $A$ is implicit, because the type of the second
+  argument depends on it. Therefore the compiler can infer it from the second
+  argument.
+  
+\item $f:A\to \Prop$ means that $f$ is a predicate. It maps any element of
+  type $A$ into a proposition (not into a proof of the proposition).
+
+\item In order to construct a valid term of this inductive type we have to
+  provide a witness $a$ and a proof showing that $f a$ (which is a
+  proposition) is satisfied.
+\end{itemize}
+
+Example
+\begin{alba}
+  exist (\(i:Natural) := 0 < i)
+\end{alba}
+
+
+\subsection{Strong types}
+\label{sec:prelude-strong-types}
+
+Strong types are types with a computational and a proposition content. At
+runtime all propositional content is erased. The propositional context serves
+the compiler to carry information of proofs of certain properties which it can
+use to proof more properties.
+
+
+\subsubsection{Decision}
+%
+\begin{alba}
+  class
+    Decision (a b:Proposition): Any
+  create
+    left:  a -> Decision a b
+    right: b -> Decision a b
+\end{alba}
+
+A term representing a decision between two propostions $a$ and $b$ needs
+either a proof of $a$ or a proof of $b$. At runtime the proofs are erased and
+only the information about the used constructor remains. Therefore a decision
+value is like an enriched boolean value where the enrichment is removed at
+runtime.
+
+
+\subsubsection{Specified type}
+
+\begin{alba}
+  class
+     Specified (A:Any) (f:A -> Proposition): Any
+  create
+     specified: all (a:A) f a -> Specified A f
+\end{alba}
+
+In the intermediate language this inductive definition is written as
+$$
+\Inductive_{[A:\Any, f:A \to \Prop], I:\Any, [\Pi a^A . f a \to I]}.
+$$
+
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
