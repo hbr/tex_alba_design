@@ -28,19 +28,26 @@ of type $a$ i.e. $p:a$ is a proof of the proposition.
 
 The term $a\to b$ is just a shorthand for $\Pi x^a.b$ or
 \begin{alba}
-  all(x:a) b
+  all(x:a): b
 \end{alba}
 in program text. Therefore the term $0 < i \Rightarrow 0 \le i$ is a function
 application with the value $\Pi p^{0 < i}. 0 \le i$.
-
+\newline
 
 \subsubsection{False}
+
+The proposition \code{false} is a type which does not have any direct
+proof. Therefore it is encoded as an inductive type with no constructor.
+%
 \begin{alba}
   class
     false: Proposition
   create
     -- no constructors
 \end{alba}
+
+The only possibility to prove \code{false} is to make some contradictory
+assumptions. \vskip 2mm
 
 
 \subsubsection{Negation}
@@ -49,6 +56,7 @@ application with the value $\Pi p^{0 < i}. 0 \le i$.
   (not) (a:Proposition): Proposition
     := a => false
 \end{alba}
+\vskip 2mm
 
 
 \subsubsection{Disjunction}
@@ -69,7 +77,7 @@ into a proof of $a \lor b$.
 The term \code{a => a or b} is a function application which evaluates to
 \code{all (p:a) a or b} which is according to the typing rules a proposition
 as well.
-
+\newline
 
 
 \subsubsection{Conjunction}
@@ -84,6 +92,7 @@ as well.
 In order to prove the proposition $a \land b$ we need a proof of $a$ and a
 proof of $b$. The type of the constructor is a function type which maps a
 proof of $a$ and a proof of $b$ to a proof of $a \land b$.
+\newline
 
 
 \subsubsection{Existential Quantification}
@@ -92,14 +101,14 @@ proof of $a$ and a proof of $b$ to a proof of $a \land b$.
   class
      exist (A:Any) (f:A -> Proposition): Proposition
   create
-     witness: all (a:A) f a -> exist A f
+     witness: all (a:A): f a -> exist A f
 \end{alba}
 
 \begin{itemize}
 \item The type variable $A$ is implicit, because the type of the second
   argument depends on it. Therefore the compiler can infer it from the second
   argument.
-  
+
 \item $f:A\to \Prop$ means that $f$ is a predicate. It maps any element of
   type $A$ into a proposition (not into a proof of the proposition).
 
