@@ -10,6 +10,10 @@ module would start with
 \end{alba}
 
 
+Convention: Propositions (i.e. types) or functions returning a proposition are
+written in lowercase. Other types are written in uppercase.
+
+
 
 \subsection{Propositions}
 \label{sec:prelude-propositions}
@@ -28,11 +32,15 @@ of type $a$ i.e. $p:a$ is a proof of the proposition.
 
 The term $a\to b$ is just a shorthand for $\Pi x^a.b$ or
 \begin{alba}
-  all(x:a): b
+  all (_:a): b
 \end{alba}
 in program text. Therefore the term $0 < i \Rightarrow 0 \le i$ is a function
 application with the value $\Pi p^{0 < i}. 0 \le i$.
 \newline
+
+
+
+
 
 \subsubsection{False}
 
@@ -50,6 +58,8 @@ The only possibility to prove \code{false} is to make some contradictory
 assumptions. \vskip 2mm
 
 
+
+
 \subsubsection{Negation}
 %
 \begin{alba}
@@ -57,6 +67,10 @@ assumptions. \vskip 2mm
     := a => false
 \end{alba}
 \vskip 2mm
+
+
+
+
 
 
 \subsubsection{Disjunction}
@@ -80,6 +94,8 @@ as well.
 \newline
 
 
+
+
 \subsubsection{Conjunction}
 %
 \begin{alba}
@@ -95,13 +111,16 @@ proof of $a$ and a proof of $b$ to a proof of $a \land b$.
 \newline
 
 
+
+
+
 \subsubsection{Existential Quantification}
 
 \begin{alba}
   class
      exist (A:Any) (f:A -> Proposition): Proposition
   create
-     witness: all (a:A): f a -> exist A f
+     witness: all (a:A): f a -> exist f
 \end{alba}
 
 \begin{itemize}
@@ -123,7 +142,92 @@ Example
 \end{alba}
 
 
-\subsection{Strong types}
+
+
+
+
+\subsection{Simple Types}
+\label{sec:simple-types}
+
+
+
+\subsubsection{List}
+
+\begin{alba}
+  class
+    List (A:Any): Any
+  create
+    []: List A
+    (^): A -> List A -> List A
+\end{alba}
+\vskip 2mm
+
+
+
+
+\subsubsection{Maybe}
+
+\begin{alba}
+  class
+    Maybe (A:Any): Any
+  create
+    just:    A -> Maybe A
+    nothing: Maybe A
+\end{alba}
+\vskip 2mm
+
+
+\subsubsection{Tuple}
+
+\begin{alba}
+  class
+    (,) (A B:Any): Any
+  create
+    (,):    A -> B -> (A,B)
+\end{alba}
+\vskip 2mm
+
+
+
+
+\subsubsection{Natural Numbers}
+
+\begin{alba}
+  class
+    Natural: Any
+  create
+    0: Natural
+    successor: Natural -> Natural
+\end{alba}
+
+The type of natural numbers can be used like an inductive type in the source
+language. However the compiler implements the type with segmented arrays of
+machine number with arbitrary precision arithmetic. Therefore natural numbers
+are not as efficient as machine numbers but much more efficient as a
+straightforward implemenation as an inductive type.
+\newline
+
+
+
+\subsubsection{Strings}
+
+\begin{alba}
+  class
+    String: Any
+  create
+    "": String
+    (^): Character -> String -> String
+\end{alba}
+
+The type of strings is specified like a list of characters. However the
+compiler knows of this type and implements it as a segmented array of
+characters which is much more space efficient.
+\newline
+
+
+
+
+\subsection{Strong Types}
 \label{sec:prelude-strong-types}
 
 Strong types are types with a computational and a proposition content. At
@@ -147,15 +251,31 @@ either a proof of $a$ or a proof of $b$. At runtime the proofs are erased and
 only the information about the used constructor remains. Therefore a decision
 value is like an enriched boolean value where the enrichment is removed at
 runtime.
+\newline
+
+
 
 
 \subsubsection{Specified type}
+
+
+Sometimes we have a number which we know to be positive or a prime number
+etc. In order to specify this property in a type we need a predicate
+describing this property. E.g.
+
+\begin{alba}
+  is_prime:       Natural -> Proposition
+  (\ i := 0 < i): Natural -> Proposition
+\end{alba}
+
+The prelude of Alba contains an inductive type to describe types with a
+certain property.
 
 \begin{alba}
   class
      Specified (A:Any) (f:A -> Proposition): Any
   create
-     specified: all (a:A) f a -> Specified A f
+     specified: all (a:A) f a -> Specified f
 \end{alba}
 
 In the intermediate language this inductive definition is written as
@@ -163,6 +283,55 @@ $$
 \Inductive_{[A:\Any, f:A \to \Prop], I:\Any, [\Pi a^A . f a \to I]}.
 $$
 
+\noindent Examples:
+\begin{alba}
+  Specified is_prime       -- Type of a prime natural number
+  Specified (\i := 0 < i)  -- Type of a positive natural number
+\end{alba}
+
+In order to specify the type we have to provide the predicate describing the
+property as the only argument. The base type is implicit. In order to make an
+object of this type we have to provide the element of the base type and a
+proof of the property (the proof will be generated from the context by the
+compiler).
+
+Note the similarity of the specified type and the existentially quantified
+proposition. With an object of type \code{Specified is\_prime} it is possible
+to pattern match and extract the object having the property and use it in
+computations. With an object of type \code{exist is\_prime} it is possible to
+pattern match and extract the object having the property but use it only for
+other proofs and not for computations.
+
+Convention: A specified type is used only as a result type of functions, never
+as an argument. In the arguments of a function the object having the property
+and the proof of the property are provided as two separate arguments. At the
+call site only the object has to be given as an explicit argument, the proof
+is generated by the compiler from the context.
+\newline
+
+
+
+
+
+\subsubsection{Strong Maybe}
+
+The type \code{String\_maybe} is similar to the specified type. But it does
+contain an object satisfying a specification only optionally. In case that
+such an object satisfying the property does not exist, it contains a proof of
+this fact.
+
+Such a type is a typical output from a parsing function. Either the parser
+returns a parse tree representing the input string according to the grammar or
+a proof that there is no parse tree i.e. the input string does not conform to
+the grammar.
+
+\begin{alba}
+   class
+     Strong_maybe (A:Any) (f: A -> Proposition): Any
+   create
+     just:    all (a:A): f a -> Strong_maybe f
+     nothing: (all (a:A): not (f a)) -> Strong_maybe f
+\end{alba}
 
 
 
