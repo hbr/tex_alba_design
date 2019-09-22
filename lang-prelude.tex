@@ -14,6 +14,24 @@ Convention: Propositions (i.e. types) or functions returning a proposition are
 written in lowercase. Other types are written in uppercase.
 
 
+\subsection{Predicates and Relations}
+\label{sec:predicates-and-relations}
+
+\begin{alba}
+  Predicate: Any -> Any
+    := (\ A := A -> Proposition)
+
+  Relation: Any -> Any -> Any
+    := (\ A B := A -> B -> Proposition)
+
+  Endorelation: Any -> Any
+    := (\ A := A -> A -> Proposition)
+\end{alba}
+\vskip 2mm
+
+
+
+
 
 \subsection{Propositions}
 \label{sec:prelude-propositions}
@@ -22,7 +40,7 @@ written in lowercase. Other types are written in uppercase.
 \subsubsection{Implication}
 %
 \begin{alba}
-  (=>) (a b:Prop): Proposition
+  (=>) (a b:Proposition): Proposition
     := a -> b
 \end{alba}
 
@@ -140,10 +158,23 @@ Example
 \begin{alba}
   exist (\(i:Natural) := 0 < i)
 \end{alba}
+\vskip 2mm
 
 
+\subsubsection{Equality}
+\label{sec:equality}
 
+\begin{alba}
+  class
+    (=) (A:Any) (x:A): Predicate A
+  create
+    reflexive: x = x    -- long form: (=) A x x
+\end{alba}
 
+Note that \code{Predicate A} expands to \code{A -> Propositions}, therefore
+\code{(=)} has three arguments. The type argument is implicit, therefore a
+binary operator is ok.
+\vskip 2mm
 
 
 \subsection{Simple Types}
@@ -205,8 +236,18 @@ language. However the compiler implements the type with segmented arrays of
 machine number with arbitrary precision arithmetic. Therefore natural numbers
 are not as efficient as machine numbers but much more efficient as a
 straightforward implemenation as an inductive type.
-\newline
 
+
+\begin{alba}
+  class
+    (<=): Endorelation Natural
+  create
+    start: all i: 0 <= i
+    next:  all i j: i <= j => i.successor <= j.successor
+
+  (<) (i j: Natural): Proposition := i.successor <= j
+\end{alba}
+\vskip 2mm
 
 
 \subsubsection{Strings}
