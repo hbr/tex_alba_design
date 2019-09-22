@@ -53,8 +53,14 @@ The term $a\to b$ is just a shorthand for $\Pi x^a.b$ or
   all (_:a): b
 \end{alba}
 in program text. Therefore the term $0 < i \Rightarrow 0 \le i$ is a function
-application with the value $\Pi p^{0 < i}. 0 \le i$.
-\newline
+application with the value $\Pi p^{0 < i}. 0 \le i : \Prop$ or in program text
+\begin{alba}
+  0 < i => 0 <= i           : Proposition
+
+  -- evaluates to
+  (all (_:0 < i): 0 <= i)  : Proposition
+\end{alba}
+\vskip 2mm
 
 
 
