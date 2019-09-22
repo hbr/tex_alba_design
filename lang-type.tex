@@ -1194,8 +1194,94 @@ term generation.
 
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Typing Judgements}
+\label{sec:typing-judgements}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The first version of the language has the only sorts
+$\Prop \prec \Any \prec \Box$ and not the cumulative hierarchy of universes
+$\Prop \prec \Any_0 \prec \Any_1 \prec \ldots$.
+
+Cumulative universes shall be avoided as long as possible, not because they
+are difficult to implement, but because it is difficult to output
+understandable error messages in case of universe inconsistencies.
+
+In the following we try to explore what typing judgements are possible without
+cumulative universes.
+
+$$
+\begin{array}{llllll}
+  [] &\vdash
+  & \Prop &:& \Any &
+
+  \\
+
+  [] &\vdash
+  & \Any &:& \Box &
+
+  \\
+
+  [] &\vdash
+  & \underbrace{\Pi A^\Any . \Any}_{=\, \Any \to \Any} &:& \Box &
+
+  \\
+
+  \Gamma, A:\Any &\vdash
+  & A \to \Prop &:& \Any &
+
+  \\
+
+  [] &\vdash
+  & \lambda A. A \to \Prop &:& \Any \to \Any
+\end{array}
+$$
+
+The last term is a function mapping a type to a predicate over the type
+according to the reduction
+%
+$(\lambda A . A \to \Prop) \Natural \reduce \Natural \to \Prop: \Any$.
+
+
+$$
+\begin{array}{llllll}
+  \Gamma, A:\Any &\vdash
+  & A \to A &:& \Any
+
+  \\
+
+  [] &\vdash
+  & \Pi A^\Any. A \to A &:& \Box
+
+  \\
+
+  [] &\vdash
+  & \lambda A^\Any x^A. x &:& \Pi A^\Any. A \to A
+\end{array}
+$$
+%
+The last term represents a polymorphic identity function which has two
+arguments. The first argument is the type and the second argument is an object
+of this type which is mapped to itself.
+
+It is not possible to apply the polymorphic identity function to itself
+because feeding its type as a first argument violates the typing relation
+($\Pi A^\Any. A \to A: \Any$ is not a valid typing judgement).
+
+With cumulative universes this is not possible either. But it would be
+possible to declare two polymorphic identity functions in different universes
+and feed the function of the lower universe as an argument into the function
+of the higher universe.
+
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Abstract Datatypes}
+\label{sec:abstract-datatypes}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \noindent Status: Draft
