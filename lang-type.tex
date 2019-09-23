@@ -1211,6 +1211,12 @@ understandable error messages in case of universe inconsistencies.
 In the following we try to explore what typing judgements are possible without
 cumulative universes.
 
+
+
+
+\subsubsection{Basic Judgements}
+
+
 $$
 \begin{array}{llllll}
   [] &\vdash
@@ -1244,6 +1250,9 @@ according to the reduction
 $(\lambda A . A \to \Prop) \Natural \reduce \Natural \to \Prop: \Any$.
 
 
+
+\subsubsection{Polymorphic Identity Function}
+
 $$
 \begin{array}{llllll}
   \Gamma, A:\Any &\vdash
@@ -1274,6 +1283,88 @@ possible to declare two polymorphic identity functions in different universes
 and feed the function of the lower universe as an argument into the function
 of the higher universe.
 
+
+
+\subsubsection{Impossible Function Arguments}
+
+All terms $T$ of type $\Box$ as its minimal type can never be used as an
+argument to a function. This is because the most general type of a function
+(with respect to its argument) looks like $\Pi A^\Any. B$. Since
+$\Box \le \Any$ is invalid (it contradicts $\Any < \Box$), $T$ cannot be an
+argument.
+
+We have $\Any : \Box$, therefore $\Any$ cannot used as an argument.
+
+Note that only $T:\Box$ cannot be used as arguments, $t:T$ can be used!
+
+
+
+
+
+
+\subsubsection{Uninhabited Types}
+
+
+$$
+\begin{array}{llllll}
+  [] &\vdash
+  & \Pi A^\Any. A &:& \Box
+
+  \\
+
+  [] &\vdash
+  & \Pi p^\Prop. p &:& \Prop
+\end{array}
+$$
+
+The term $\Pi A^\Any. A $ is the type of a function which receives any type as
+argument and returns an object of this type. There cannot be any object of
+this type unless there are contradictory assumptions. If there were objects of
+that type, we could feed any proposition as argument and get a proof of the
+proposition as output.
+
+The second type is more specific for propositions. But the same argument
+applies. Note that the second type can be used as an argument while the first
+cannot.
+
+
+
+\subsubsection{Impredicativity of $\Prop$}
+
+$$
+\begin{array}{llllll}
+  [] &\vdash
+  & \Pi p^\Prop. p &:& \Prop
+  & \text{false}
+
+  \\
+
+  [] &\vdash
+  & \Pi p^\Prop. p \to p &:& \Prop
+
+  \\
+
+  [] &\vdash
+  &\lambda p x. x&:& \Pi p^\Prop. p \to p
+
+  \\
+
+  [] &\vdash
+  & \Pi p^\Prop q^\Prop r^\Prop. (p \to q \to r) \to r &:& \Prop
+  & \text{and}
+
+  \\
+
+  [] &\vdash
+  & \Pi p^\Prop q^\Prop r^\Prop. (p \to q)  \to (p \to r) \to r &:& \Prop
+  & \text{or}
+\end{array}
+$$
+
+
+\subsubsection{Predicativity of $\Any$}
+
+TODO
 
 
 
