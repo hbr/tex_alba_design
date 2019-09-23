@@ -1392,10 +1392,34 @@ $$
 $$
 
 
+
+
+
+
 \subsubsection{Predicativity of $\Any$}
 
-TODO
+If we combine the typing rule for the dependent product for $s_2 \ne \Prop$
+with the subtyping rule, then we get the rule
 
+$$
+\rulev
+{
+  \Gamma \vdash A: s_1
+  \\
+  \Gamma, x:A \vdash B: s_2
+  \\
+  s_2 \ne \Prop
+}
+{\Gamma \vdash \Pi x^A.B : \text{max}(s_1,s_2)}
+$$
+
+In case we wanted to use the type $\Pi x^A.B$ as an argument to an object of
+its type, then it would require $\text{max}(s_1,s_2) \le A$ which is only
+possible if $A$ is a sort and then contradicts $A < s_1$ because
+$\text{max}(s_1,s_2) < s_1$ is not possible.
+
+Therefore we say that $\Any$ is impredicative. The same argument applies for
+the infinite hierarchy $\Prop \prec \Any_0 \prec \Any_1 \prec \ldots$.
 
 
 
