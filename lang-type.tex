@@ -1331,34 +1331,64 @@ cannot.
 
 \subsubsection{Impredicativity of $\Prop$}
 
+The typing rule for the dependent product has two sorts $s_1$ and  $s_2$. In
+case that the second sort is $\Prop$, the typing rule reads
+%
+$$
+\rulev
+{
+  \Gamma \vdash A: s
+  \\
+  \Gamma, x:A \vdash B:\Prop
+}
+{\Gamma \vdash \Pi x^A. B : \Prop}
+$$
+%
+i.e. whenever the return type of a function type $B$ is a proposition, the the
+whole function type is a proposition as well (note $B:\Prop$ must be valid an
+\emph{not} $B = \Prop$!).
+
+This has the consequence that the function type (which is a proposition) can
+be used as an argument to any function which expects a proposition as argument
+type. In case that $A = \Prop$ the type can used as an argument of a function
+of this type. This property is called impredicativity.
+
+Some impredicate definitions:
+%
 $$
 \begin{array}{llllll}
   [] &\vdash
   & \Pi p^\Prop. p &:& \Prop
-  & \text{false}
+  & \text{\emph{``false''}}
 
   \\
 
   [] &\vdash
   & \Pi p^\Prop. p \to p &:& \Prop
-
-  \\
-
-  [] &\vdash
-  &\lambda p x. x&:& \Pi p^\Prop. p \to p
+  & \text{\emph{``true''}}
 
   \\
 
   [] &\vdash
   & \Pi p^\Prop q^\Prop r^\Prop. (p \to q \to r) \to r &:& \Prop
-  & \text{and}
+  & \text{\emph{``and''}}
 
   \\
 
   [] &\vdash
   & \Pi p^\Prop q^\Prop r^\Prop. (p \to q)  \to (p \to r) \to r &:& \Prop
-  & \text{or}
+  & \text{\emph{``or''}}
 \end{array}
+$$
+
+These definitions demonstrate that no inductive definitions are necessary to
+define logical connectives. They are quite useful and better understandable
+than the equivalent impredicative definitions. But not strictly necessary.
+
+A proof of \emph{true} is quite simple
+$$
+  [] \vdash
+  \lambda p x. x :  \Pi p^\Prop. p \to p
 $$
 
 
