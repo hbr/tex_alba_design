@@ -1,4 +1,78 @@
-\section{Type Inference}
+\section{Term Building}
+
+The intermediate language of Alba is strictly typed. All bound variables need
+explicit types, calls of polymorphic functions need type arguments and
+propositions need proofs.
+
+The language for the user is much more liberal, otherwise it would be very
+tedious to write programs in Alba.
+
+The task of term building is to fill the gaps between the user language and
+the intermediate language.
+
+\begin{description}
+\item[Binders] The user can write in program text
+  \begin{alba}
+    \ x y := e
+
+    all x y: p
+  \end{alba}
+  and the term builder has to generate $\lambda x^A y^B. e$ and $\Pi
+  x^A y^B  . p$ i.e. it has to infer the argument types.
+
+\item[Implicit Type Arguments] Polymorphic functions need type arguments in
+  the intermediate language. The user does not provide this
+  information. Therefore the source code terms
+  \begin{alba}
+    1 ^ 2 ^ []           -- [] is nil and (^) is cons
+
+    reverse list
+  \end{alba}
+  %
+  have to be transformed to
+  $$
+  \begin{array}{l}
+    \text{cons}\, \Natural\, 1 \,(\text{cons}\, \Natural\, 2\, (\text{nil}\,
+    \Natural))
+
+    \\
+
+    \text{reverse}\, \text{String} \, \text{list}
+  \end{array}
+  $$
+
+
+\item[Implicit Proof Arguments]
+  The user does not supply explicit proof arguments. Let's assume we have the
+  function definition
+  \begin{alba}
+    predecesssor (n:Natural): 0 < n -> Natural := ...
+  \end{alba}
+  %
+  then the user can call the function with
+  \begin{alba}
+    predecessor n
+  \end{alba}
+  %
+  The term builder does not generate the actual proof. This is the task of the
+  prover. But the term builder generates an new variable for the missing proof
+  (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$.
+
+
+\item[Elimination Function]
+
+
+\item[Decreasing Fixpoint Argument]
+\end{description}
+
+
+
+
+
+
+
+\newpage
+\section{Type Inference (Old material)}
 
 \subsection{Basics}
 
