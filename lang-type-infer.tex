@@ -1,5 +1,8 @@
 \section{Term Building}
 
+
+\subsection{Task}
+
 The intermediate language of Alba is strictly typed. All bound variables need
 explicit types, calls of polymorphic functions need type arguments and
 propositions need proofs.
@@ -10,8 +13,15 @@ tedious to write programs in Alba.
 The task of term building is to fill the gaps between the user language and
 the intermediate language.
 
+
+
+
+
 \begin{description}
-\item[Binders] The user can write in program text
+
+\item[Binders]
+  %
+  The user can write in program text
   \begin{alba}
     \ x y := e
 
@@ -20,9 +30,13 @@ the intermediate language.
   and the term builder has to generate $\lambda x^A y^B. e$ and $\Pi
   x^A y^B  . p$ i.e. it has to infer the argument types.
 
-\item[Implicit Type Arguments] Polymorphic functions need type arguments in
-  the intermediate language. The user does not provide this
-  information. Therefore the source code terms
+
+\item[Implicit Type Arguments]
+  %
+  Polymorphic functions and constructors need type arguments in the
+  intermediate language. In order to construct an empty list the constructor
+  $\text{nil}$ receives the object type as an argument. The user does not
+  provide this information. Therefore the source code terms
   \begin{alba}
     1 ^ 2 ^ []           -- [] is nil and (^) is cons
 
@@ -43,6 +57,7 @@ the intermediate language.
 
 
 \item[Implicit Proof Arguments]
+  %
   The user does not supply explicit proof arguments. Let's assume we have the
   function definition
   \begin{alba}
@@ -57,13 +72,122 @@ the intermediate language.
   The term builder does not generate the actual proof. This is the task of the
   prover. But the term builder generates an new variable for the missing proof
   (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$.
+  %
+
+
+
+\item[Specified Type Splitting]
+  %
+  In Alba we have the specified type which is a simple type plus a
+  specification which objects of that simple type must satisfy in order to be
+  objects of the specified type. The specified type is defined as an inductive
+  type
+  %
+  \begin{alba}
+    class Specified (A:Any) (f:A -> Proposition): Any create
+      specified (a:A): f a -> Specified f
+  \end{alba}
+  %
+  We use the convention that an argument of a function never has a specified
+  type. The simple type and the proposition have to be provided as separate
+  arguments. But the objects of specified type can be returned from functions
+  (e.g. a number with a proof of the fact that it is a prime number).
+
+  The term builder splits return values of specified type into simple values
+  and proof values by using projections. The simple value is fed as an
+  argument and the proof value is shifted into the context and can be used by
+  the prover.
+
+  The term builder uses the projection functions
+  \begin{alba}
+     value (A:Any) (f:A -> Proposition) (v:Specified f): A :=
+       inspect v case
+         specified a _ := a
+
+     proof (A:Any) (f:A -> Proposition) (v:Specified f): A :=
+       inspect v case
+         specified _ p := p
+  \end{alba}
+  %
+  Note that \code{A} and \code{f} are implicit type arguments for both
+  functions. Therefore the user can call them by writing \code{value v} and
+  \code{proof v}.
 
 
 \item[Elimination Function]
+  %
+  The pattern match construct
+  $\case(e, \lambda \ybold^\Abold x^T . R, \fbold)$ needs an elimination
+  function $\lambda \ybold^\Abold x^T . R$ mapping the indices of the
+  inductive type and an object of the inductive type into the result type of
+  the pattern match expression (i.e. the term $R$ can depend on $\ybold$ and
+  $x$).
+  %
+  \begin{alba}
+     (<=) (a b:Natural): Decision (a <= b) (not a <= b) :=
+        inspect a case
+          0 :=
+            left                 -- to prove: 0 <= b
+          n.successor :=
+            inspect b case
+              0 :=
+                right            -- to prove: not n.successor <= 0
+              m.successor :=
+                inspect n <= m case
+                  left  := left
+                    -- to prove: n <= m => n.successor <= m.successor
+
+                  right := right
+                    -- to prove: not n <= m => not n.successor <= m.successor
+  \end{alba}
+  %
+  The elimination function of the outer pattern match expressed in Alba syntax
+  \begin{alba}
+    \ (a:Natural): Decision (a <= b) (not a <= b) :=
+      inspect n case
+        0 :=
+          Decision (0 <= b) (not 0 <= b)
+        n.successor :=
+          Decision (n.successor <= b) (not n.successor <= b)
+  \end{alba}
+  %
+  The elimination function of the inner pattern match expressed in Alba syntax
+  \begin{alba}
+    \ (b:Natural): Decision (n.successor <= b) (not n.successor <= b) :=
+      inspect b case
+        0 :=
+          Decision (n.successor <= 0) (not n.succesor <= 0)
+
+        m.successor :=
+          Decision (n.successor <= m.successor)
+                   (not n.successor <= m.successor)
+  \end{alba}
+
+
 
 
 \item[Decreasing Fixpoint Argument]
+
+
+
+
+\item[Ambiguity]
+  %
+  Global function (or constant) names are not unique in Alba. We can have
+  different functions with the same name. Only the name together with the
+  signature is unique.
+
+  Whenever the builder encounters a name which does not uniquely specify a
+  global function, it has to build with the different functions in parallel
+  until a function is rule out because of the typing rules.
+
 \end{description}
+
+
+
+
+
+\subsection{Basic Techniques}
 
 
 
