@@ -64,15 +64,16 @@ the intermediate language.
     predecesssor (n:Natural): 0 < n -> Natural := ...
   \end{alba}
   %
-  then the user can call the function with
+  i.e. a function that can be called only with a nonnegative argument. Then
+  the user can call the function with
   \begin{alba}
     predecessor n
   \end{alba}
   %
   The term builder does not generate the actual proof. This is the task of the
   prover. But the term builder generates an new variable for the missing proof
-  (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$.
-  %
+  (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$ in the
+  intermediate language.
 
 
 
@@ -89,9 +90,9 @@ the intermediate language.
   \end{alba}
   %
   We use the convention that an argument of a function never has a specified
-  type. The simple type and the proposition have to be provided as separate
-  arguments. But the objects of specified type can be returned from functions
-  (e.g. a number with a proof of the fact that it is a prime number).
+  type. The simple type and the proposition are separate arguments. But
+  objects of specified type can be returned from functions (e.g. a number with
+  a proof of the fact that it is a prime number).
 
   The term builder splits return values of specified type into simple values
   and proof values by using projections. The simple value is fed as an
@@ -167,7 +168,11 @@ the intermediate language.
 
 
 \item[Decreasing Fixpoint Argument]
-
+  %
+  Each fixpoint needs a decreasing argument for recursive calls. It is the
+  task of the term builder to find one decreasing argument which is decreased
+  in each recursive call or flag an error if it cannot find a decreasing
+  argument.
 
 
 
@@ -175,7 +180,7 @@ the intermediate language.
   %
   Global function (or constant) names are not unique in Alba. We can have
   different functions with the same name. Only the name together with the
-  signature is unique.
+  signature has to be unique.
 
   Whenever the builder encounters a name which does not uniquely specify a
   global function, it has to build with the different functions in parallel
@@ -188,6 +193,7 @@ the intermediate language.
 
 
 \subsection{Basic Techniques}
+
 
 
 
