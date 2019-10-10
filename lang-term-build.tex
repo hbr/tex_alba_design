@@ -192,7 +192,75 @@ the intermediate language.
 
 
 
-\subsection{Basic Techniques}
+\subsection{Basic Algorithm}
+
+The input to the term builder:
+%
+\begin{enumerate}
+
+\item A syntactic term from the source code
+
+\item A context
+
+\item An optional expected type
+\end{enumerate}
+
+Output of the term builder: Because of ambiguities the output is a list of the
+following data
+%
+\begin{enumerate}
+
+\item A term in the intermediate language whose type is the optional expected
+  type.
+
+\item An augmented context which contains in addition to the input context
+  \begin{enumerate}
+  \item Type variables which can be freely substituted with any type without
+    disturbing the validity of the term. If there are free type variables the
+    term is polymorphic. E.g. the term \code{nil A} has the free type variable
+    \code{A:Any}. The user only writes \code{nil} but the term builder has to
+    add the implicit argument. Since there is no way to determine it, it has
+    to assume a type variable.
+  \item Proof variables which are used in the term and which have to be
+    substituted by the prover by concrete proofs.
+  \end{enumerate}
+\end{enumerate}
+
+
+The required type of a syntactic term depends on where the term is positioned.
+%
+\begin{description}
+
+\item[Top of the Repl]
+  %
+  The term does not have a required type. It can be anything: A type, an
+  object, a sort, ...
+
+\item[Type Annotation]
+  %
+  Examples:
+  \begin{alba}
+     reverse (A: Any) (l: List A): Specified (\r := r.is_reversal_of l)
+       := ...
+
+     \ (n:Natural): Natural := n + 1
+  \end{alba}
+   %
+   In these examples all terms to the right of the colon \code{:} must be
+   types. There is no requirement for the types except that they must be types
+   i.e. their types must be sorts. Since we have no required type, we cannot
+   introduce a variable to represent them.
+
+ \item[Argument]
+   %
+   An argument must be an argument of some function expression. The function
+   expression has a type which clearly indicates the required types for the
+   arguments. Therefore a syntactic expression in an argument position has a
+   required type and we can introduce variables to represent the argument
+   terms which we later substitute by the corresponding intermediate language
+   terms.
+\end{description}
+
 
 
 
