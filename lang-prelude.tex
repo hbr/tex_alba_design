@@ -142,9 +142,9 @@ proof of $a$ and a proof of $b$ to a proof of $a \land b$.
 
 \begin{alba}
   class
-     exist (A:Any) (f:A -> Proposition): Proposition
+    exist (A:Any) (f:A -> Proposition): Proposition
   create
-     witness: all (a:A): f a -> exist f
+    witness: all (a:A): f a -> exist f
 \end{alba}
 
 \begin{itemize}
@@ -320,9 +320,11 @@ certain property.
 
 \begin{alba}
   class
-     Specified (A:Any) (f:A -> Proposition): Any
+    Specified (A:Any) (f:A -> Proposition): Any
   create
-     specified: all (a:A) f a -> Specified f
+    specified: all (a:A): f a -> Specified f
+    -- or shorter
+    specified a: f a -> Specified f
 \end{alba}
 
 In the intermediate language this inductive definition is written as
