@@ -259,9 +259,37 @@ The required type of a syntactic term depends on where the term is positioned.
    required type and we can introduce variables to represent the argument
    terms which we later substitute by the corresponding intermediate language
    terms.
+
+ \item[Function]
+   %
+   In the syntactic term \code{f a b} the subterm \code{f} is in the function
+   position. The required type of the whole expression is a required type for
+   the return type of \code{f} i.e. the subexpression in the function
+   position. Another requirement for the subterm \code{f} is that must be
+   applicable to $n$ arguments.
 \end{description}
 
+In summary we have the requirements for a syntactic term
+%
+\begin{enumerate}
 
+\item Required result type, which is either
+  \begin{enumerate}
+
+  \item nothing in the case of a toplevel expression in the repl
+
+  \item some type, if the term is in a type annotation position (to the right
+    of a colon)
+
+  \item the type of a variable which has been introduced to represent the
+    argument
+  \end{enumerate}
+
+
+\item Number of essential arguments (without implicit arguments and proof
+  arguments). If the number of arguments is different from zero, then the term
+  is in a function position.
+\end{enumerate}
 
 
 
