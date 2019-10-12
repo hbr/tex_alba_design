@@ -75,6 +75,11 @@ the intermediate language.
   (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$ in the
   intermediate language.
 
+  Proof arguments are implicit only for functions whose result type is not a
+  proposition. If the result type of a function is a proposition, then the
+  proof arguments must be provided explicitly. If the user wants the prover to
+  find the prove, then it is possible to write the wildcard \code{\_} instead
+  of an explicit argument.
 
 
 \item[Specified Type Splitting]
@@ -90,7 +95,7 @@ the intermediate language.
   \end{alba}
   %
   We use the convention that an argument of a function never has a specified
-  type. The simple type and the proposition are separate arguments. But
+  type. The simple type and the proposition must be separate arguments. But
   objects of specified type can be returned from functions (e.g. a number with
   a proof of the fact that it is a prime number).
 
@@ -103,11 +108,12 @@ the intermediate language.
   \begin{alba}
      value (A:Any) (f:A -> Proposition) (v:Specified f): A :=
        inspect v case
-         specified a _ := a
+         specified a := a
 
-     proof (A:Any) (f:A -> Proposition) (v:Specified f): A :=
+     proof (A:Any) (f:A -> Proposition) (v:Specified f): f (value v) :=
        inspect v case
-         specified _ p := p
+         specified _ p := p   -- result type of 'proof' is a proposition
+                              -- therefore explicit proof arguments
   \end{alba}
   %
   Note that \code{A} and \code{f} are implicit type arguments for both
@@ -192,7 +198,7 @@ the intermediate language.
 
 
 
-\subsection{Basic Algorithm}
+\subsection{Requirements}
 
 The input to the term builder:
 %
@@ -251,6 +257,26 @@ The required type of a syntactic term depends on where the term is positioned.
    i.e. their types must be sorts. Since we have no required type, we cannot
    introduce a variable to represent them.
 
+ \item[Term with Type Annotation]
+   %
+   In the example
+   \begin{alba}
+     (3 + 4 / 8 * 3 : Natural) = list.length
+   \end{alba}
+   the term \code{3 + 4 / 8 * 3} has the type annotation
+   \code{Natural}. Therefore the type annotation \code{Natural} is the
+   required type for the term.
+
+ \item[Function Definition]
+   %
+   If the term is the defining expression of a function definition and the
+   result type of the function is specified, then the required type of the
+   defining expression is the result type of the function.
+   %
+   \begin{alba}
+     f (a:A) (b:B): R := exp
+   \end{alba}
+
  \item[Argument]
    %
    An argument must be an argument of some function expression. The function
@@ -269,7 +295,9 @@ The required type of a syntactic term depends on where the term is positioned.
    applicable to $n$ arguments.
 \end{description}
 
-In summary we have the requirements for a syntactic term
+
+
+\noindent In summary we have the requirements for a syntactic term
 %
 \begin{enumerate}
 
@@ -280,6 +308,8 @@ In summary we have the requirements for a syntactic term
 
   \item some type, if the term is in a type annotation position (to the right
     of a colon)
+
+  \item result type of a function definition or annotated type of an expression
 
   \item the type of a variable which has been introduced to represent the
     argument
