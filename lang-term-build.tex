@@ -325,6 +325,271 @@ The required type of a syntactic term depends on where the term is positioned.
 
 
 
+\subsection{Placeholders}
+
+The term builder uses placeholders for terms/types which it does not yet know.
+
+Placeholders are needed for
+%
+\begin{enumerate}
+
+\item bound variables which do not have an explicit type (a variable of type
+  \code{Any} will be introduced.
+
+
+\item implicit arguments of functions (arguments which can be inferred from
+  the rest of the signature)
+
+\item actual function arguments which have not yet been analyzed
+
+\end{enumerate}
+
+The introduced variables are not arbitrary. They have to satisfy the
+constraints
+\begin{enumerate}
+\item The actual type must be unifiable with the required type
+\item A placeholder for an argument must be substitutable with the expression
+  generated from the syntactic term of the actual argument.
+\end{enumerate}
+
+At the end of the term building some placeholders might not have
+substitutions. This usually means that the expression is polymorphic (e.g. an
+empty list whose element type is unknown).
+
+During the algorithm we have a set of placeholders and a substitution
+$$
+\sigma = [y_0: t_0, y_1: t_1, \ldots]
+$$
+i.e. a list of placeholders/substitution term pairs with the invariant that a
+substituted variable must not occur in any substitution term and that the
+substituted variables $y_0, y_1, \ldots$ are a subset of the placeholders.
+
+
+
+
+\subsection{Algorithm Data}
+
+
+\noindent Input:
+
+\begin{enumerate}
+
+\item Nonempty list of
+
+  \begin{enumerate}
+
+  \item Context
+
+  \item Set of all placeholders / Substitution
+
+  \item Stack of placeholders representing not yet analyzed function arguments
+
+  \item Number of arguments (to which the syntactic expression is applied) and
+    the application mode (normal, target of object call, operand)
+
+  \item Optional expected type
+  \end{enumerate}
+
+\item Syntactic expression
+\end{enumerate}
+
+Lists are needed because of ambiguity. A elements of the list have the same
+number of arguments. If there is an expected type, there is one for all
+elements. If the expected type is an arbitrary type, it is the same for all
+list elements.
+
+If no error occurs, then the algorithm outputs a nonempty list of:
+
+\begin{enumerate}
+
+\item Context
+
+\item Set of all placeholders / Substitution
+
+\item Stack of placeholders representing not yet analyzed function arguments
+
+\item Term in the intermediate language (and maybe its type)
+
+\end{enumerate}
+
+The context, set of placeholders, substitution and the stack of placeholders
+are common elements of the input and output structure.
+
+
+
+
+\subsection{Implicit vs Explicit Arguments}
+
+All arguments in the syntactic terms are explicit. Implicit arguments are
+never written in the source code.
+
+The type of a term in function position must have a type which in key normal
+form looks like
+
+$$
+\Pi \xbold^\Abold . R = \Pi x_0^{A_0} x_1^{A_1} \ldots .\, R
+$$
+
+If $A_i:\Prop$, then $A_i$ is a proposition and the $i$-th argument is a
+proof. If $R:\Prop$, then $\Pi \xbold^\Abold. R$ is a proposition and a term
+of this type is a proof.
+
+In propositional function types all proof arguments are explicit. In
+nonpropositional function types the proof arguments are implicit.
+
+An argument described by the pair $x_i: A_i$ is implicit if it occurs either
+in some of the following nonpropositional $A_j$ for $i < j$ or in the
+nonpropositional result type.
+
+\vskip 2mm
+
+TBD
+
+
+
+
+\subsection{Terminal Elements}
+
+The possible terminal elements (syntactic terms which have no subterms) of a
+syntactic term are
+%
+\begin{enumerate}
+
+\item Identifier / Operator
+
+\item Number
+
+\item Character
+
+\item String
+
+\item Sort (\code{Proposition} and \code{Any})
+\end{enumerate}
+
+Numbers, characters, strings and sorts cannot be applied to
+arguments. Identifiers, operators and numbers can have ambiguous types.
+
+The expected type is the type of the expression applied to the arguments.
+
+For each possible terminal element we get a list of term/type pairs (which can
+be a singleton list). Transforming the type into key normal form must result
+in $\Pi x^A y^B \ldots . R$ with sufficient arguments.
+
+We generate placeholders for all arguments (implicit and explicit, until
+sufficient) and shift them with their corresponding types into the
+context. The essential ones are shifted onto the stack of not yet analyzed
+arguments.
+
+Then we unify $R$ with the expected type of the expression with arguments.
+
+We return the term applied to the placeholder arguments (implicit and
+explicit) in the output structure. I.e. the type of the returned term has the
+expected type (if there is one).
+
+
+
+
+\subsection{Function Application}
+
+A function application has the forms
+
+\begin{alba}
+  f a b c ...        -- normal mode
+
+  a.f b c ...        -- oo style mode
+
+  a binop b          -- operator expression
+\end{alba}
+
+
+
+\vskip 5mm
+TBD
+\vskip 5mm
+
+
+
+\subsection{Function Term / Abstraction}
+
+A function term has the possible forms
+
+\begin{alba}
+  \ x y ... := exp                     -- without types
+
+  \ (x:A) (y:B) ... : R := exp         -- fully typed
+
+  (a +)                                -- section '\x := a + x'
+
+  (+ a)                                -- section '\x := x + a'
+\end{alba}
+
+
+For unknown argument type we have to introduce type variables into the context.
+
+For
+\begin{alba}
+  \ x y (z:C) := exp
+\end{alba}
+%
+we need the context
+$$
+    \Gamma, A:\Any, B:\Any, x:A, y:B, z:C \ldots
+$$
+%
+where the two placeholder type variable $A$ and $B$ have been introduced to
+describe the types of the variables $x$ and $y$.
+
+The type $C$ might contain the variables $x$ and $y$ (e.g. \code{C = x < y}
+i.e. the analysis of $C$ might already determine the type variables $A$ and
+$B$.
+
+Finally we analyze the expression \code{exp} in the new context and get an
+itermediate language term $e:E$ in the context.
+
+At the end some unassigned type variables can remain. We shift them all to the
+left of $x:A$ and form $\lambda x^A y^B z^C . e : \Pi x^A y^B z^C . E$ in the
+context below $x$.
+
+
+
+
+\vskip 5mm
+TBD
+\vskip 5mm
+
+
+
+
+
+\subsection{Function Type}
+
+
+\begin{alba}
+  all x y ... : exp
+
+  all (x:A) (y:B) ... : exp
+
+  all (x:A) : B -> ... -> Z        -- all (x:A) (_:B) ... : Z
+\end{alba}
+
+\vskip 5mm
+TBD
+\vskip 5mm
+
+
+
+
+
+\subsection{Pattern Match}
+
+\vskip 5mm
+TBD
+\vskip 5mm
+
+
+
+
+
 
 
 \newpage
