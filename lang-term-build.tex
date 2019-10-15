@@ -408,7 +408,7 @@ If no error occurs, then the algorithm outputs a nonempty list of:
 
 \item Stack of placeholders representing not yet analyzed function arguments
 
-\item Term in the intermediate language (and maybe its type)
+\item Term and its type in the intermediate language
 
 \end{enumerate}
 
@@ -423,8 +423,8 @@ are common elements of the input and output structure.
 All arguments in the syntactic terms are explicit. Implicit arguments are
 never written in the source code.
 
-The type of a term in function position must have a type which in key normal
-form looks like
+A term in function position must have a type which in key normal form looks
+like
 
 $$
 \Pi \xbold^\Abold . R = \Pi x_0^{A_0} x_1^{A_1} \ldots .\, R
@@ -437,13 +437,27 @@ of this type is a proof.
 In propositional function types all proof arguments are explicit. In
 nonpropositional function types the proof arguments are implicit.
 
-An argument described by the pair $x_i: A_i$ is implicit if it occurs either
-in some of the following nonpropositional $A_j$ for $i < j$ or in the
+An argument described by the pair $x_i: A_i$ is implicit if $x_i$ occurs
+either in some of the following nonpropositional $A_j$ for $i < j$ or in the
 nonpropositional result type.
 
-\vskip 2mm
 
-TBD
+
+
+
+\subsection{Apply Terms to Placeholders}
+
+Every syntactic subterm might be applied to some arguments, either explicit or
+implicit, if it is in a function position.
+
+The term in the function position is analyzed before the terms of the actual
+arguments. Therefore placeholders are introduced for the explicit and implicit
+arguments (it is possible that there are no explicit arguments, but implicit
+arguments).
+
+The optional expected type of a syntactic term is not the type of the
+syntactic term, but the type of the syntactic term applied to its arguments.
+
 
 
 
@@ -550,12 +564,14 @@ At the end some unassigned type variables can remain. We shift them all to the
 left of $x:A$ and form $\lambda x^A y^B z^C . e : \Pi x^A y^B z^C . E$ in the
 context below $x$.
 
+During the analysis of \code{exp} it is possible that some proof variables
+like $x_p:p$ have been introduced. The actual proof has not yet been
+generated, but it might depend on $x,y,z$. In order to eliminate $x_p$ we
+introduce a new proof variable $y_p:\Pi x^A y^B z^C . p$ to the left of $x:A$
+and substitute $x_p$ by $y_p x y z$.
 
 
 
-\vskip 5mm
-TBD
-\vskip 5mm
 
 
 
