@@ -585,6 +585,8 @@ A function application has the forms
 
 
 
+
+
 \subsection{Function Term / Abstraction}
 
 A function term has the possible forms
@@ -600,7 +602,7 @@ A function term has the possible forms
 \end{alba}
 
 
-For unknown argument type we have to introduce type variables into the context.
+For unknown argument types we have to introduce type variables into the context.
 
 For
 \begin{alba}
@@ -620,7 +622,7 @@ i.e. the analysis of $C$ might already determine the type variables $A$ and
 $B$.
 
 Finally we analyze the expression \code{exp} in the new context and get an
-itermediate language term $e:E$ in the context.
+intermediate language term $e:E$ in the context.
 
 At the end some unassigned type variables can remain. We shift them all to the
 left of $x:A$ and form $\lambda x^A y^B z^C . e : \Pi x^A y^B z^C . E$ in the
@@ -632,8 +634,35 @@ generated, but it might depend on $x,y,z$. In order to eliminate $x_p$ we
 introduce a new proof variable $y_p:\Pi x^A y^B z^C . p$ to the left of $x:A$
 and substitute $x_p$ by $y_p x y z$.
 
+Now we analyze $\Pi x^A y^B z^C . E$ with respect to the number of variables
+to which the function term is applied and unify the result type with the
+expected type.
 
 
+
+A function term might be potentially recursive
+\begin{alba}
+  f x y := exp
+\end{alba}
+where \code{f} might occur in \code{exp}
+
+In that case we need a context like
+$$
+  \Gamma, A:\Any, B:\Any, R:\Any, f:\Pi x^A y^B.R, x:A, y:A
+$$
+%
+to analyze \code{exp} with the expected type $R$.
+
+Suppose $e:E$ is the result of the analysis of \code{exp} and $f$ occurs in
+$e$. The we have to find the decreasing argument which decreases in each
+recursive call.
+
+There is a special case that each usage of $f$ is a function call with fewer
+arguments than there are formal arguments in the declaration \code{f x
+  y}. That case has to be investigated more in detail (TBD!!).
+
+In case of success the result of the analysis of the function expression is
+$\fix(f^{\Pi x^A y^B. R}, e, k) : \Pi x^A y^B. R$.
 
 
 
@@ -650,15 +679,37 @@ and substitute $x_p$ by $y_p x y z$.
   all (x:A) : B -> ... -> Z        -- all (x:A) (_:B) ... : Z
 \end{alba}
 
+If there is an expected type for the whole expression, then it must be a sort
+i.e. either $\Prop$ or $\Any$ because an expression of the form \code{all x
+  y:exp} is always a type and the type of a type is a sort.
+
+As in the analysis of a function term we have to introduce type variables for
+the untyped variables into the context.
+$$
+\Gamma, A:\Any, B:\Any, \ldots, x:A, y:B, \ldots
+$$
+%
+In this context we analyze \code{exp} expecting some type (note that
+\code{exp} is to the right of a colon) or $\Prop$ if the expected type of the
+whole expression is $\Prop$.
+
+
+
+
+
 \vskip 5mm
-TBD
-\vskip 5mm
-
-
-
-
 
 \subsection{Pattern Match}
+
+\begin{alba}
+  inspect
+    e
+  case
+    p1 := r1
+    p2 := r2
+    ...
+\end{alba}
+
 
 \vskip 5mm
 TBD
