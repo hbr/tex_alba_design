@@ -559,10 +559,29 @@ A function application has the forms
 \end{alba}
 
 
+\begin{enumerate}
 
-\vskip 5mm
-TBD
-\vskip 5mm
+\item Analzye $f$ and get $f x y \ldots$ and the placeholders on the stack
+  which represent the arguments.
+
+
+\item For each argument $a_i$ do
+  \begin{enumerate}
+
+  \item Pop one placeholder $(x_i,A_i)$ off the stack and use $A_i$ as a
+    required type for $a_i$.
+
+  \item Analyze $a_i$ with zero arguments and get the corresponding term
+    $t_{a_i}$ as a result.
+
+  \item Substitute $x_i$ with $t_{a_i}$.
+
+  \end{enumerate}
+
+\item Return $f x y \ldots$.
+
+\end{enumerate}
+
 
 
 
