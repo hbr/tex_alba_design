@@ -445,7 +445,7 @@ nonpropositional result type.
 
 
 
-\subsection{Apply Terms to Placeholders}
+\subsection{Apply Terms to Arguments}
 
 Every syntactic subterm might be applied to some arguments, either explicit or
 implicit, if it is in a function position.
@@ -453,10 +453,53 @@ implicit, if it is in a function position.
 The term in the function position is analyzed before the terms of the actual
 arguments. Therefore placeholders are introduced for the explicit and implicit
 arguments (it is possible that there are no explicit arguments, but implicit
-arguments).
+arguments; in that case the term is not in a function position).
 
 The optional expected type of a syntactic term is not the type of the
 syntactic term, but the type of the syntactic term applied to its arguments.
+
+Therefore we cannot use the type of the term and unify it with the expected
+type. We have to extract first the argument types of the type and use the
+result type and unify the result type with the expected type.
+
+Two difficulties:
+
+\begin{enumerate}
+
+\item The type of the term might not be in normal form $\Pi \xbold^\Abold . R$
+
+\item There are several implicit arguments which all need placeholders
+  i.e. there might be more arguments needed than provided in the syntactic
+  term. In the extreme case there are only implicit arguments.
+
+\end{enumerate}
+
+Let's assume the type of the term $t$ is $T$ and the first step of the
+transformation to key normal form is $T \reducekey \Pi
+x_0^{A_0}. R_0$. According to the previous chapter $x_0$ is implicit if
+\begin{enumerate}
+
+\item $A_0:\Prop$ and $R_0$ is not a proposition
+
+\item $A_0$ is nonpropositional and $x_0$ does occur in nonpropositional
+  arguments of $R_0$ or in the nonpropositional final result type of $R_0$.
+\end{enumerate}
+
+This analysis shows that the implicitness of an argument can be decided only
+if the complete key normalform $\Pi x_0^{A_0} x_1^{A_1} \ldots\, R_{n-1}$ is
+available. I.e. we need the complete sequence
+$$
+   T, (A_0, R_0), (A_1, R_1), \ldots, (A_{n-1}, R_{n-1})
+$$
+to define the placeholders and fill the stack of placeholders. After the
+decision we can return
+
+$$
+   t x_0 x_1 \ldots
+$$
+
+which has the expected type and push the nonimplicit ones onto the stack.
+
 
 
 
