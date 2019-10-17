@@ -443,6 +443,44 @@ nonpropositional result type.
 
 
 
+\subsubsection{Alternative!!!}
+
+Maybe we can simplify things if we allow only type variables ($x:\Any$)
+and propositions ($x : p : \Prop$) to be implicit.
+
+\begin{definition}
+  \emph{Type argument and proof argument}: In a signature
+  $$\Pi x_0^{A_0} x_1^{A_1} \ldots .\, R$$
+  the $i$-th argument is a type argument if $A_i = \Any$. The $i$-th argument
+  is a proof argument if $A_i:\Prop$.
+
+  \emph{Propositional type}: The type signature is a propositional type if
+  $R:\Prop$.
+
+\end{definition}
+
+
+A type argument is implicit in a propositional signature if the corresponding
+type variable occurs in the remainder of the signature.
+
+A type argument is implicit in a nonpropositional signature if the
+corresponding type variable occurs in the nonpropositional remainder of the
+signature.
+
+A proof argument is implicit if the signature is a nonpropositional type.
+
+
+
+A silly function definition:
+%
+\begin{alba}
+  f (A:Any) (a: all (x:A): x = x) : Natural := 0
+\end{alba}
+%
+This is a very silly definition of the constant $0$. The first argument is
+explicit. The proof argument is implicit but trivially satisfiable.
+
+
 
 
 \subsection{Apply Terms to Arguments}
@@ -481,7 +519,7 @@ x_0^{A_0}. R_0$. According to the previous chapter $x_0$ is implicit if
 
 \item $A_0:\Prop$ and $R_0$ is not a proposition
 
-\item $A_0$ is nonpropositional and $x_0$ does occur in nonpropositional
+\item $A_0 = \Any$ and $x_0$ does occur in nonpropositional
   arguments of $R_0$ or in the nonpropositional final result type of $R_0$.
 \end{enumerate}
 
