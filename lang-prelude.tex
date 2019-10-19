@@ -385,6 +385,18 @@ the grammar.
 
 
 
+\subsection{Wellfounded Relation}
+
+\subsubsection{Accessibility}
+
+\begin{alba}
+  class
+    is_accessible (A:Any) (x:A) (r:A -> A -> Proposition): Proposition
+  create
+    access: (all y: r y x -> y.is_accessible r) -> x.is_accessible r
+\end{alba}
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
