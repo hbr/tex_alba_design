@@ -390,9 +390,22 @@ specified value.
          specified _ := _
 \end{alba}
 
-Remark: The constructor \code{specified} constructs an object of
+Remark 1: The constructor \code{specified} constructs an object of
 nonpropositional type. Therefore the proof argument is implicit. However the
-compiler sees the proof and can build the term on the right hand side.
+compiler sees the proof and can build the term on the right hand
+side. Theoretically it would be possible for the compiler to see, that the
+final result is a proposition and therefore make the proof argument of the
+constructor \code{specified} explicit. However this seems to be complicated
+with a lot of undesired side effects.
+
+
+Remark 2: The projections \code{value} and \code{proof} have two implicit
+arguments. The first is the type argument and the second is the predicate
+which the value satisfies. Therefore it is evident that implicit arguments
+cannot be only type arguments and proof arguments. Also arguments like
+\code{f:Predicate A} are possible as implicit arguments provided that \code{f}
+occurs in a nonpropositional other argument type or result type.
+
 
 \vskip 2mm
 
