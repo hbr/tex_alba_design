@@ -500,6 +500,80 @@ because the case $a \le b \,\land\, b < c$ has to be distinguished from the
 case $a \le b \,\land\, c < d$.
 
 
+
+
+
+\subsection{Ackermann Function}
+
+
+The Ackermann function is defined by the recursive equations
+
+$$
+A \, m \, n :=
+\begin{cases}
+  A\, 0\, n &:= 1 + n
+  \\
+  A\, (1+k)\, 0 &:= A\, k\, 1
+  \\
+  A\, (1+k)\, (1+o) & := A\, k\, (A\, (1+k)\, o)
+\end{cases}
+$$
+%
+Wilhelm Ackermann defined the function slightly different, but the above
+definition is equivalent and today used in the literature as the definition of
+\emph{the} Ackermann function.
+
+It is known that this function is not primitive recursive because it grows
+faster than any primitive recursive function. Wilhelm Ackermann invented this
+function to prove that there are computable functions which are not primitive
+recursive.
+
+The Ackermann function can be writen in Alba in the following manner.
+
+\begin{alba}
+   iter (n:Natural) (A:Any) (f:A->A) (s:A): Natural :=
+       -- Iterate the function 'f' 'n' times starting at 's' i.e. compute
+       -- f (f ... (f s))
+     inspect
+       n
+     case
+       0 :=
+         s
+       1 + i :=
+         f (i.iter f s)
+
+   ack (m n: Natural): Natural :=
+     inspect
+       m
+     case
+       0 :=
+         n.successor
+       1 + k :=
+         (1+n).iter (ack k) 1
+\end{alba}
+
+The function \code{ack} satisfies the specification of the Ackermann
+function. Proof
+\begin{itemize}
+
+\item For $n = 0$ or $m = 0$ it is easy to see by expanding the definitions.
+
+\item For $n = 1+k$ and $m = 1+o$ we use the equalities
+  \begin{alba}
+    ack (1+k) (1+o) = (1+1+o).iter (ack k) 1
+                    = ack k ( (1+o).iter (ack k) 1 )
+                    = ack k (ack (1+k) o)
+  \end{alba}
+\end{itemize}
+
+
+
+
+
+
+
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
