@@ -531,7 +531,7 @@ recursive.
 The Ackermann function can be writen in Alba in the following manner.
 
 \begin{alba}
-   iter (n:Natural) (A:Any) (f:A->A) (s:A): Natural :=
+   iterations (n:Natural) (A:Any) (f:A->A) (s:A): Natural :=
        -- Iterate the function 'f' 'n' times starting at 's' i.e. compute
        -- f (f ... (f s))
      inspect
@@ -540,16 +540,16 @@ The Ackermann function can be writen in Alba in the following manner.
        0 :=
          s
        1 + i :=
-         f (i.iter f s)
+         f (i.iterations f s)
 
    ack (m n: Natural): Natural :=
      inspect
        m
      case
        0 :=
-         n.successor
+         1 + n
        1 + k :=
-         (1+n).iter (ack k) 1
+         (1 + n).iterations (ack k) 1
 \end{alba}
 
 The function \code{ack} satisfies the specification of the Ackermann
@@ -560,8 +560,8 @@ function. Proof
 
 \item For $n = 1+k$ and $m = 1+o$ we use the equalities
   \begin{alba}
-    ack (1+k) (1+o) = (1+1+o).iter (ack k) 1
-                    = ack k ( (1+o).iter (ack k) 1 )
+    ack (1+k) (1+o) = (1+1+o).iterations (ack k) 1
+                    = ack k ( (1+o).iterations (ack k) 1 )
                     = ack k (ack (1+k) o)
   \end{alba}
 \end{itemize}
