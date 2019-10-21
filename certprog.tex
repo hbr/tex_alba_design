@@ -1,0 +1,95 @@
+
+\chapter{Certified Programming}
+\label{chap:certprog}
+
+
+
+
+
+\newpage
+\section{Logic}
+\label{sec:certprog-logic}
+
+
+\begin{alba}
+  swap_or (a b: Proposition) (p:a or b): b or a :=
+    inspect
+      p
+    case
+      left  pa := right pa
+      right pb := left  pb
+\end{alba}
+
+
+
+\begin{alba}
+  swap_and (a b: Proposition) (p:a and b): b and a :=
+    inspect
+      p
+    case
+      conjunction pa pb :=
+        conjunction pb pa
+\end{alba}
+
+
+
+
+
+
+\newpage
+\section{Relations}
+\label{sec:certprog-relations}
+
+\begin{alba}
+  is_reflexive (A:Any) (r: Endorelation A): Proposition :=
+    all a: r a a
+
+  is_transitive (A:Any) (r: Endorelation A): Proposition :=
+    all a b c: r a b => r b c => r a c
+
+  is_diamond (A:Any) (r: Endorelation A): Proposition :=
+    all a b c: r a b => r a c => some d: r b d and r c d
+
+  class
+    plus (A:Any) (r: Endorelation A): Endorelation A
+      -- 'plus r' is the transitive closure of 'r'
+  create
+    init a b: r a b => plus r a b
+    step a b c: r a b => plus r b c => plus r a c
+
+  class
+    star (A:Any) (r: Endorelation A): Endorelation A
+      -- 'star r' is the reflexive transitive closure of 'r'
+  create
+    init a: star r a a
+    step a b c: r a b => star r b c => star r a c
+\end{alba}
+
+
+
+
+
+
+
+\begin{alba}
+  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (p: plus r a b) (q: plus b c): plus r a c :=
+      inspect
+        p
+      case
+        init a b (pr: r a b) :=
+            -- a -> b +> c
+          step a b c pr q
+        step a x b (pax: r a x) (pxb: plus r x b) :=
+            {: a -> x +> b +> c
+               by a recursive call to f we prove x +> c
+               and then use the step constructor to prove a +> c :}
+          step a x c pax (f x b c pxb q: plus r x c)
+\end{alba}
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
