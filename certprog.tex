@@ -36,9 +36,18 @@
 
 
 
+
+
+
+
 \newpage
 \section{Relations}
 \label{sec:certprog-relations}
+
+
+In the following we consider endorelations i.e. binary relations where both
+domains are the same. For endorelations we can define what it means to be
+reflexive, transitive and symmetric.
 
 \begin{alba}
   is_reflexive (A:Any) (r: Endorelation A): Proposition :=
@@ -47,6 +56,166 @@
   is_transitive (A:Any) (r: Endorelation A): Proposition :=
     all a b c: r a b => r b c => r a c
 
+  is_symmetric (A:Any) (r: Endorelation A): Proposition :=
+    all a b: r a b => r b a
+\end{alba}
+
+
+Next we define the transitive closure of a relation.
+
+\begin{alba}
+  class
+    plus (A:Any) (r: Endorelation A): Endorelation A
+      -- 'plus r' is the transitive closure of 'r'
+  create
+    init a b:
+      r a b
+      => plus r a b
+    step a b c:
+      r a b
+      => plus r b c
+      => plus r a c
+\end{alba}
+
+The definition uses an inductive type. It uses two constructors. The
+\code{init} constructor allows us to conclude \code{plus r a b} from \code{r a
+  b}.
+The \code{step} constructor allows us to conclude \code{plus r a c} from
+\code{r a b} and \code{plus r b c}.
+
+By intuition we see that the relation \code{plus r} is transitive. But in
+order to be sure we need a proof. In order to proof transitivity we have to
+prove
+%
+\begin{alba}
+  plus r a b => plus r b c => plus a c
+\end{alba}
+%
+i.e. we need a function which looks like
+%
+\begin{alba}
+  f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+    ...
+\end{alba}
+%
+In order to this we can do an induction proof on \code{pab: plus r a b} which
+generates two cases.
+
+One case is that \code{plus r a b} has been constructed
+by \code{init a b rab}. In that case we can use the step constructor with
+\code{ab: r a b} and \code{pbc: plus r b c} to construct \code{plus r a c}.
+
+The second case is that  \code{plus r a b} has been constructed by \code{step
+  a x b (ax: r a x) (pxb: plus r x b)}. Now we can use the induction
+hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{plus r
+  x c} and then the step constructor to generate a proof of \code{plus r a c}.
+
+
+\begin{alba}
+  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+      inspect
+        pab
+      case
+        init a b (ab: r a b) :=
+            -- a -> b +> c
+          step a b c ab pbc
+
+        step a x b (ax: r a x) (pxb: plus r x b) :=
+            {: a -> x +> b +> c
+               by a recursive call to f we prove x +> c
+               and then use the step constructor to prove a +> c :}
+          step a x c ax (f x b c pxb q: plus r x c)
+\end{alba}
+
+This is a very detailed proof where Alba's builtin proof engine has nothing to
+do. All steps are given explicitly. The proof is not difficult. But it is
+tedious to get all the arguments right.
+
+The compiler can save  a lot of tedious work for us.
+
+First we see that the proof in the \code{init} case is trivial. The compiler
+sees the goal \code{plus r a c}, sees that the step function can generate such
+a goal by \code{step a x c (\_:r a x) (\_:plus r x c)} and both placeholders
+can be filled from the context. I.e. no hint to the compiler is necessary.
+
+In the second case the compiler can try the step function as well. The term
+\code{ax: r a x} from the pattern match allows to instantiate the intermediate
+variable \code{x} and an application of the induction hypothesis does the
+rest.
+
+Therefore a minimalistic proof which uses the proof engine full looks like
+%
+\begin{alba}
+  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+      inspect
+        pab
+\end{alba}
+%
+However such a condensed code gives no information to the user on how to do
+the proof. An intermediate version might be
+%
+\begin{alba}
+  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+      inspect
+        pab
+      case
+        init a b _ :=
+            -- a -> b +> c
+          step a b c _ _
+
+        step a x b _ _ :=
+            {: a -> x +> b +> c
+               by the induction hypothesis we can prove x +> c
+               and then use the step constructor to prove a +> c :}
+          step a x c _ (f x b c _ _)
+\end{alba}
+%
+This proof leaves out all the details for finding the low level proofs (which
+is just mechanical work) but give the reader of the code the proof idea.
+
+
+
+\paragraph{Discussion} What if we make proof arguments always implicit. Up to
+now the strategy has been that proof arguments are implicit in normal
+functions and explicit in proof functions.
+
+\begin{alba}
+  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+      inspect
+        pab
+      case
+        init a b :=
+          step a b c
+
+        step a x b :=
+          step a x c
+            where
+              _: plus r x c :=  f x b c
+\end{alba}
+%
+This seems to convey very good the proof idea without a lot of
+clutter. Furthermore the number of arguments have been reduced drastically and
+the comments are no more necessary, because the code speaks for itself.
+
+The \code{where} clause is not strictly necessary, it just indicates that an
+induction hypothesis is generated by a call to \code{f}. However it is clear
+that the proof is an induction proof, because a name \code{f} has been
+introduced (which is necessary only for recursive functions) and a pattern
+match has been used which surfaces subproofs which can be used in \code{f} to
+generate induction hypotheses.
+
+
+
+
+
+\subsection{Draft Material}
+
+
+\begin{alba}
   is_diamond (A:Any) (r: Endorelation A): Proposition :=
     all a b c: r a b => r a c => some d: r b d and r c d
 
