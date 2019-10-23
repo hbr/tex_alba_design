@@ -45,6 +45,9 @@
 \label{sec:certprog-relations}
 
 
+\subsection{Basic Properties}
+
+
 In the following we consider endorelations i.e. binary relations where both
 domains are the same. For endorelations we can define what it means to be
 reflexive, transitive and symmetric.
@@ -210,6 +213,72 @@ generate induction hypotheses.
 
 
 
+In the same manner as the transitive closure we can define the reflexive
+transitive closure of a relation.
+
+\begin{alba}
+  class
+    star (A:Any) (r: Endorelation A): Endorelation A
+      -- 'star r' is the reflexive transitive closure of 'r'
+  create
+    init a:
+      star r a a
+
+    step a b c:
+      r a b
+      => star r b c
+      => star r a c
+\end{alba}
+
+Having the definition we prove that the reflexive transitive closure is
+transitive.
+
+\begin{alba}
+  star_transitive A (r:Endorelation A): (plus r).is_transitive :=
+    f a b c (sab: star r a b) (sbc: star r b c): star r a c :=
+      inspect
+        sab
+      case
+        init a :=
+          sbc
+            -- a = b in this case
+
+        step a x b :=
+          step a x c
+            -- using induction hypo: f x b c: star r x c
+\end{alba}
+
+
+\subsection{Diamonds and Confluence}
+
+
+A relation is a diamond if it is always possible to join two steps with a
+single step.
+
+\begin{alba}
+  is_diamond A (r: Endorelation A): Proposition :=
+      {:   a  ->  b
+           |      |
+           v      v
+           c  -> some d :}
+    all a b c:
+      r a b
+      => r a c
+      => some d: r b d and r c d
+\end{alba}
+
+
+A relation is confluent if its reflexive transitive closure is a diamond.
+
+\begin{alba}
+  is_confluent A (r: Endorelation A): Proposition :=
+    (star r).is_diamond
+\end{alba}
+
+
+
+
+
 
 
 \subsection{Draft Material}
@@ -256,6 +325,115 @@ generate induction hypotheses.
           step a x c pax (f x b c pxb q: plus r x c)
 \end{alba}
 
+
+
+
+
+
+
+
+
+
+
+\newpage
+\section{Lists}
+\label{sec:certprog-lists}
+
+
+STATUS: VERY DRAFT
+
+\begin{alba}
+  class
+    List (A:Any): Any
+  create
+    []: List A
+    (::): A -> List A -> List A
+
+  class
+    is_sum A: List A -> List A -> List A -> Proposition
+      -- s.is_sum a b means 's' ist the concatenation of 'a' and 'b'.
+  create
+    init a:
+      a.is_sum [] a
+    step e s a b:
+      s.is_sum a b
+      =>
+      (e :: s).is_sum (e :: a) b
+\end{alba}
+
+
+
+
+\begin{alba}
+  sum_nil (s a: List A) (p: s.is_sum [] a): s = a :=
+    inspect
+      p
+    case
+      init a :=
+        _    -- s = a in that case
+      step e xy x y: (e :: xy).is_sum (e :: x) y :=
+          -- [] = e :: x is a contradiction
+        _
+\end{alba}
+
+
+
+\begin{alba}
+  sum_unique (a b s1: List A) (p: s1.is_sum a b)
+    : all s2: s2.is_sum a b => s1 = s2 :=
+    inspect
+      p
+    case
+      init b :=
+        --  a = []
+      step ???? :=
+        ????
+\end{alba}
+
+\begin{alba}
+  sum_associates
+   (a b c ab bc ab_c a_bc: List A)
+   : ab.is_sum a b
+     => bc.is_sum
+     => ab_c.is_sum ab c
+     => a_bc.is_sum a bc
+     => ab_c = a_bc  :=
+     inspect
+       a
+     case
+       [] :=
+         ???
+       h :: t :=
+         ???
+\end{alba}
+
+
+
+
+\begin{alba}
+  class
+    is_reverse A: Endorelation (List A)
+      -- a.is_reverse b means 'a' is 'b' reversed
+  create
+    init:
+      [].is_reverse []
+    step ra a s e:
+      ra.is_reverse a
+      => s.is_sum ra [e]
+      => s.is_reverse e :: a
+\end{alba}
+
+\begin{alba}
+  reverse_prepend A (a b: List A): List A :=
+      -- prepend the reversal of 'a' in front of 'b'
+    inspect
+      a
+    case
+      [] :=
+        b
+      hd :: tl :=
+        tl.reverse_prepend e :: b
+\end{alba}
 
 
 %%% Local Variables:
