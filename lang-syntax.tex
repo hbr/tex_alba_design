@@ -556,9 +556,9 @@ The function \code{ack} satisfies the specification of the Ackermann
 function. Proof
 \begin{itemize}
 
-\item For $n = 0$ or $m = 0$ it is easy to see by expanding the definitions.
+\item For $m = 0$ or $n = 0$ it is easy to see by expanding the definitions.
 
-\item For $n = 1+k$ and $m = 1+o$ we use the equalities
+\item For $m = 1+k$ and $n = 1+o$ we use the equalities
   \begin{alba}
     ack (1+k) (1+o) = (1+1+o).iterations (ack k) 1
                     = ack k ( (1+o).iterations (ack k) 1 )
@@ -569,6 +569,53 @@ function. Proof
 
 
 
+It is possible to define the Ackermann functions based on \code{iterations} only.
+
+\begin{alba}
+  g (f:Natural -> Natural) (o:Natural): Natural :=
+    (1 + o).iterations f 1
+
+  ack (m:Natural): Natural -> Natural :=
+    m.iterations g successor
+\end{alba}
+
+We prove that the implementation satisfies the recursion equations. We first
+start with the observation
+
+\begin{alba}
+  ack (1 + k) o  = (1 + k).iterations g succ o
+                 = g (k.iterations g succ) o
+                 = g (ack k) o
+\end{alba}
+
+The we prove the 3 equations which have to be satisfied by the Ackermann
+function
+\begin{enumerate}
+\item
+  \begin{alba}
+    ack 0 n  = 0.iterations g succ n
+             = succ n
+  \end{alba}
+
+
+\item
+  \begin{alba}
+    ack (1 + k) 0  = g (ack k) 0               -- see above
+                   = 1.iterations (ack k) 1    -- def g
+                   = ack k 1
+  \end{alba}
+
+
+\item
+  \begin{alba}
+    ack (1 + k) (1 + o) = g (ack k) (1 + o)             -- see above
+                        = (2 + o).iterations (ack k) 1  -- def g
+                        = ack k ((1 + o).iterations (ack k) 1)
+                        = ack k (g (ack k o))           -- def g
+                        = ack k (ack (1 + k) o)         -- see above
+  \end{alba}
+
+\end{enumerate}
 
 
 
