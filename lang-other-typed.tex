@@ -1,0 +1,286 @@
+\section{Relation to Other Typed Lambda Calculi}
+\label{sec:lang-other-typed}
+
+
+In the section \emph{Intermediate
+  Language}~\ref{sec:lang-intermediate-language} a typed lambda calculus has
+presented which serves as an intermediate language for Alba programs. The
+presented lambda calculus is fairly general. In this chapter we explain, how
+other typed lambda calculi are contained as special cases.
+
+In particular we demonstrate that all typed lambda calculi of the Barendregt
+cube are contained as special cases.
+
+
+\subsection{Barendregt Cube}
+
+For all typed calculi in the Barendregt cube we have no inductive types, no
+abstract types, no pattern match and no fixpoint constructs. Furthermore we
+have only the sorts $\Prop$ and $\Any$. I.e. our terms
+are defined by the grammar
+$$
+\begin{array}{lllll}
+  t &:= & \Prop \mid \Any  & \text{sorts}
+  \\
+    & \mid & x & \text{variable}
+  \\
+    & \mid & f \, a & \text{application}
+  \\
+    & \mid & \lambda x^A. e & \text{abstraction}
+  \\
+    & \mid & \Pi x^A.B & \text{dependent product}
+\end{array}
+$$.
+
+We have no subtyping relation and only one axiom
+$$
+ [] \vdash \Prop : \Any
+$$
+
+Although it sounds a little bit funny any type $T$ with $ T : \Prop$ is a
+\emph{normal} type i.e. \emph{normal} types are propositions.
+
+The power and expressibility of a typed lambda calculus is determined mainly
+by the allowed rules to form function types i.e. dependent products. We need
+the generic rule
+$$
+\rulev
+{
+  \Gamma \vdash A : s_1
+  \\
+  \Gamma, x^A \vdash B : s_2
+}
+{ \Gamma \vdash \Pi x^A . B : s_2}
+$$
+
+\begin{tabular}{| l | l | l | l |}
+  \hline
+  & $s_1$ & $s_2$ &
+  \\
+  \hline
+  1. fun       & $\Prop$ & $\Prop$ & functions from objects to objects
+  \\
+  2. polyfun   & $\Any$  & $\Prop$ & polymorphic functions
+  \\
+  3. polytype  & $\Any$  & $\Any$  & polymorphic types
+  \\
+  4. deptype   & $\Prop$ & $\Any$  & dependent types
+  \\
+  \hline
+\end{tabular}
+
+In the typed calculus of the intermediate language the typing rule for
+products is a littly bit more restrictive, but by combining the product rule
+and the subtype rule with the sorts $\Prop$, $\Any$ and $\Box$ the same effect
+as the above product rules can be achieved.
+
+Depending on which product rules we allow we get the main typed calculi of the
+Barendregt cube by
+\begin{enumerate}
+\item Simply typed lambda calculus (also called $\lambda_\to$): rules =
+  \{fun\}
+
+\item System $F$ (also called $\lambda 2$): rules = \{fun, polyfun\}
+
+\item System $F_\omega$ (also called $\lambda 2\omega$): rules = \{fun,
+  polyfun, polytype\}
+
+\item Calculus of Constructions (also called $\lambda C$): rules = \{fun,
+  polyfun, polytype, deptype\}
+\end{enumerate}
+
+These are the most interesting calculi of the Barendregt cube. In total there
+are $2^3 = 8$ calculi for all other possible combinations of the rules.
+
+
+
+
+
+\subsection{Church Encoding of Inductive Types}
+
+Since we don't have inductive types, we need some other mechanism to encode
+nontrivial functions. In order to represent interesting features we need at
+least system $F$ or sometimes system $F_\omega$. The expressive power of
+simply typed lambda calculus is rather limited.
+
+We have other two features which are very powerful
+\begin{enumerate}
+\item Impredicativity: Propositions (aka normal types) are impredicate
+  i.e. any term whose type is a proposition can via polymorphic functions
+  receive any type (i.e. its own type as well) as an argument.
+
+\item Church Encoding: It is possible to find Church Encodings for inductive
+  types which allows to write all recursive functions which can be written in
+  the inductive type.
+\end{enumerate}
+
+In order to find a Church encoding for values of inductive type we let us
+guide by a folding function which can be defined for any inductive type.
+
+
+
+\subsubsection{Booleans}
+
+With inductive types we define booleans as
+\begin{alba}
+  class Boolean: Any create
+    true:  Boolean
+    false: Boolean
+\end{alba}
+%
+with the folding function
+%
+\begin{alba}
+  fold (b:Boolan) (A:Any) (x y:A): A :=
+    inspect b case
+      true :=
+         x
+      false :=
+         y
+\end{alba}
+
+
+Since \code{Boolean} has two constructors we encode boolean values as
+functions with three arguments. The first argument is the result type and the
+other two arguments represent the alternatives.
+
+$$
+\begin{array}{lllll}
+  B & :=
+  & \Pi A^\Prop . A \to A \to A
+  &:
+  & \Prop
+  \\
+  \text{true} &:=
+  & \lambda A x y . x
+  &: & B
+  \\
+  \text{false} &:=
+  & \lambda A x y . y
+  &: & B
+\end{array}
+$$
+
+The type of a boolean value is a function which receives a type, two objects
+of that type and returns an object of that type.
+
+The function $\text{true}$ returns the first of the two objects, the function
+$\text{false}$ returns the second of the two objects. A boolean value encodes
+a decision between two alternatives.  $\text{true}$ decides for the first
+alternative and $\text{false}$ decides for the second.
+
+
+
+\subsubsection{Pairs}
+
+With inductive types we define pairs as
+\begin{alba}
+  class (,) (A B: Any): Any create
+    (,): A -> B -> (A,B)
+\end{alba}
+%
+with the folding function
+%
+\begin{alba}
+  fold A B (p: (A,B)) (C:Any) (f: A -> B -> C): C :=
+    inspect p case
+      (a,b) :=
+         f a b
+\end{alba}
+
+Using the folding function we can encode the projections on the first and the
+second element of the pair.
+\begin{alba}
+  first A B (p: (A,B)): A :=
+     p.fold (\ x y := x)
+
+  second A B (p: (A,B)): B :=
+     p.fold (\ x y := y)
+\end{alba}
+
+From that we derive the Church encoding
+
+$$
+\begin{array}{lllll}
+  P & :=
+  & \lambda A B . \Pi C^\Prop . (A \to B \to C) \to C
+  &:
+  & \Prop \to \Prop \to \Prop
+  \\
+  \text{pair} &:=
+  & \lambda A B x y C f . f x y
+  &: & \Pi A^\Prop B^\Prop x^A y^B.  P \, A \, B
+  \\
+  \text{first} &:=
+  & \lambda A B p . p A (\lambda x y. x)
+  &: & \Pi A^\Prop B^\Prop. P\, A\, B \to A
+  \\
+  \text{second} &:=
+  & \lambda A B p . p A (\lambda x y. y)
+  &: & \Pi A^\Prop B^\Prop. P\, A\, B \to B
+\end{array}
+$$
+
+
+
+
+
+
+\subsubsection{Natural Numbers}
+
+\begin{alba}
+  class Natural: Any create
+    0: Natural
+    succ: Natural -> Natural
+
+  iterations (n:Natural) (A:Any) (f:A -> A) (s:A): A :=
+      -- iterations is in that case a better name for the folding function
+    inspect n case
+      0 :=
+        s
+      succ k :=
+        f (fold k f s)
+
+  (+) (a b: Natural): Natural :=
+    a.iterations succ b
+
+  (*) (a b: Natural): Natural :=
+    a.iterations (\ s := s + b) 0
+
+  (^) (a b: Natural): Natural :=
+    b.iterations (\p := p * a) (succ 0)
+\end{alba}
+
+\noindent The Church encodings:
+$$
+%
+\begin{array}{lllll}
+  \Natural & :=
+  & \Pi A^\Prop . (A \to A)  \to A \to A
+  &:
+  & \Prop
+  \\
+  0 & :=
+  & \lambda A f s . s
+  &:
+  & \Natural
+  \\
+  \text{succ} & :=
+  & \lambda k A f s . f (k f s)
+  &:
+  & \Natural \to \Natural
+  \\
+  (+) & :=
+  & \lambda a b. a\, \Natural\,\text{succ}\, b
+  &:
+  & \Natural \to \Natural \to \Natural
+\end{array}
+$$
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main_alba_design"
+%%% End:
