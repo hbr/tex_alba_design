@@ -11,15 +11,101 @@
 \label{sec:certprog-logic}
 
 
+\subsection{Negation}
+
+Negation is defined in the prelude as
 \begin{alba}
-  swap_or (a b: Proposition) (p:a or b): b or a :=
+  (not) (a: Proposition): Proposition :=
+    a => false
+\end{alba}
+
+We want to prove the contrapositive law of logic which states
+\begin{alba}
+  (a => b) => not b => not a
+\end{alba}
+for all propositions \code{a} and \code{b}. A proof of that fact would be
+written in Alba as the function
+%
+\begin{alba}
+  contrapositive a b (ab: a => b) (nb:not b): not a :=
+    ...
+\end{alba}
+%
+It is not necessary to write such a proof by hand, because the compiler can
+generate such a proof automatically. Here we explain what the compiler does.
+
+First it expands the goal
+\begin{alba}
+  not a   =  (a => false)
+\end{alba}
+I.e. we need a function mapping a proof of \code{a} into a proof of
+\code{false}. We have already an argument \code{nb} mapping a proof of
+\code{b} into a proof of \code{false} and an argument \code{ab} mapping a
+proof of \code{a} into a proof of \code{b}. A proof of false is just a
+composition of both functions like
+%
+\begin{alba}
+  \ (pa: a): false := nb (ab pa)
+\end{alba}
+%
+But since proof arguments are implicit in Alba we have no possibility to write
+these arguments explicitly. The best we can do to make the steps explicit is
+to write the function as
+%
+\begin{alba}
+  contrapositive a b (ab: a => b) (nb:not b): not a :=
+    \ (pa: a): false :=
+      nb               -- implicit argument pb
+      where
+        pb: b := ab    -- implicit argument pa
+\end{alba}
+%
+
+
+
+
+\subsection{Disjunction}
+
+Logical dijunction is defined in the prelude as the inductive type
+%
+\begin{alba}
+  class
+    (or) (a b: Proposition): Proposition
+  create
+    left:  a => a or b
+    right: b => a or b
+\end{alba}
+
+
+\begin{alba}
+  swap_or a b (p:a or b): b or a :=
     inspect
       p
     case
-      left  pa := right pa
-      right pb := left  pb
+      left  := right
+      right := left
 \end{alba}
 
+\begin{alba}
+  eliminate_or a b c (ab: a or b) (ac: a => c) (bc: b => c): c :=
+    inspect
+      ab
+    case
+      left :=
+        ac
+      right :=
+        bc
+\end{alba}
+
+
+\subsection{Conjunction}
+
+\begin{alba}
+  class
+    (and) (a b: Proposition): Proposition
+  create
+    conjunction: a => b => a and b
+\end{alba}
 
 
 \begin{alba}
@@ -27,12 +113,15 @@
     inspect
       p
     case
-      conjunction pa pb :=
-        conjunction pb pa
+      conjunction := conjunction
 \end{alba}
 
 
-
+\begin{alba}
+  eliminate1_and (a b: Propositon) (p: a and b): a :=
+    inpect p case
+      conjunction := _
+\end{alba}
 
 
 
@@ -340,7 +429,72 @@ A relation is confluent if its reflexive transitive closure is a diamond.
 \label{sec:certprog-lists}
 
 
-STATUS: VERY DRAFT
+In the following we use the definition of the list type from the prelude.
+
+\begin{alba}
+  class
+    List (A:Any): Any
+  create
+    [] : List A
+    (^): A -> List A -> List A
+\end{alba}
+%
+Note that the operator $\caret$ is right associative and has the
+highest precedence of all arithmetic operators.
+
+
+
+\subsection{Concatenation and Reversal}
+
+
+A standard definition of list concatenation looks like
+
+\begin{alba}
+  (+) A (a b: List A): List A :=
+    inspect a case
+      [] :=
+        b
+      h ^ t :=
+        h ^ (t + b)
+\end{alba}
+Note that the operator $+$ is left associative.
+
+
+List concatenation is associative
+%
+\begin{alba}
+  sum_associates A (a b c: List A): a + b + c = a + (b + c) :=
+    inspect a case
+      h ^ t :=
+        goal where
+          goal: h ^ t + b + c = h ^ t + (b + c) :=
+            via
+               h ^ t + b + c
+               h ^ (t + b + c)      -- def (+)
+               h ^ (t + (b + c))    -- hypo
+               h ^ t + (b + c)      -- def (+)
+          hypo: t + b + c = t + (b + c) :=
+            sum_associates t b c
+\end{alba}
+
+
+\begin{alba}
+  nil_right_neutral A (a: List A): a + [] = a :=
+    inspect a case
+      h ^ t :=
+        goal where
+          goal: h ^ t + [] = h ^ t :=
+            via
+              h ^ t + []
+              h ^ (t + [])   -- def (+)
+              h ^t           -- hypo
+          hypo: t + [] = t :=
+            nil_right_neutral t
+\end{alba}
+
+\vskip 10mm
+\noindent STATUS: VERY DRAFT
+
 
 \begin{alba}
   class
