@@ -346,6 +346,109 @@ $$
 
 
 
+\subsubsection{Ackermann Function}
+
+It is quite instructive to see that the Ackermann function can be defined with
+Church encodings.
+
+The Ackermann function is defined by the recursive equations
+
+$$
+A \, m \, n :=
+\begin{cases}
+  A\, 0\, n &:= 1 + n
+  \\
+  A\, (1+k)\, 0 &:= A\, k\, 1
+  \\
+  A\, (1+k)\, (1+o) & := A\, k\, (A\, (1+k)\, o)
+\end{cases}
+$$
+%
+Wilhelm Ackermann defined the function slightly different, but the above
+definition is equivalent and today used in the literature as the definition of
+\emph{the} Ackermann function.
+
+It is known that this function is not primitive recursive because it grows
+faster than any primitive recursive function. Wilhelm Ackermann invented this
+function to prove that there are computable functions which are not primitive
+recursive.
+
+We define the Ackermann function in Alba by using the folding function
+
+\begin{alba}
+  g (f:Natural -> Natural) (o:Natural): Natural :=
+    (1 + o).iterations f 1
+
+  ack (m:Natural): Natural -> Natural :=
+    m.iterations g successor
+\end{alba}
+
+or in Church encoding
+$$
+\begin{array}{lllll}
+  g &:=
+  & \lambda f o . (\text{succ}\, o)\, \Natural f (\text{succ}\, 0)
+  &:& (\Natural \to \Natural) \to \Natural \to \Natural
+
+  \\
+
+  \text{ack} &:=
+  & \lambda m. m (\Natural\to\Natural)\, g\, \text{succ}
+  &:& \Natural \to \Natural \to \Natural
+
+\end{array}
+$$
+
+We prove that the implementation satisfies the recursion equations. We first
+start with the observation
+
+\begin{alba}
+  ack (1 + k) o  = (1 + k).iterations g succ o
+                 = g (k.iterations g succ) o
+                 = g (ack k) o
+\end{alba}
+
+The we prove the 3 equations which have to be satisfied by the Ackermann
+function
+\begin{enumerate}
+\item
+  \begin{alba}
+    ack 0 n  = 0.iterations g succ n
+             = succ n
+  \end{alba}
+
+
+\item
+  \begin{alba}
+    ack (1 + k) 0  = g (ack k) 0               -- see above
+                   = 1.iterations (ack k) 1    -- def g
+                   = ack k 1
+  \end{alba}
+
+
+\item
+  \begin{alba}
+    ack (1 + k) (1 + o) = g (ack k) (1 + o)             -- see above
+                        = (2 + o).iterations (ack k) 1  -- def g
+                        = ack k ((1 + o).iterations (ack k) 1)
+                        = ack k (g (ack k o))           -- def g
+                        = ack k (ack (1 + k) o)         -- see above
+  \end{alba}
+
+\end{enumerate}
+
+It seems that the category of primitive recursive functions is not an
+important function category in typed lambda calculi. The simply typed lambda
+calculus is not powerful enough to represent all primitive recursive
+functions. The next more powerful calculus system F is already powerful enough
+to represent more than primitiv recursive functions.
+
+Furthermore it is interesting that adding polymorphic functions to the simply
+typed calculus add enormous expressive power to the calculus. Higher order
+functions (which is standard in any lambda calculus) and polymorphic functions
+are sufficient to represent functions like the Ackermann function.
+
+
 
 %%% Local Variables:
 %%% mode: latex
