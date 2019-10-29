@@ -591,7 +591,7 @@ where $\Gamma = [p_0:P_0, p_1: P_1, \ldots]$ are the parameters of the
 inductive type and $\Cbold = [C_0, C_1, \ldots]$ its constructor types.
 
 In order to define an inductive type the type $T$ of the bound variable $I$
-must reduce to a kind i.e. $T \reducestar \Pi \xbold^\Abold. s$. The arguments
+must reduce to a kind i.e. $T \reduce^* \Pi \xbold^\Abold. s$. The arguments
 of $T$ are the arguments of the inductive type. In the literature the
 arguments of an inductive type are called the index or indices of the
 inductive type in order distinguish them clearly from the parameters.
@@ -618,7 +618,7 @@ inductive type in order distinguish them clearly from the parameters.
 
 All constructor types of an inductive definition must reduce to a type of a
 constructor for the corresponding bound variable. This condition implies that
-constructors really construct object of the corresponding inductive type.
+constructors really construct objects of the corresponding inductive type.
 
 
 \begin{definition}

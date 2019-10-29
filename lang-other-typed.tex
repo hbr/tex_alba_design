@@ -269,9 +269,25 @@ $$
   & \lambda k A f s . f (k f s)
   &:
   & \Natural \to \Natural
+
   \\
+
   (+) & :=
   & \lambda a b. a\, \Natural\,\text{succ}\, b
+  &:
+  & \Natural \to \Natural \to \Natural
+
+  \\
+
+  (*) & :=
+  & \lambda a b. a\, \Natural\, (\lambda s. s + b) 0
+  &:
+  & \Natural \to \Natural \to \Natural
+
+  \\
+
+  (\caret) & :=
+  & \lambda a b. b\, \Natural\, (\lambda p. p * a) (\text{succ}\, 0)
   &:
   & \Natural \to \Natural \to \Natural
 \end{array}
