@@ -4,7 +4,7 @@
 
 In the section \emph{Intermediate
   Language}~\ref{sec:lang-intermediate-language} a typed lambda calculus has
-presented which serves as an intermediate language for Alba programs. The
+been presented which serves as an intermediate language for Alba programs. The
 presented lambda calculus is fairly general. In this chapter we explain, how
 other typed lambda calculi are contained as special cases.
 
@@ -60,11 +60,11 @@ $$
   \hline
   1. fun       & $\Prop$ & $\Prop$ & functions from objects to objects
   \\
-  2. polyfun   & $\Any$  & $\Prop$ & polymorphic functions
+  2. polyfun   & $\Any$  & $\Prop$ & polymorphic functions from types to objects
   \\
-  3. polytype  & $\Any$  & $\Any$  & polymorphic types
+  3. polytype  & $\Any$  & $\Any$  & polymorphic functions from types to types
   \\
-  4. deptype   & $\Prop$ & $\Any$  & dependent types
+  4. deptype   & $\Prop$ & $\Any$  & functions from objects to types
   \\
   \hline
 \end{tabular}
@@ -90,7 +90,8 @@ Barendregt cube by
 \end{enumerate}
 
 These are the most interesting calculi of the Barendregt cube. In total there
-are $2^3 = 8$ calculi for all other possible combinations of the rules.
+are $2^3 = 8$ calculi for all other possible combinations of the rules which
+contain at least the rule fun.
 
 
 
@@ -103,20 +104,22 @@ nontrivial functions. In order to represent interesting features we need at
 least system $F$ or sometimes system $F_\omega$. The expressive power of
 simply typed lambda calculus is rather limited.
 
-We have other two features which are very powerful
+In order to find Church encodings of inductive types we use the following
+guidelines
 \begin{enumerate}
-\item Impredicativity: Propositions (aka normal types) are impredicate
-  i.e. any term whose type is a proposition can via polymorphic functions
-  receive any type (i.e. its own type as well) as an argument.
+\item An object of an inductive type is encoded as a function with one
+  argument for each constructor plus appropriate type arguments. One type
+  argument is always the result type of the operation.
 
-\item Church Encoding: It is possible to find Church Encodings for inductive
-  types which allows to write all recursive functions which can be written in
-  the inductive type.
+\item The signature of the argument representing a constructor can be found by
+  looking at the signature of the constructor.
+
+\item Recursive argument types in constructors are replaced by arguments of
+  the result type of the operation.
+
+\item The type of an object representing a Church encoding of an object of an
+  inductive type looks like the type of a folding function.
 \end{enumerate}
-
-In order to find a Church encoding for values of inductive type we let us
-guide by a folding function which can be defined for any inductive type.
-
 
 
 \subsubsection{Booleans}
@@ -142,7 +145,8 @@ with the folding function
 
 Since \code{Boolean} has two constructors we encode boolean values as
 functions with three arguments. The first argument is the result type and the
-other two arguments represent the alternatives.
+other two arguments represent the two constructors. Since the constructors
+have no arguments, the arity of the corresponding arguments is 0.
 
 $$
 \begin{array}{lllll}
@@ -207,7 +211,7 @@ $$
   &:
   & \Prop \to \Prop \to \Prop
   \\
-  \text{pair} &:=
+  (,) &:=
   & \lambda A B x y C f . f x y
   &: & \Pi A^\Prop B^\Prop x^A y^B.  P \, A \, B
   \\
@@ -255,16 +259,21 @@ $$
 $$
 %
 \begin{array}{lllll}
+
   \Natural & :=
   & \Pi A^\Prop . (A \to A)  \to A \to A
   &:
   & \Prop
+
   \\
+
   0 & :=
   & \lambda A f s . s
   &:
   & \Natural
+
   \\
+
   \text{succ} & :=
   & \lambda k A f s . f (k f s)
   &:
@@ -291,6 +300,48 @@ $$
   &:
   & \Natural \to \Natural \to \Natural
 \end{array}
+$$
+
+
+We can use the folding function to decide if a natural number is zero.
+
+\begin{alba}
+  is_zero (n: Natural): Boolean :=
+    n.iterations (\_ := false) true
+\end{alba}
+
+A simple check shows that this function is correct. However it is rather
+inefficient, because it iterates over the complete structure, throwing away
+all previous results.
+
+With Church encoding the function looks like
+$$
+0? := \lambda n. n B (\lambda x . \text{false}) \text{true} : \Natural \to B
+$$
+
+
+In a similar manner we can define the predecessor function based on the
+folding function.
+
+\begin{alba}
+  predecessor (n: Natural): Natural :=
+    first (n.iterations (\p := (p.second, 1 + p.second)) (0, 0))
+\end{alba}
+
+We iterate over the natural number by generating a pair. The first component
+of the pair is the predecessor and the second component is the number. In each
+iteration step the first component is thrown away, only the intermediate
+number is used to form a new predecessor-number pair. At the end of the
+iteration we throw away the number part of the pair.
+
+The same function in Church encoding
+$$
+\text{pred} :=
+\text{first}\,
+((\lambda n . n \Natural \lambda p. (\text{second}\, p, \text{succ}\,
+(\text{second}\, p))
+(0,0))
+: \Natural \to \Natural
 $$
 
 
