@@ -232,11 +232,18 @@ $$
 
 \subsection{Natural Numbers}
 
+
+The following defines the inductive type of natural numbers in Alba.
 \begin{alba}
   class Natural: Any create
     0: Natural
     succ: Natural -> Natural
+\end{alba}
 
+The folding function we call \code{iterations} because it does a number of
+iterations.
+
+\begin{alba}
   iterations (n:Natural) (A:Any) (f:A -> A) (s:A): A :=
       -- iterations is in that case a better name for the folding function
     inspect n case
@@ -244,7 +251,13 @@ $$
         s
       succ k :=
         f (fold k f s)
+\end{alba}
 
+Using the folding function it is easy to define the standard arithmetic
+operations.
+
+
+\begin{alba}
   (+) (a b: Natural): Natural :=
     a.iterations succ b
 
@@ -448,6 +461,87 @@ typed calculus add enormous expressive power to the calculus. Higher order
 functions (which is standard in any lambda calculus) and polymorphic functions
 are sufficient to represent functions like the Ackermann function.
 
+
+
+
+\subsection{Lists}
+
+The inductive type of lists and the corresponding folding function is defined
+in Alba as
+
+\begin{alba}
+  class List (A: Any): Any create
+    []: List A
+    (^): A -> List A -> List A
+
+  fold A (a: List A) (B:Any) (f:A -> B -> B) (s:B): B :=
+    inspect a case
+      [] :=
+        s
+      h ^ t :=
+        f h (fold t f s)
+\end{alba}
+
+A corresponding Church encoding
+
+$$
+\begin{array}{lllll}
+  L &:=
+  & \lambda A . \Pi B^\Prop . (A\to B\to B) \to B \to B
+  &:& \Prop \to \Prop
+
+  \\
+
+  [] &:=
+  & \lambda A B f s . s
+  &:& \Pi A^\Prop . L A
+
+  \\
+
+  (\caret) &:=
+  & \lambda A h t B f s . f h (t B f s)
+  &:& \Pi A^\Prop . A \to L A \to L A
+\end{array}
+$$
+
+
+\subsection{Binary Trees}
+
+Binary trees can be encoded in the same manner.
+
+\begin{alba}
+  class Tree (A:Any): Any create
+    empty: Tree A
+    node : Tree A -> A -> Tree A -> Tree A
+
+  fold A (t:Tree A) (B:Any) (f:B -> A -> B -> B) (s:B): B :=
+    inspect t case
+      empty :=
+        s
+      node l a r :=
+        f (fold l f s) a (fold r f s)
+\end{alba}
+
+$$
+%
+\begin{array}{lllll}
+  T &:=
+  & \lambda A. \Pi B^\Prop. (B\to A\to B\to B) \to B \to B
+  &:& \Prop\to\Prop
+
+  \\
+
+  \text{empty} &:=
+  & \lambda A B f s . s
+  &:& \Pi A^\Prop . T A
+
+  \\
+
+  \text{node} &:=
+  & \lambda A l a r B f s . f (l B f s) a (r B f s)
+  &:& \Pi A^\Prop . T A \to A \to T A \to T A
+\end{array}
+$$
 
 
 %%% Local Variables:
