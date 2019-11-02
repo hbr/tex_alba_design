@@ -923,7 +923,7 @@ Example: We want to build a term for the syntactic expression $a + b * c$ in
 the context $\Gamma$. This is possible only if the variables $a, b, c, +, *$
 occur in $\Gamma$ i.e. we assume a context
 $$
-\Gamma = [+:I\to I\to I, *:I\to I\to I, \ldots, a:I, b:I, c:I, \ldots]
+\Gamma = [+^{I\to I\to I}, *^{I\to I\to I}, \ldots, a^I, b^I, c^I, \ldots]
 $$
 
 
@@ -931,20 +931,20 @@ We don't know the type of the expression nor a term which
 represents the expression. We add two unknows (i.e. variables) to the context.
 %
 $$
-\Gamma, E: \Any, e: E
+\Gamma, E^\Any, e^E
 $$
 %
 Now we have to analyze $\cdot + \cdot$ as a binary operator i.e. a function
-with two arguments. In the context we have $+ : I \to I \to I$ where $I$
+with two arguments. In the context we have $+^{I \to I \to I}$ where $I$
 represents the type of integer numbers.
 
 We need a placeholder of type $I$ for each argument and get
 $$
 %
-\Gamma,  E: \Any, e: E, u:I, v:I \vdash u + v: I
+\Gamma,  E^\Any, e^E, u^I, v^I \vdash u + v: I
 $$
 %
-We unify $e:E$ with $u+v:I$ and get the system
+We unify $e^E$ with $(u+v)^I$ and get the system
 $$
 %
 \begin{array}{lll}
@@ -958,10 +958,10 @@ Next we analyze the expression $a$ which is not a function call and therefore
 does not need new placeholders.
 $$
 %
-\Gamma,  E: \Any, e: E, u:I, v:I \vdash a:I
+\Gamma,  E^\Any, e^E, u^I, v^I \vdash a:I
 $$
 %
-Unification of $u:I$ and $a:I$ leads to
+Unification of $u^I$ and $a^I$ leads to
 $$
 %
 \begin{array}{lll}
@@ -976,10 +976,10 @@ $$
 Next we analyze $\cdot * \cdot$ and need again two new placeholders
 $$
 %
-\Gamma,  E: \Any, e: E, u:I, v:I, w:I, x:I \vdash w * x: I
+\Gamma,  E^\Any, e^E, u^I, v^I, w^I, x^I \vdash w * x: I
 $$
 %
-and unify $v:I$ with $ w * x: I$ to get
+and unify $v^I$ with $ (w * x)^I$ to get
 $$
 %
 \begin{array}{lll}
@@ -996,7 +996,7 @@ $$
 Continuing the process we finally get
 $$
 %
-\Gamma,  E: \Any, e: E, u:I, v:I, w:I, x:I
+\Gamma,  E^\Any, e^E, u^I, v^I, w^I, x^I
 $$
 %
 with

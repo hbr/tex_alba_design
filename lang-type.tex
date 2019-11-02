@@ -33,7 +33,8 @@ Notational conventions:
 \item The term $f \, \abold$ must be read as $f \, a_0 \, a_1 \, \ldots$.
 
 \item We use boldface to abreviate $\lambda x_0^{A_0} x_1^{A_1} \ldots . e$ by
-  $\lambda \xbold^\Abold. e$ and $[x_0: T_0, x_1:T_1, \ldots]$ by $[\xbold: \Tbold]$
+  $\lambda \xbold^\Abold. e$ and $[x_0^{T_0}, x_1^{T_1}, \ldots]$ by
+  $[\xbold^\Tbold]$
 \end{enumerate}
 
 
@@ -146,7 +147,7 @@ in the case of an infinite type hierachy.
 \begin{definition}
   A \emph{context} $\Gamma$ is a list of variable/type pairs
   $$
-  \Gamma = [x_0: T_0, x_1: T_1, x_2: T_2, \ldots]
+  \Gamma = [x_0^{T_0}, x_1^{T_1}, x_2^{T_2}, \ldots]
   $$
   where the variables are unique (no duplicates) and the type $T_i$ might
   contain the variables $x_0, \ldots, x_{i-1}$. Because of the last condition
@@ -166,7 +167,7 @@ in the case of an infinite type hierachy.
   $$
   \lambda \Gamma . e
   $$
-  where $\Gamma = [x_0: T_0, x_1: T_1, \ldots]$
+  where $\Gamma = [x_0^{T_0}, x_1^{T_1}, \ldots]$
 \end{definition}
 
 
@@ -183,23 +184,48 @@ in the case of an infinite type hierachy.
   defined by the grammar
   $$
   \begin{array}{lllll}
-    t &:= & s  & \text{sort}
+    t &:= & s
+    & \text{sort}
+
     \\
-      & \mid & x & \text{variable}
+
+      & \mid & x
+    & \text{variable}
+
     \\
-      & \mid & f \, a & \text{application}
+
+      & \mid & f \, a
+    & \text{application}
+
     \\
-      & \mid & \lambda x^A. e & \text{abstraction}
+
+      & \mid & \lambda x^A. e
+    & \text{abstraction}
+
     \\
-      & \mid & \Pi x^A.B & \text{dependent product}
+
+      & \mid & \Pi x^A.B
+    & \text{dependent product}
+
     \\
-      & \mid & \Inductive_{\Gamma,x:T,\Cbold} & \text{inductive type}
+
+      & \mid & \Inductive_{\Gamma,x^T,\Cbold}
+    & \text{inductive type}
+
     \\
-      & \mid & \Constructor^i_T & \text{i-th constructor of the inductive type } T
+
+      & \mid & \Constructor^i_T
+    & \text{i-th constructor of the inductive type } T
+
     \\
-      & \mid & \case(e, \lambda \ybold^\Abold x^T.R, \fbold) & \text{pattern match}
+
+      & \mid & \case(e, \lambda \ybold^\Abold x^T.R, \fbold)
+    & \text{pattern match}
+
     \\
-      & \mid & \fix(x^T, t, k) & \text{fixpoint}
+
+      & \mid & \fix(x^T, t, k)
+    & \text{fixpoint}
   \end{array}
   $$
 \end{definition}
@@ -231,12 +257,12 @@ fixpoints (recursive function) need some explanation.
   $\Pi i^{\mathbb{N}}. i \ge 0$ can exist, because it maps any natural number
   $n$ into a proof of the trivial fact $n \ge 0$.
 
-\item[Inductive type] $\Inductive_{\Gamma,x:T,\Cbold}$ An inductive type
-  consists of a context of parameters $\Gamma = [p_0:P_0, p_1:P_1, \ldots]$, a
-  type $T$ which is valid in a context with the parameters and a variable of
-  this type and an array of constructor types $\Cbold = [C_0, C_1, \ldots]$
-  which are all valid in the context $\Gamma, x:T$ appended to the global
-  context.
+\item[Inductive type] $\Inductive_{\Gamma,x^T,\Cbold}$ An inductive type
+  consists of a context of parameters
+  $\Gamma = [p_0^{P_0}, p_1^{P_1}, \ldots]$, a type $T$ which is valid in a
+  context with the parameters and a variable of this type and an array of
+  constructor types $\Cbold = [C_0, C_1, \ldots]$ which are all valid in the
+  context $\Gamma, x^T$ appended to the global context.
 
   The parameter types $P_i$ are usually $\Any$ so that the parameter variables
   $p_i$ are type variables. The inductive type of natural numbers has no
@@ -248,11 +274,11 @@ fixpoints (recursive function) need some explanation.
   %
   \begin{array}{lllll}
     \mathbb{N}
-    &:=& \Inductive_{[], I:\Any, [I, I \to I]}
+    &:=& \Inductive_{[], I^\Any, [I, I \to I]}
     &:& \Any
     \\
     \mathbb{L}
-    &:=& \Inductive_{[A:\Any],  I:\Any,  [I, A \to I \to I]}
+    &:=& \Inductive_{[A^\Any],  I^\Any,  [I, A \to I \to I]}
     &:& \Any \to \Any
   \end{array}
   $$
@@ -290,15 +316,15 @@ fixpoints (recursive function) need some explanation.
   need names, just the types are needed. Names are for humans, therefore in
   the program text we use the names for the inductive types and the
   constructors. In the mathematical formulae the term
-  $\Inductive_{[], I:\Any, [I, I \to I]}$ completely specifies the type and
+  $\Inductive_{[], I^\Any, [I, I \to I]}$ completely specifies the type and
   $\mathbb{N}$ is just a name for it.
 
-  Furthermore note that the type $T$ in $\Inductive_{\Gamma, x:T, \Cbold}$
+  Furthermore note that the type $T$ in $\Inductive_{\Gamma, x^T, \Cbold}$
   might have the form $\Pi \ybold^\Abold. \ldots$ i.e. in order to build a
   type term other arguments beside the parameters might be needed. Therefore
   in general an inductive type (and not only a type constructor) has the form
   $$
-  \Inductive_{\Gamma, x:T, \Cbold} \; \pbold \; \abold
+  \Inductive_{\Gamma, x^T, \Cbold} \; \pbold \; \abold
   $$
   where $\pbold$ is the array of parameters and $\abold$ is the arrary of
   other arguments. The arguments beside the parameters of an inductive type
