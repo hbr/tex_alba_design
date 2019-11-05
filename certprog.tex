@@ -283,105 +283,62 @@ A relation is confluent if its reflexive transitive closure is a diamond.
 
 
 
-We prove that the transitive closure of a diamond remains a diamond. First we
-prove a \code{stripe\_lemma}.
-
-
-\begin{alba}
-   stripe_lemma
-     A
-     (r: Endorelation A)
-     (rdia: r.is_diamond)
-     : all a b c:
-         r a b
-         => plus r a c
-         => some d: plus r b d and r c d :=
-       f a b c rab pac :=
-         inspect pac case
-           init a c :=
-             {: goal a  ->  b
-                     |      +
-                     v      v
-                     c  ->  d? :}
-             _ where
-               _: plus r b d := init b d
-               _: some d: r b d and r c d := rdia a b c
-
-           step a x c :=
-             {: goal a   ->   b
-                     |        |
-                     v        v
-                     x   ->   e?
-                     +        +
-                     v        v
-                     c  ->    d?  :}
-             _ where
-               _: plus r b d := step b e d
-               _: some d: plus r e d and r c d := f x e c
-               _: some e: r b e and r x e := rdia a b x
-\end{alba}
-
-Then we can prove the desired property of the transitive closure of a diamond.
-
-\begin{alba}
-  transitive_closure_of_diamond_is_diamond
-    A
-    (r: Endorelation A)
-    (rdia: r.is_diamond)
-    : (plus r).is_diamond :=
-      f a b c pab pac: some d: plus r b d and plus r c d :=
-        inspect pab case
-          init a b :=
-            {: goal  a -> b
-                     +    +
-                     v    v
-                     c -> d?  :}
-            stripe_lemma r a b c
-
-          step a x b :=
-            {: goal a -> x  +> b
-                    +    +     +
-                    v    v     v
-                    c -> e? +> d? :}
-            _ where
-               _: plus r c d := step c e d
-               _: some d: plus r x e and plus r b d := f x b e
-               _: some e: plus r x e and r c e :=  stripe_lemma r a x c
-\end{alba}
-%
-
-
-
-
-\subsection{Draft}
-
+We prove that a diamond relation is confluent. Before doing that, we prove a
+stripe lemma.
 
 \begin{alba}
   stripe_lemma
     A
     (r: Endorelation A)
     (rdia: r.is_diamond)
-    all a b c:
-      star r a b =>
-      r a c =>
-      some d: r b d and star r c d :=
+    : all a b c:                       --  a *> b
+        star r a b =>                  --  |    |
+        r a c =>                       --  v    v
+        some d: r b d                  --  c *> d?
+                and
+                star r c d :=
      f a b c sab rac :=
-       inspect sab case   -- a = b
+       inspect sab case   -- a = b, therefore we use d = c as witness
          init a :=
            _: some d: r a d and star r c d  where
-             _: r a c := _
              _: star r c c := init c
 
          step a x b :=
-           {:  goal  a  -> x  *> b
-                     |     |     |
-                     v     v     v
-                     c  -> ?e *> d? :}
+           {:  a  -> x  *> b
+               |     |     |
+               v     v     v
+               c  -> e? *> d? :}
            _ where
-             _: some d: r b d and star r e d := f x b e
-             _: some e: r x e and r c e := rdia a x c
+             exist_d: some d: r b d and star r e d := f x b e
+             exist_e: some e: r x e and r c e      := rdia a x c
 \end{alba}
 
+Then we can prove that a diamond relation is confluent.
+
+\begin{alba}
+  diamond_is_confluent
+    A
+    (r: Endorelation A)
+    (rdia: r.is_diamond)
+    : r.is_confluent
+    :=
+      f a b c sab sac: exist d: star r b d and star r c d :=
+        inspect sab case
+          init a :=            -- a = b, therefore we can use d = c
+            _ where            --        as witness
+              _: star r b c := sac
+              _: star r c c := init c
+
+          step a x b :=
+            {:  a  ->  x  *>  b
+                *      *      *
+                v      v      v
+                c  ->  e? *>  d? :}
+            _ where
+              exist_d: some d: star r b d and star r e d := f x b e
+              exist_e: some e: star r x e and r c e := stripe_lemma r a c x
+
+\end{alba}
 
 
 
