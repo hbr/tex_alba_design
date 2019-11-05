@@ -406,95 +406,51 @@ List concatenation is associative
             via
               h ^ t + []
               h ^ (t + [])   -- def (+)
-              h ^t           -- hypo
+              h ^ t          -- hypo
           hypo: t + [] = t :=
             nil_right_neutral t
 \end{alba}
 
-\vskip 10mm
-\noindent STATUS: VERY DRAFT
 
-
-\begin{alba}
-  class
-    List (A:Any): Any
-  create
-    []: List A
-    (::): A -> List A -> List A
-
-  class
-    is_sum A: List A -> List A -> List A -> Proposition
-      -- s.is_sum a b means 's' ist the concatenation of 'a' and 'b'.
-  create
-    init a:
-      a.is_sum [] a
-    step e s a b:
-      s.is_sum a b
-      =>
-      (e :: s).is_sum (e :: a) b
-\end{alba}
-
-
-
+A simple function to reverse a list looks like
 
 \begin{alba}
-  sum_nil (s a: List A) (p: s.is_sum [] a): s = a :=
-    inspect
-      p
-    case
-      init a :=
-        _    -- s = a in that case
-      step e xy x y: (e :: xy).is_sum (e :: x) y :=
-          -- [] = e :: x is a contradiction
-        _
+  reverse A (a: List A): List A :=
+    inspect a case
+      [] :=
+        []
+      h ^ t :=
+        reverse t + [h]
 \end{alba}
 
 
 
 \begin{alba}
-  sum_unique (a b s1: List A) (p: s1.is_sum a b)
-    : all s2: s2.is_sum a b => s1 = s2 :=
-    inspect
-      p
-    case
-      init b :=
-        --  a = []
-      step ???? :=
-        ????
+  reversal_of_concatenation
+    A
+    (a b: List A)
+    : reverse (a + b) = reverse b + reverse a :=
+      inspect a case
+        [] :=
+          goal where
+            goal: reverse ([] + b) = reverse b + reverse [] :=
+              via reverse b
+                  reverse (b + [])
+
+        h ^ t :=
+          goal where
+             goal: reverse (h ^ t + b) = reverse b + reverse (h ^ t) :=
+               via
+                 reverse (h ^ (t + b))                      -- def '+'
+                 reverse (h ^ (reverse b + reverse t))      -- hypo
+                 (reverse b + reverse t) + [h]              -- def 'reverse'
+                 reverse b + (reverse t + [h])              -- '+' assoc
+                 reverse b + reverse (h ^ t)                -- def 'reverse'
+
+             hypo: reverse (t + b) = reverse b + reverse t :=
+               reversal_of_concatenation t b
 \end{alba}
 
-\begin{alba}
-  sum_associates
-   (a b c ab bc ab_c a_bc: List A)
-   : ab.is_sum a b
-     => bc.is_sum
-     => ab_c.is_sum ab c
-     => a_bc.is_sum a bc
-     => ab_c = a_bc  :=
-     inspect
-       a
-     case
-       [] :=
-         ???
-       h :: t :=
-         ???
-\end{alba}
-
-
-
-
-\begin{alba}
-  class
-    is_reverse A: Endorelation (List A)
-      -- a.is_reverse b means 'a' is 'b' reversed
-  create
-    init:
-      [].is_reverse []
-    step ra a s e:
-      ra.is_reverse a
-      => s.is_sum ra [e]
-      => s.is_reverse e :: a
-\end{alba}
 
 \begin{alba}
   reverse_prepend A (a b: List A): List A :=
@@ -504,8 +460,8 @@ List concatenation is associative
     case
       [] :=
         b
-      hd :: tl :=
-        tl.reverse_prepend e :: b
+      h ^ t :=
+        t.reverse_prepend (h ^ b)
 \end{alba}
 
 
