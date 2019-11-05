@@ -2,6 +2,45 @@
 \chapter{Certified Programming}
 \label{chap:certprog}
 
+The Alba programming languages makes certain guarantees.
+\begin{enumerate}
+\item A program cannot crash.
+
+\item There are not endless loops (i.e. the program cannot not freeze).
+
+\item All functions perform according to their specification.
+\end{enumerate}
+
+The first point is achieved by a strict typing, a strict handling of pattern
+match (all cases must be handled) and the lack of an undisciplined exception
+processing. An undisciplined exception processing would be to allow the
+throwing of exceptions without enforcement of the handling of exceptional
+conditions.
+
+The second point (no endless loops) is achieved by basing all recursions on
+some argument which is decreased at each recursive call. This guarantees that
+all functions must terminate.
+
+The third point is achieved by implementing the curry howard isomorphism in
+the form of propositions as types. It is possible to encode propositions like
+$i > 0$ as a type and writing functions which return an inhabitant of these
+types i.e. functions which generate a proof of the proposition.
+
+Having this tool, it is possible to state some properties of functions and
+prove these properties by writing functions which return proofs of the
+desired properties.
+
+In Alba a proof is just a functional programm. A proof of the implication $a
+\imp b$ is a function which maps a proof of the proposition $a$ into a proof
+of the proposition $b$.
+
+Proofs in Alba are normal objects with the difference that these proof objects
+do not exist at runtime. But they are data, which can be arguments to
+functions. The functions can iterate over the proof data and can generate
+other proof objects.
+
+The purpose of this chapter is to demonstrate the possibility in Alba to write
+functions and prove properties about these functions in the same language.
 
 
 
@@ -9,6 +48,46 @@
 \newpage
 \section{Logic}
 \label{sec:certprog-logic}
+
+
+
+\subsection{Ex Falso}
+
+\emph{Ex falso quodlibet} i.e. from a false (or contradictory) assumption you
+can conclude anything, is a basic law of logic. It is possible to prove this
+law in Alba by writing a function with the signature
+
+\begin{alba}
+  ex_falso (pf: false) (A: Any): A :=
+    ...
+\end{alba}
+%
+The signature of this function gives the promise: \emph{Give me a proof of
+  \code{false} and an arbitrary type and I return you an object of that
+  type}. Since \code{a:Proposition} implies \code{a:Any} in Alba, all
+propositions can be entered as actual arguments for \code{A}.
+
+
+Remember that \code{false} is an inductive type with the following definition.
+\begin{alba}
+  class false create
+    -- no constructors
+\end{alba}
+%
+Since there are no constructors we can complete the desired function
+
+\begin{alba}
+  ex_falso (pf: false) (A: Any): A :=
+    inspect pf case
+      -- empty pattern match, because there are no constructors
+\end{alba}
+%
+Each case must return an object of the desired type. But since there are no
+cases, there is nothing to be done.
+
+
+
+
 
 
 \subsection{Negation}
@@ -21,14 +100,14 @@ Negation is defined in the prelude as
 
 We want to prove the contrapositive law of logic which states
 \begin{alba}
-  (a => b) => not b => not a
+  (a => b) => (not b => not a)
 \end{alba}
 for all propositions \code{a} and \code{b}. A proof of that fact would be
 written in Alba as the function
 %
 \begin{alba}
-  contrapositive a b (ab: a => b) (nb:not b): not a :=
-    _      -- compiler, please generate a proof of 'not a'!
+  contrapositive a b (ab: a => b) (nb: not b): not a :=
+    _      -- '_' means: Compiler, please generate a proof of 'not a'!
 \end{alba}
 %
 It is not necessary to write such a proof by hand, because the compiler can
@@ -49,9 +128,43 @@ use the argument \code{ab} which maps a proof of \code{a} into proof of
 \code{false} which is the desired result.
 
 Since proof arguments are implicit in Alba, we have to use the keyword
-\code{explicit\_argmuments} to give them explicitly.
+\code{explicit\_argmuments} to give them explicitly. This keyword does not
+exist in the actual Alba language. It is used here just to remind you that
+proof arguments are given explicitly instead of letting the compiler infer
+them.
 
 
+Note that in classical logic the two propositions
+\begin{alba}
+  a  =>  b
+
+  not b => not a
+\end{alba}
+%
+are equivalent. This is not the case in constructive logic on which Alba is
+based. Suppose we wanted to prove
+%
+\begin{alba}
+  (not b => not a) => (a => b)
+\end{alba}
+%
+in Alba. In order to do this we need a function
+\begin{alba}
+  contra2 a b (p: not b => not a) (pa: a): b :=
+     ...
+\end{alba}
+%
+It is not difficult to see that there is no way to generate a proof of \code{b}
+by using the arguments. The second argument of the function is atomic i.e. it
+is not a function which can be applied. The first argument is a function whose
+type we can expand to get
+\begin{alba}
+  p: (b => false) => a => false
+\end{alba}
+%
+\code{p} is a function with two arguments. There is no way to supply the first
+argument. Therefore we cannot use \code{p} and have no possibility to return
+an expression of type \code{b}.
 
 
 \subsection{Disjunction}
