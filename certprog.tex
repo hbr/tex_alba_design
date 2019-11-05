@@ -28,38 +28,28 @@ written in Alba as the function
 %
 \begin{alba}
   contrapositive a b (ab: a => b) (nb:not b): not a :=
-    ...
+    _      -- compiler, please generate a proof of 'not a'!
 \end{alba}
 %
 It is not necessary to write such a proof by hand, because the compiler can
-generate such a proof automatically. Here we explain what the compiler does.
+generate such a proof automatically. But if you want to write the proof
+explicitly it looks like
 
-First it expands the goal
 \begin{alba}
-  not a   =  (a => false)
+  contrapositive a b (ab: a => b) (nb: not b): not a :=
+    \ pa :=
+        explicit_arguments
+          nb (ab pa)
 \end{alba}
-I.e. we need a function mapping a proof of \code{a} into a proof of
-\code{false}. We have already an argument \code{nb} mapping a proof of
-\code{b} into a proof of \code{false} and an argument \code{ab} mapping a
-proof of \code{a} into a proof of \code{b}. A proof of false is just a
-composition of both functions like
-%
-\begin{alba}
-  \ (pa: a): false := nb (ab pa)
-\end{alba}
-%
-But since proof arguments are implicit in Alba we have no possibility to write
-these arguments explicitly. The best we can do to make the steps explicit is
-to write the function as
-%
-\begin{alba}
-  contrapositive a b (ab: a => b) (nb:not b): not a :=
-    \ (pa: a): false :=
-      nb               -- implicit argument pb
-      where
-        pb: b := ab    -- implicit argument pa
-\end{alba}
-%
+
+\noindent Explanation: A proof of \code{not a} is a function which maps a
+proof of \code{a} into a proof of false. If we have a proof of \code{a} we can
+use the argument \code{ab} which maps a proof of \code{a} into proof of
+\code{b} and then use \code{nb} which maps a proof of \code{b} into a proof of
+\code{false} which is the desired result.
+
+Since proof arguments are implicit in Alba, we have to use the keyword
+\code{explicit\_argmuments} to give them explicitly.
 
 
 
@@ -79,22 +69,24 @@ Logical dijunction is defined in the prelude as the inductive type
 
 \begin{alba}
   swap_or a b (p:a or b): b or a :=
-    inspect
-      p
-    case
-      left  := right
-      right := left
+    explicit_arguments
+      inspect
+        p
+      case
+        left  pa := right pa
+        right pb := left  pb
 \end{alba}
 
 \begin{alba}
   eliminate_or a b c (ab: a or b) (ac: a => c) (bc: b => c): c :=
-    inspect
-      ab
-    case
-      left :=
-        ac
-      right :=
-        bc
+    explicit_arguments
+      inspect
+        ab
+      case
+        left  pa :=
+          ac pa
+        right pb :=
+          bc pb
 \end{alba}
 
 
@@ -110,17 +102,18 @@ Logical dijunction is defined in the prelude as the inductive type
 
 \begin{alba}
   swap_and (a b: Proposition) (p:a and b): b and a :=
-    inspect
-      p
-    case
-      conjunction := conjunction
+    explicit_arguments
+      inspect
+        p
+      case
+        conjunction _ _ pa pb := conjunction b a pb pa
 \end{alba}
 
 
 \begin{alba}
   eliminate1_and (a b: Propositon) (p: a and b): a :=
     inpect p case
-      conjunction := _
+      conjunction _ _ pa pb := pa
 \end{alba}
 
 
@@ -209,96 +202,20 @@ hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{plus r
       inspect
         pab
       case
-        init a b (ab: r a b) :=
+        init a b :=   -- implicit argument '_: r a b'
             -- a -> b +> c
-          step a b c ab pbc
-
-        step a x b (ax: r a x) (pxb: plus r x b) :=
-            {: a -> x +> b +> c
-               by a recursive call to f we prove x +> c
-               and then use the step constructor to prove a +> c :}
-          step a x c ax (f x b c pxb q: plus r x c)
-\end{alba}
-
-This is a very detailed proof where Alba's builtin proof engine has nothing to
-do. All steps are given explicitly. The proof is not difficult. But it is
-tedious to get all the arguments right.
-
-The compiler can save  a lot of tedious work for us.
-
-First we see that the proof in the \code{init} case is trivial. The compiler
-sees the goal \code{plus r a c}, sees that the step function can generate such
-a goal by \code{step a x c (\_:r a x) (\_:plus r x c)} and both placeholders
-can be filled from the context. I.e. no hint to the compiler is necessary.
-
-In the second case the compiler can try the step function as well. The term
-\code{ax: r a x} from the pattern match allows to instantiate the intermediate
-variable \code{x} and an application of the induction hypothesis does the
-rest.
-
-Therefore a minimalistic proof which uses the proof engine full looks like
-%
-\begin{alba}
-  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
-    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
-      inspect
-        pab
-\end{alba}
-%
-However such a condensed code gives no information to the user on how to do
-the proof. An intermediate version might be
-%
-\begin{alba}
-  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
-    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
-      inspect
-        pab
-      case
-        init a b _ :=
-            -- a -> b +> c
-          step a b c _ _
-
-        step a x b _ _ :=
-            {: a -> x +> b +> c
-               by the induction hypothesis we can prove x +> c
-               and then use the step constructor to prove a +> c :}
-          step a x c _ (f x b c _ _)
-\end{alba}
-%
-This proof leaves out all the details for finding the low level proofs (which
-is just mechanical work) but give the reader of the code the proof idea.
-
-
-
-\paragraph{Discussion} What if we make proof arguments always implicit. Up to
-now the strategy has been that proof arguments are implicit in normal
-functions and explicit in proof functions.
-
-\begin{alba}
-  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
-    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
-      inspect
-        pab
-      case
-        init a b :=
           step a b c
 
         step a x b :=
+            -- implicit arguments _:  r a x
+            --                    _: plus r x b
+            {: goal: a -> x +> b +> c
+               by a recursive call to f we prove x +> c
+               and then use the step constructor to prove a +> c :}
           step a x c
-            where
-              _: plus r x c :=  f x b c
+          where
+             _: plus r x c := f x b c
 \end{alba}
-%
-This seems to convey very good the proof idea without a lot of
-clutter. Furthermore the number of arguments have been reduced drastically and
-the comments are no more necessary, because the code speaks for itself.
-
-The \code{where} clause is not strictly necessary, it just indicates that an
-induction hypothesis is generated by a call to \code{f}. However it is clear
-that the proof is an induction proof, because a name \code{f} has been
-introduced (which is necessary only for recursive functions) and a pattern
-match has been used which surfaces subproofs which can be used in \code{f} to
-generate induction hypotheses.
 
 
 
@@ -323,7 +240,7 @@ Having the definition we prove that the reflexive transitive closure is
 transitive.
 
 \begin{alba}
-  star_transitive A (r:Endorelation A): (plus r).is_transitive :=
+  star_transitive A (r:Endorelation A): (star r).is_transitive :=
     f a b c (sab: star r a b) (sbc: star r b c): star r a c :=
       inspect
         sab
@@ -367,51 +284,62 @@ A relation is confluent if its reflexive transitive closure is a diamond.
 
 
 
+\subsection{Draft}
 
-
-
-\subsection{Draft Material}
 
 
 \begin{alba}
-  is_diamond (A:Any) (r: Endorelation A): Proposition :=
-    all a b c: r a b => r a c => some d: r b d and r c d
+   stripe_lemma
+     A
+     (r: Endorelation A)
+     (rdia: r.is_diamond)
+     : all a b c: r a b => plus r a c => some d: plus r b d and r c d :=
+       f a b c rab pac :=
+         inspect pac case
+           init a c :=
+             via some d: r b d and r c d
 
-  class
-    plus (A:Any) (r: Endorelation A): Endorelation A
-      -- 'plus r' is the transitive closure of 'r'
-  create
-    init a b: r a b => plus r a b
-    step a b c: r a b => plus r b c => plus r a c
-
-  class
-    star (A:Any) (r: Endorelation A): Endorelation A
-      -- 'star r' is the reflexive transitive closure of 'r'
-  create
-    init a: star r a a
-    step a b c: r a b => star r b c => star r a c
+           step a x c :=
+             {: goal a   ->   b
+                     |        |
+                     v        v
+                     x   ->   e?
+                     +        +
+                     v        v
+                     c  ->    d?  :}
+             via some e: r x e and r b e         -- 'r' is diamond
+             via some d: plus r e d and r c d   -- via 'f x e c'
+             where
+                _: plus r b d := step b e d
+                _: r c d := _
 \end{alba}
 
 
-
-
-
-
-
 \begin{alba}
-  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
-    f a b c (p: plus r a b) (q: plus b c): plus r a c :=
-      inspect
-        p
-      case
-        init a b (pr: r a b) :=
-            -- a -> b +> c
-          step a b c pr q
-        step a x b (pax: r a x) (pxb: plus r x b) :=
-            {: a -> x +> b +> c
-               by a recursive call to f we prove x +> c
-               and then use the step constructor to prove a +> c :}
-          step a x c pax (f x b c pxb q: plus r x c)
+  transitive_closure_of_diamond_is_diamond
+    A
+    (r: Endorelation A)
+    (rdia: r.is_diamond)
+    : (plus r).is_diamond :=
+      f a b c pab pac: some d: plus r b d and plus r c d :=
+        inspect pab case
+          init a b :=
+            {: goal  a -> b
+                     +    +
+                     v    v
+                     c -> d?  :}
+            stripe_lemma r a b c
+
+          step a x b :=
+            {: goal a -> x  +> b
+                    +    +     +
+                    v    v     v
+                    c -> e? +> d? :}
+            via some e: plus r x e and r c e       -- via stripe_lemma r a x c
+            via some d: plus r x e and plus r b d  -- via 'f x b e'
+            where
+               _: plus r c d := step c e d
+
 \end{alba}
 
 
