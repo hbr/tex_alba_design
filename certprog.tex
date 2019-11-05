@@ -363,7 +363,7 @@ highest precedence of all arithmetic operators.
 
 
 
-\subsection{Concatenation and Reversal}
+\subsection{Concatenation}
 
 
 A standard definition of list concatenation looks like
@@ -412,6 +412,13 @@ List concatenation is associative
 \end{alba}
 
 
+
+
+
+\subsection{Reversal}
+
+
+
 A simple function to reverse a list looks like
 
 \begin{alba}
@@ -424,33 +431,61 @@ A simple function to reverse a list looks like
 \end{alba}
 
 
+Next we prove a theorem which shows how reversal and concatenation
+interact. Specifically we want to prove
+\begin{alba}
+  (a + b).reverse = b.reverse + a.reverse
+\end{alba}
 
 \begin{alba}
   reversal_of_concatenation
     A
     (a b: List A)
-    : reverse (a + b) = reverse b + reverse a :=
+    : (a + b).reverse = b.reverse + a.reverse :=
       inspect a case
-        [] :=
-          goal where
-            goal: reverse ([] + b) = reverse b + reverse [] :=
-              via reverse b
-                  reverse (b + [])
-
         h ^ t :=
           goal where
              goal: reverse (h ^ t + b) = reverse b + reverse (h ^ t) :=
                via
-                 reverse (h ^ (t + b))                      -- def '+'
-                 reverse (h ^ (reverse b + reverse t))      -- hypo
-                 (reverse b + reverse t) + [h]              -- def 'reverse'
-                 reverse b + (reverse t + [h])              -- '+' assoc
-                 reverse b + reverse (h ^ t)                -- def 'reverse'
+                 h ^ (t + b) |> reverse                     -- def '+'
+                 h ^ (reverse b + reverse t) |> reverse     -- hypo
+                 (b.reverse + t.reverse) + [h]              -- def 'reverse'
+                 b.reverse + (t.reverse + [h])              -- '+' assoc
+                 b.reverse + (h ^ t).reverse                -- def 'reverse'
 
-             hypo: reverse (t + b) = reverse b + reverse t :=
+             hypo: (t + b).reverse = b.reverse + t.reverse :=
                reversal_of_concatenation t b
 \end{alba}
 
+
+It is intuitively clear, that a double reversal of a list results in the
+original list. We prove this property by
+%
+\begin{alba}
+  double_reversal A (a: List A): a.reverse.reverse = a :=
+    inspect a case
+      h ^ t :=
+        goal where
+          goal: (h ^ t).reverse.reverse = h ^ t :=
+            via
+              (t.reverse + [h]).reverse
+              [h].reverse + t.reverse.reverse
+              [h] + t
+          hypo: t.reverse.reverse = t :=
+            double_reversal t
+\end{alba}
+
+
+
+\subsection{Tail Recursion}
+
+Neither concatenation nor reversal are tail recursive. Furthermore definition
+of list reversal is rather inefficient because of the $n^2$
+complexity. However we can find equivalent functions which are tail recursive
+and efficient.
+
+We need an auxiliary function which reverses a list and prepends it in front
+of another list.
 
 \begin{alba}
   reverse_prepend A (a b: List A): List A :=
@@ -463,6 +498,70 @@ A simple function to reverse a list looks like
       h ^ t :=
         t.reverse_prepend (h ^ b)
 \end{alba}
+
+
+We prove that the function does exactly what we are expecting it to do.
+
+\begin{alba}
+  reverse_prepend_correct
+    A (a b: List A)
+    : a.reverse_prepend b = a.reverse + b :=
+      inspect a case
+        h ^ t :=
+          goal where
+            goal: (h ^ t).reverse_prepend  b = (h ^ t).reverse + b :=
+              via
+                t.reverse_prepend (h ^ b)            -- def
+                t.reverse + h ^ b                    -- hypo
+                t.reverse + ([h] + b)                -- def '+'
+                t.reverse + [h] + b                  -- assoc '+'
+                (h ^ t).reverse + b                  -- def 'reverse'
+             hypo: t.reverse_prepend (h ^ b) = t.reverse + h ^ b :=
+               reverse_prepend_correct t (h ^ b)
+\end{alba}
+
+
+It is obvious that
+%
+\begin{alba}
+  a.reverse_prepend [] = a.reverse
+\end{alba}
+%
+is valid which is a direct consequence of the previous theorem. Alba allows to
+override a function definition by an equivalent definition. Therefore we can
+substitute the inefficient, non-tail-recursive definition of \code{reverse} by
+a more efficient and tail recursive version.
+
+\begin{alba}
+  reverse A (a: List A): List A :=
+    a.reverse_prepend []
+\end{alba}
+
+The definition of list concatenation is efficient, but not tail recursive. By
+using the proved theorems we see the following equivalence
+%
+\begin{alba}
+  a + b   =  a.reverse.reverse + b
+          =  a.reverse.reverse_prepend b
+\end{alba}
+
+Using this, we are able to override the definition of list concatenation by a
+tail recursive one
+
+\begin{alba}
+  (+) A (a b: List A): List A :=
+    a.reverse.reverse_prepend b
+\end{alba}
+
+Overriding a definition has no effect during compilation. The original
+definition remains to analyze properties. However as soon as the compiler
+generates executable code, it replaces the original definition by the
+definition which overrides the original definition. It is just an optimization
+of the runtime.
+
+
+
+
 
 
 %%% Local Variables:
