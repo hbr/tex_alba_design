@@ -283,9 +283,8 @@ A relation is confluent if its reflexive transitive closure is a diamond.
 
 
 
-
-\subsection{Draft}
-
+We prove that the transitive closure of a diamond remains a diamond. First we
+prove a \code{stripe\_lemma}.
 
 
 \begin{alba}
@@ -293,11 +292,20 @@ A relation is confluent if its reflexive transitive closure is a diamond.
      A
      (r: Endorelation A)
      (rdia: r.is_diamond)
-     : all a b c: r a b => plus r a c => some d: plus r b d and r c d :=
+     : all a b c:
+         r a b
+         => plus r a c
+         => some d: plus r b d and r c d :=
        f a b c rab pac :=
          inspect pac case
            init a c :=
-             via some d: r b d and r c d
+             {: goal a  ->  b
+                     |      +
+                     v      v
+                     c  ->  d? :}
+             _ where
+               _: plus r b d := init b d
+               _: some d: r b d and r c d := rdia a b c
 
            step a x c :=
              {: goal a   ->   b
@@ -307,13 +315,13 @@ A relation is confluent if its reflexive transitive closure is a diamond.
                      +        +
                      v        v
                      c  ->    d?  :}
-             via some e: r x e and r b e         -- 'r' is diamond
-             via some d: plus r e d and r c d   -- via 'f x e c'
-             where
-                _: plus r b d := step b e d
-                _: r c d := _
+             _ where
+               _: plus r b d := step b e d
+               _: some d: plus r e d and r c d := f x e c
+               _: some e: r b e and r x e := rdia a b x
 \end{alba}
 
+Then we can prove the desired property of the transitive closure of a diamond.
 
 \begin{alba}
   transitive_closure_of_diamond_is_diamond
@@ -335,13 +343,12 @@ A relation is confluent if its reflexive transitive closure is a diamond.
                     +    +     +
                     v    v     v
                     c -> e? +> d? :}
-            via some e: plus r x e and r c e       -- via stripe_lemma r a x c
-            via some d: plus r x e and plus r b d  -- via 'f x b e'
-            where
+            _ where
                _: plus r c d := step c e d
-
+               _: some d: plus r x e and plus r b d := f x b e
+               _: some e: plus r x e and r c e :=  stripe_lemma r a x c
 \end{alba}
-
+%
 
 
 
