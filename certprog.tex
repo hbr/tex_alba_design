@@ -538,7 +538,30 @@ reflexive, transitive and symmetric.
 \end{alba}
 
 
-Next we define the transitive closure of a relation.
+Next we define the transitive closure $r^+$ of a relation $r$. Graphically the
+construction of $r^+$ from $r$ looks like.
+
+\begin{tikzpicture}
+  \node (a0) at (0,0) {$a$};
+  \node (b0) at (1,0) {$b$};
+
+  \node (a) at (3,0) {$a$};
+  \node (b) at (4,0) {$b$};
+  \node (c) at (5,0) {$c$};
+
+  \draw [->,blue] (a0) edge node[above]{$r$} (b0);
+  \draw [->,red]
+     (a0)
+     .. controls (0.25,1) and (0.75,1)
+     .. node[above] {$r^+$} (b0);
+
+  \path[->,blue] (a) edge node[above] {$r$} (b);
+  \path[->,blue] (b) edge node[above] {$r^+$}    (c);
+  \draw[->,red]  (a) .. controls (3.5,1) and (4.5,1) ..  node[above] {$r^+$}  (c);
+\end{tikzpicture}
+
+
+In Alba we write
 
 \begin{alba}
   class
@@ -554,21 +577,20 @@ Next we define the transitive closure of a relation.
       => plus r a c
 \end{alba}
 
-The definition uses an inductive type. It uses two constructors. The
-\code{init} constructor allows us to conclude \code{plus r a b} from \code{r a
-  b}.
-The \code{step} constructor allows us to conclude \code{plus r a c} from
-\code{r a b} and \code{plus r b c}.
+The definition uses an inductive type. It has two constructors. The
+\code{init} constructor allows us to conclude $r^+ a b$ from $r a b$.  The
+\code{step} constructor allows us to conclude $r^+ a c$ from $r a b$ and $r^+
+b c$.
 
-By intuition we see that the relation \code{plus r} is transitive. But in
+By intuition we see that the relation $r^+$ is transitive. But in
 order to be sure we need a proof. In order to proof transitivity we have to
 prove
 %
-\begin{alba}
-  plus r a b => plus r b c => plus a c
-\end{alba}
+$$
+ r^+ a b \imp r^+ b c \imp r^+ a c
+$$
 %
-for all \code{a}, \code{b} and \code{c}
+for all $a$, $b$ and $c$
 i.e. we need a function which looks like
 %
 \begin{alba}
@@ -615,6 +637,20 @@ hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{plus r
 In the same manner as the transitive closure we can define the reflexive
 transitive closure of a relation.
 
+\begin{tikzpicture}
+  \node (reflexive) at (0,0) {$a$};
+  \node (a) at (2,0) {$a$};
+  \node (b) at (3,0) {$b$};
+  \node (c) at (4,0) {$c$};
+
+  \path (reflexive) edge [loop above,red] node {$r^*$} (reflexive);
+
+  \path[->,blue] (a) edge node[above] {$r$} (b);
+  \path[->,blue] (b) edge node[above] {$r^*$}    (c);
+  \draw[->,red]  (a) .. controls (2.5,1) and (3.5,1) ..  node[above] {$r^*$}  (c);
+\end{tikzpicture}
+
+\vbox{
 \begin{alba}
   class
     star (A:Any) (r: Endorelation A): Endorelation A
@@ -627,7 +663,7 @@ transitive closure of a relation.
       r a b
       => star r b c
       => star r a c
-\end{alba}
+\end{alba}}
 
 Having the definition we prove that the reflexive transitive closure is
 transitive.
