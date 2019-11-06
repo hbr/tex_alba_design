@@ -325,17 +325,13 @@ In order to prove the equivalence we have to prove both directions.
     : not (a or b) :=
       explicit_arguments
         \ (a_or_b: a or b): false :=
-          inspect a_or_b case
-            left pa :=
-               na pa
-            right pb :=
-               nb pb
-          where
-             na: not a := use nab (not a) (\ x y := x)
-             nb: not b := use nab (not b) (\ x y := y)
-             use (p: not a and not b) c (f: not a => not b => c): c :=
-               inspect p case
-                 conjunction _ _ na nb := f na nb
+          inspect nab case
+            conjunction _ _ na nb :=
+              inspect a_or_b case
+                left pa :=
+                   na pa
+                right pb :=
+                   nb pb
 \end{alba}
 
 
