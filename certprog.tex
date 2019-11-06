@@ -145,7 +145,7 @@ are equivalent. This is not the case in constructive logic on which Alba is
 based. Suppose we wanted to prove
 %
 \begin{alba}
-  (not b => not a) => (a => b)
+  (not b => not a) => a => b
 \end{alba}
 %
 in Alba. In order to do this we need a function
@@ -165,6 +165,33 @@ type we can expand to get
 \code{p} is a function with two arguments. There is no way to supply the first
 argument. Therefore we cannot use \code{p} and have no possibility to return
 an expression of type \code{b}.
+
+
+However there is a double negation correspondence between classical and
+constructive logic. Whenever classical logic is able to prove \code{a},
+constructive logic is capable to prove \code{not not a}. I.e. we should be
+able to prove
+\begin{alba}
+  (not b => not a) => a => not not b
+\end{alba}
+and define a function with the signature
+%
+\begin{alba}
+  contra3 a b (p: not b => not a) (pa: a): not not b :=
+    ...
+\end{alba}
+%
+Now we have more possibilities because we are no longer required to prove
+\code{b} directly, but only to derive \code{false} from \code{not b}. This
+opens the possibility to use the function \code{p}.
+%
+\begin{alba}
+  contra3 a b (p: not b => not a) (pa: a): not not b :=
+    \ (nb: not b): false :=
+        explicit_arguments
+          (p nb) a
+\end{alba}
+
 
 
 \subsection{Disjunction}
