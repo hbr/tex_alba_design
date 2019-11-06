@@ -510,6 +510,10 @@ the property \code{f}
 
 
 
+
+
+
+
 \newpage
 \section{Relations}
 \label{sec:certprog-relations}
@@ -533,6 +537,9 @@ reflexive, transitive and symmetric.
     all a b: r a b => r b a
 \end{alba}
 
+
+
+\subsubsection{Transitive Closure}
 
 Next we define the transitive closure $r^+$ of a relation $r$. Graphically the
 construction of $r^+$ from $r$ looks like.
@@ -562,15 +569,15 @@ In Alba we write
 \begin{alba}
   class
     plus (A:Any) (r: Endorelation A): Endorelation A
-      -- 'plus r' is the transitive closure of 'r'
+      -- 'r.plus' is the transitive closure of 'r'
   create
     init a b:
       r a b
-      => plus r a b
+      => r.plus a b
     step a b c:
       r a b
-      => plus r b c
-      => plus r a c
+      => r.plus b c
+      => r.plus a c
 \end{alba}
 
 The definition uses an inductive type. It has two constructors. The
@@ -590,26 +597,26 @@ for all $a$, $b$ and $c$
 i.e. we need a function which looks like
 %
 \begin{alba}
-  f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+  f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
     ...
 \end{alba}
 %
-We can do an induction proof on \code{pab: plus r a b} which generates two
+We can do an induction proof on \code{pab: r.plus a b} which generates two
 cases.
 
-One case is that \code{plus r a b} has been constructed
+One case is that \code{r.plus a b} has been constructed
 by \code{init a b rab}. In that case we can use the step constructor with
-\code{ab: r a b} and \code{pbc: plus r b c} to construct \code{plus r a c}.
+\code{ab: r a b} and \code{pbc: r.plus b c} to construct \code{r.plus a c}.
 
-The second case is that  \code{plus r a b} has been constructed by \code{step
-  a x b (ax: r a x) (pxb: plus r x b)}. Now we can use the induction
-hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{plus r
-  x c} and then the step constructor to generate a proof of \code{plus r a c}.
+The second case is that  \code{r.plus a b} has been constructed by \code{step
+  a x b (ax: r a x) (pxb: r.plus x b)}. Now we can use the induction
+hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{r.plus
+  x c} and then the step constructor to generate a proof of \code{r.plus a c}.
 
 
 \begin{alba}
-  plus_transitive A (r:Endorelation A): (plus r).is_transitive :=
-    f a b c (pab: plus r a b) (pbc: plus r b c): plus r a c :=
+  plus_transitive A (r:Endorelation A): r.plus.is_transitive :=
+    f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
       inspect
         pab
       case
@@ -619,16 +626,18 @@ hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{plus r
 
         step a x b :=
             -- implicit arguments _:  r a x
-            --                    _: plus r x b
+            --                    _: r.plus x b
             {: goal: a -> x +> b +> c
                by a recursive call to f we prove x +> c
                and then use the step constructor to prove a +> c :}
           step a x c
           where
-             _: plus r x c := f x b c
+             _: r.plus x c := f x b c
 \end{alba}
 
 
+
+\subsubsection{Reflexive Transitive Closure}
 
 In the same manner as the transitive closure we can define the reflexive
 transitive closure of a relation.
@@ -650,23 +659,23 @@ transitive closure of a relation.
 \begin{alba}
   class
     star (A:Any) (r: Endorelation A): Endorelation A
-      -- 'star r' is the reflexive transitive closure of 'r'
+      -- 'r.star' is the reflexive transitive closure of 'r'
   create
     init a:
-      star r a a
+      r.star a a
 
     step a b c:
       r a b
-      => star r b c
-      => star r a c
+      => r.star b c
+      => r.star a c
 \end{alba}}
 
 Having the definition we prove that the reflexive transitive closure is
 transitive.
 
 \begin{alba}
-  star_transitive A (r:Endorelation A): (star r).is_transitive :=
-    f a b c (sab: star r a b) (sbc: star r b c): star r a c :=
+  star_transitive A (r:Endorelation A): r.star.is_transitive :=
+    f a b c (sab: r.star a b) (sbc: r.star b c): r.star a c :=
       inspect
         sab
       case
@@ -675,8 +684,51 @@ transitive.
 
         step a x b :=
           step a x c where
-            hypo: star r x c := f x b c
+            hypo: r.star x c := f x b c
 \end{alba}
+
+
+
+\subsubsection{Equivalence Closure}
+
+It is possible to convert any relation into an equivalence relation.
+
+\begin{tikzpicture}
+  \node (a0) at (0,0) {$a$};
+  \path (a0) edge [loop above,red] node {$r^\sim$} (a0);
+
+  \node (a1) at (1,0) {$a$};
+  \node (b1) at (2,0) {$b$};
+  \node (c1) at (3,0) {$c$};
+  \draw[->,blue] (a1) edge node[above]{$r$} (b1);
+  \draw[->,blue] (b1) edge node[above]{$r^\sim$} (c1);
+  \draw[->,red] (a1) .. controls (1.5,1) and (2.5,1) .. node [above]{$r^\sim$} (c1);
+
+  \node (a2) at (4,0) {$a$};
+  \node (b2) at (5,0) {$b$};
+  \node (c2) at (6,0) {$c$};
+  \draw[<-,blue] (a2) edge node[above]{$r$} (b2);
+  \draw[->,blue] (b2) edge node[above]{$r^\sim$} (c2);
+  \draw[->,red]   (a2) .. controls (4.5,1) and (5.5,1) .. node [above]{$r^\sim$} (c2);
+\end{tikzpicture}
+
+
+\begin{alba}
+  class
+    equivalence A (r: Endorelation A): Endorelation A
+  create
+    init a:
+     r.equivalence a a
+
+    forward a b c:
+      r a b => r.equivalence b c => r.equivalence a b
+
+    backward a b c:
+      r b a => r.equivalence b c => r.equivalence a b
+\end{alba}
+
+
+
 
 
 \subsection{Diamonds and Confluence}
@@ -702,7 +754,7 @@ A relation is confluent if its reflexive transitive closure is a diamond.
 
 \begin{alba}
   is_confluent A (r: Endorelation A): Proposition :=
-    (star r).is_diamond
+    r.star.is_diamond
 \end{alba}
 
 
@@ -716,16 +768,16 @@ stripe lemma.
     (r: Endorelation A)
     (rdia: r.is_diamond)
     : all a b c:                       --  a *> b
-        star r a b =>                  --  |    |
+        r.star a b =>                  --  |    |
         r a c =>                       --  v    v
         some d: r b d                  --  c *> d?
                 and
-                star r c d :=
+                r.star c d :=
      f a b c sab rac :=
        inspect sab case   -- a = b, therefore we use d = c as witness
          init a :=
-           _: some d: r a d and star r c d  where
-             _: star r c c := init c
+           _: some d: r a d and r.star c d  where
+             _: r.star c c := init c
 
          step a x b :=
            {:  a  -> x  *> b
@@ -733,7 +785,7 @@ stripe lemma.
                v     v     v
                c  -> e? *> d? :}
            _ where
-             exist_d: some d: r b d and star r e d := f x b e
+             exist_d: some d: r b d and r.star e d := f x b e
              exist_e: some e: r x e and r c e      := rdia a x c
 \end{alba}
 
@@ -746,12 +798,12 @@ Then we can prove that a diamond relation is confluent.
     (rdia: r.is_diamond)
     : r.is_confluent
     :=
-      f a b c sab sac: exist d: star r b d and star r c d :=
+      f a b c sab sac: exist d: r.star b d and r.star c d :=
         inspect sab case
           init a :=            -- a = b, therefore we can use d = c
             _ where            --        as witness
-              _: star r b c := sac
-              _: star r c c := init c
+              _: r.star b c := sac
+              _: r.star c c := init c
 
           step a x b :=
             {:  a  ->  x  *>  b
@@ -759,8 +811,8 @@ Then we can prove that a diamond relation is confluent.
                 v      v      v
                 c  ->  e? *>  d? :}
             _ where
-              exist_d: some d: star r b d and star r e d := f x b e
-              exist_e: some e: star r x e and r c e := stripe_lemma r a c x
+              exist_d: some d: r.star b d and r.star e d := f x b e
+              exist_e: some e: r.star x e and r c e := stripe_lemma r a c x
 
 \end{alba}
 
