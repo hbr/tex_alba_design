@@ -728,6 +728,46 @@ It is possible to convert any relation into an equivalence relation.
 \end{alba}
 
 
+The equivalence closure is transitive.
+
+\begin{alba}
+  equivalence_is_transitive
+    A (r: Endorelation A)
+    : r.equivalence.is_transitive :=
+    f a b c ab bc: r.equivalence a c :=
+      inspect ab case
+        forward a x b :=
+          forward a x c where
+            xc: r.equivalence x c := f x b c
+
+        backward a x b :=
+          backward a x c where
+            xc: r.equivalence x c := f x b c
+\end{alba}
+
+The equivalence closure is symmetric.
+
+\begin{alba}
+  equivalence_is_symmetric
+    A (r: Endorelation A)
+    : r.equivalence.is_symmetric :=
+    f a b ab: r.equivalence b a :=
+      inspect ab case
+        forward a x b :=   -- i.e. 'r a x' is valid
+          equivalence_is_transitive r b x a where
+            _: r.equivalence b x := f x b
+            _: r.equivalence x a := backward x a a
+            _: r.equivalence a a := init a
+
+        backward a x b :=  -- i.e. 'r x a' is valid
+          equivalence_is_transitive r b x a where
+            _: r.equivalence b x := f x b
+            _: r.equivalence x a := forward x a a
+            _: r.equivalence a a := init a
+\end{alba}
+
+
+
 
 
 
