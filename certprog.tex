@@ -235,9 +235,16 @@ matches on the construction of \code{a or b}
       inspect
         p
       case
-        left  pa := right pa
-        right pb := left  pb
+        left  _ _ pa := right b a pa
+        right _ _ pb := left  b a pb
 \end{alba}
+
+The propositions \code{a} and \code{b} are parameters of the proposition
+\code{a or b}. Since parameters are the same for all constructors, it is not
+allowed to bind variables to them. Therefore the anonymous variables \code{\_}
+in the pattern match expression. Normally the parameters of the constructors
+are implicit, but we have decided to supply the explicitly for educational
+purposes.
 
 Another law of logic states
 \begin{alba}
@@ -257,9 +264,9 @@ the construction of \code{a or b}.
       inspect
         ab
       case
-        left  pa :=
+        left  _ _ pa :=
           ac pa
-        right pb :=
+        right _ _ pb :=
           bc pb
 \end{alba}
 
@@ -312,10 +319,10 @@ In order to prove the equivalence we have to prove both directions.
         conjunction (not a) (not b) na nb where
           na: not a :=
              \ (pa: a): false :=
-                nab (left pa)
+                nab (left a b pa)
           nv: not b :=
              \ (pb: a): false :=
-                nab (right pb)
+                nab (right a b pb)
 \end{alba}
 
 \begin{alba}
@@ -328,9 +335,9 @@ In order to prove the equivalence we have to prove both directions.
           inspect nab case
             conjunction _ _ na nb :=
               inspect a_or_b case
-                left pa :=
+                left _ _ pa :=
                    na pa
-                right pb :=
+                right _ _ pb :=
                    nb pb
 \end{alba}
 
@@ -353,9 +360,9 @@ The forward direction can be proved by the function
           inspect a_and_b case
             conjunction _ _ pa pb :=
               inspect nab case
-                left na :=
+                left _ _ na :=
                    na pa
-                right nb :=
+                right _ _ nb :=
                    nb pb
 \end{alba}
 
