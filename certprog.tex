@@ -379,6 +379,141 @@ no possibility to make such a decision by looking only at \code{not (a and
 
 
 
+
+
+\subsection{Existential Quantification}
+
+The existence of an object with a certain property is expressed in Alba by the
+inductive type
+%
+\begin{alba}
+  class
+    exist A (f: Predicate A): Proposition
+  create
+    witness x: f x -> exist f
+\end{alba}
+%
+i.e. the existence of an object with a certain property is proved by providing
+a witness and a proof that the witness satisfies the required property.
+
+In Alba we write
+%
+\begin{alba}
+  some (x:A): f x
+
+  -- or
+
+  some x: f x   -- if the type 'A' can be inferred from the context
+\end{alba}
+%
+as another way to express the proposition
+%
+\begin{alba}
+  exist f
+\end{alba}
+
+A basic law of logic states
+%
+\begin{alba}
+  (some x: f x) => (all x: f x => a) => a
+\end{alba}
+%
+Proofs using this law reads like
+\begin{quote}
+  We know that there exists an object satisfying $f$. Let $x$ be such an
+  object satisfying $f$. From $ f x$ we can conclude $a$. Therefore $a$ is
+  valid.
+\end{quote}
+
+We can prove this law in Alba by writing the function
+\begin{alba}
+  exist_elim
+    A (f: Predicate A) (ex: some x: f x)
+    a (p: all x: f x => a): a :=
+      explicit_arguments
+        inspect ex case
+          witness _ _ x pf :=
+            p x pf
+\end{alba}
+
+
+Like for logical disjunction and conjunction there two De Morgan's laws for
+existential and universal quantification. The first law states the equivalence
+of
+\begin{alba}
+  not (some x: f x)
+
+  all x: not (f x)
+\end{alba}
+or in words
+\begin{quote}
+  If there are no objects satisfying a certain property, then all objects do
+  not satisfy the property. And if all objects do not satisfy a propert, then
+  there are no objects satisfying the property.
+\end{quote}
+
+The proofs of the forward and backward direction are not complicated.
+
+\begin{alba}
+   ex_de_morgan1_forward
+     A (f: Predicate A)
+     (nex: not (some x: f x))
+     : all x: not (f x) :=
+       \ x (pf: f x): false :=
+          nex (witness _ _ x pf)
+\end{alba}
+
+
+\begin{alba}
+  ex_de_morgan1_backward
+     A (f: Predicate A)
+     (allnot: all x: not (f x))
+     : not (some x: f x) :=
+       \ (ex: some x: f x): false :=
+          explicit_arguments
+            inspect ex case
+              witness _ _ x pf :=
+                allnot x pf
+\end{alba}
+
+The second De Morgan's law states the equivalence of
+\begin{alba}
+  some x: not (f x)
+
+  not all x: f x
+\end{alba}
+
+The forward direction is easy.
+
+\begin{alba}
+  ex_de_morgan2_forward
+    A (f: Predicate A)
+    (some_not: some x: not (f x))
+    : not (all x: f x) :=
+     explicit_arguments
+       \ (pall: all x: f x): false :=
+         inspect some_not case
+           witness _ _ x nf :=
+             nf (pall x)
+\end{alba}
+
+However the backward direction is not possible to prove. Constructive logic
+requires us to find a witness in order to prove
+\begin{alba}
+  some x: not (f x)
+\end{alba}
+%
+But the premise
+%
+\begin{alba}
+  not all x: f x
+\end{alba}
+does not give us any possibility to extract a witness which does not satisfy
+the property \code{f}
+
+
+
+
 \newpage
 \section{Relations}
 \label{sec:certprog-relations}
