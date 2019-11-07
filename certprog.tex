@@ -1189,6 +1189,106 @@ of the runtime.
 
 
 
+\subsection{Specified Types}
+
+In the previous section we defined a function \code{reverse\_prepend} which
+should reverse a list and prepend it in front of another list. In a second
+step we proved that the function does the expected.
+
+This signals that we might be able to use a specified type (i.e. a type whose
+inhabitants satisfy a specification) as a result and implement the function
+and the proof of its specification hand in hand.
+
+A specified type is an inductive type of the form
+%
+\begin{alba}
+   class Specified A (f: Predicate A): Any create
+     specified x: f x -> Specified f
+\end{alba}
+
+The type \code{Specified} is known to the compiler and instead of writing
+%
+\begin{alba}
+  Specified (\ (x:T) := exp)
+\end{alba}
+%
+we can use syntactic sugar and write
+%
+\begin{alba}
+  {x: T : exp}
+  -- or
+  {x: exp}     -- if the type 'T' can be inferred from the context.
+\end{alba}
+
+
+If we use a specified type in \code{reverse\_prepend} we get the signature
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    ...
+\end{alba}
+
+Any implementation of \code{reverse\_prepend} must satisfy the specification
+i.e. it has to return a list \code{c} which satisfies
+\begin{alba}
+  c = a.reverse + b
+\end{alba}
+
+
+The implementation of the function includes the proof of the specification.
+
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    inspect a case
+      [] :=
+        specified b where
+          _: b = [].reverse + b := _
+
+      h ^ t :=
+        inspect t.reverse_prepend (h ^ b) case
+          specified c :=
+            specified c where
+              _: c = (h ^ t).reverse + b :=
+                via t.reverse + (h ^ b)      -- hypo
+                    t.reverse + ([h] + b)    -- def '+'
+                    t.reverse + [h] + b      -- '+' assoc
+                    (h ^ t).reverse + b      -- def 'reverse'
+\end{alba}
+
+
+Since the Alba compiler \emph{knows} the mechanics of a specified type, we can
+omit one pattern match.
+
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    inspect a case
+      [] :=
+        specified b
+
+      h ^ t :=
+        t.reverse_prepend (h ^ b) where
+          _ c (p: c = t.reverse + (h ^ b))
+            : c = (h ^ t).reverse + b :=
+             via t.reverse + (h ^ b)      -- 'p'
+                 t.reverse + ([h] + b)    -- def '+'
+                 t.reverse + [h] + b      -- '+' assoc
+                 (h ^ t).reverse + b      -- def 'reverse'
+\end{alba}
+
+In this definition we give the compiler a hint on how to transform a proof of
+the specification of the recursive call into a proof of the specification of
+the outer call.
+
+In the runtime all specifications and proofs are erased. Therefore the
+definition of the function \code{reverse\_prepend} in this chapter and the
+previous chapter are identical in the runtime.
+
+
+
+
+
+
+
+
 
 %%% Local Variables:
 %%% mode: latex
