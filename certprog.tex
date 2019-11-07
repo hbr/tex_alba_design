@@ -516,6 +516,109 @@ the property \code{f}
 
 
 
+\subsection{Equality}
+
+Equality is defined in Alba as an inductive type.
+\begin{alba}
+   class
+     (=) (A: Any) (a:A): Predicate A
+   create
+     reflexive: a = a
+\end{alba}
+
+Note that the type \code{A} and the object \code{a} are parameters of the
+inductive type. The expression \code{(a =)} is a predicate i.e. a function
+\code{\textbackslash\ x := a = x} mapping each object \code{x} into the
+proposition \code{a = x}.
+
+In the proposition \code{a = b} the character of left argument \code{a} and
+the right argument \code{b} is different. The first argument is a parameter
+and the second argument is an index.
+
+There is only one constructor to construct an equality proposition. The
+constructed equality is that an object is equal to itself. In order to prove
+\code{all (n:Natural): n + 0 = n} we need a function, mapping any natural
+number \code{n} into a proof of \code{n + 0 = n}.
+
+Equal objects need not be represented by identical syntactical expressions
+because of the possibility of reduction.
+
+Equality defined with the above inductive type is a rather strong
+property. This kind of equality is also known as \emph{Leibniz equality} which
+means that two equal objects satisfy the same properties.
+%
+\begin{alba}
+  leibniz (A: Any) (a b:A) (eq: a = b) (f: Predicate A): f a => f b :=
+    ...
+\end{alba}
+
+
+We can prove this theorem by a pattern match on the proof of the equality.
+%
+\begin{alba}
+  leibniz (A: Any) (a b:A) (eq: a = b) (f: Predicate A): f a => f b :=
+    inspect
+      eq                                  -- inspected proof object
+      (\ x (p: a = x): Proposition :=     -- elimination function
+         f a => f x)
+    case
+      reflexive :=
+        \ pa  := pa
+\end{alba}
+%
+In order to see why the proof is correct we have added the elimination
+function into the pattern match expression. The arguments of an elimination
+function are the indices of the inductive type and an object of the inductive
+type. The index of \code{a = b} is \code{b} and the object of the inductive
+type is \code{eq}.
+
+If we apply the elimination function to the two arguments
+\code{b} and \code{eq}, we get the required result type \code{f a => f b} of
+the pattern match expression. This shows that the elimination function is
+correct.
+
+Note that the only constructor \code{reflexive} constructs \code{a = a},
+i.e. the index is \code{a}. Therefore the expression on the right side of the
+case must construct an object of type \code{f a => f a}. The identity function
+is a proof of this trivial implication.
+
+In a similar manner we can prove the symmetry of the equality relation.
+
+\begin{alba}
+   equality_is_symmetric
+     (A: Any) (a b: A) (eq: a = b): b = a :=
+       inspect
+         eq
+         (\ x p := x = a)
+       case
+         reflexive := reflexive
+\end{alba}
+
+The proof of transitivity follows the same pattern.
+
+\begin{alba}
+   equality_is_transitive
+     (A: Any) (a b: A) (ab: a = b): all c: b = c => a = c :=
+       inspect
+         ab
+         (\ x p := all c: x = c => a = c)
+       case
+         reflexive :=
+           \ c p := p
+\end{alba}
+
+The key of understanding the proof is to use the elimination function to
+compute the required result on the right side of the constructor. By feeding
+the index \code{b} and the proof object \code{ab} into the elimination
+function we get the required proposition
+%
+\begin{alba}
+  all c: a = c => a = c
+\end{alba}
+%
+which is rather easy to prove.
+
+
 
 
 
