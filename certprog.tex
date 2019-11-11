@@ -1289,6 +1289,208 @@ previous chapter are identical in the runtime.
 
 
 
+\section{Natural Numbers}
+
+
+The type of natural numbers is defined in the prelude inductively.
+
+\begin{alba}
+  class Natural create
+    0: Natural
+    successor: Natural -> Natural
+\end{alba}
+
+The number $1$ is the constant
+
+\begin{alba}
+  1: Natural := 0.successor
+\end{alba}
+
+The compiler \emph{knows} of this type and implements it as a efficient
+segmented array to represent arbitrary precision arithmetic. Furthermore all
+arithmetic functions like addition, multiplication and relational operators
+are implemented as efficient functions. But all these builtin functions behave
+as the following functions defined recursively on the inductive type above.
+
+
+
+
+
+\subsection{Arithmetic}
+
+
+\subsubsection{Addition}
+
+
+First we need addition
+\begin{alba}
+  (+) (a b: Natural): Natural :=
+    inspect a case
+      0 :=
+        b
+      n.successor :=
+        (n + b).successor
+\end{alba}
+
+
+Addition is associative
+%
+\begin{alba}
+  plus_is_associative (a b c: Natural): a + b + c = a + (b + c) :=
+    inspect a case
+      n.successor :=
+        via
+          n.successor + b + c
+          (n + b + c).successor
+          (n + (b + c)).successor
+          n.successor + (b + c)
+        where
+          hypo: n + b + c = n + (b + c) :=
+            plus_is_associative n b c
+\end{alba}
+
+Now we prove that addition is commutative. In order to prove commutativity of
+addition we need two lemmas.
+
+\begin{alba}
+  zero_is_right_neutral (a: Natural): a + 0 = a :=
+    inspect a case
+      n.successor :=
+        via
+          n.successor + 0
+          (n + 0).successor
+          n.successor
+        where
+          hypo: n + 0 = n := zero_is_right_neutral n
+\end{alba}
+
+\begin{alba}
+  pull_successor (a b: Natural): a + b.successor = (a + b).successor
+    inspect a case
+       n.successor :=
+         via n.successor + b.successor
+             (n + b.successor).successor
+             (n + b).successor.successor
+             (n.successor + b).successor
+         where
+           hypo: n + b.successor = (n + b).successor :=
+             pull_successor n b
+\end{alba}
+
+
+\begin{alba}
+   plus_is_commutative (a b: Natural): a + b = b + a :=
+     inspect a case
+       0 :=
+         via 0 + b
+             b
+             b + 0
+         where
+           _: b + 0 = b := zero_is_right_neutral b
+
+       n.successor :=
+         via
+           n.successor + b
+           (n + b).successor
+           (b + n).successor
+           b + n.successor
+         where
+           hypo: n + b = b + n := plus_is_commutative n b
+           _: b + n.successor = (b + n).successor := pull_successor b n
+\end{alba}
+
+
+
+
+
+\subsubsection{Multiplication}
+
+
+
+Multiplication can be defined as a recursive function as well.
+
+\begin{alba}
+  (*) (a b: Natural): Natural :=
+    inspect a case
+      0 :=
+        0
+      1 + n :=
+        b + n * b
+\end{alba}
+
+\begin{alba}
+  times_zero_is_zero (a: Natural): a * 0 = 0 :=
+    inpect a case
+      1 + n :=
+       via (1 + n) * 0
+           0 + n * 0
+           0 + 0
+           0
+       where
+         hypo: n * 0 = 0 := times_zero_is_zero n
+\end{alba}
+
+By substitution is is evident, that $1$ is the left neutral of
+multiplication. The number $1$ is right neutral as well, but this assertion
+needs a proof.
+
+\begin{alba}
+  one_is_right_neutral (a: Natural): a * 1 = a :=
+    inspect a case
+      1 + n :=
+        via
+          (1 + n) * 1
+          1 + n * 1
+          1 + n
+        where
+          hypo: n * 1 = n := one_is_right_neutral n
+\end{alba}
+
+
+The distributivity of multiplication over addition is proved by induction.
+%
+\begin{alba}
+   times_is_distributive (a b c: Natural): a * (b + c) = a * b + a * c :=
+      inspect a case
+        1 + n :=
+          via
+            (1 + n) * (b + c)
+            (b + c) + n * (b + c)
+            (b + c) + n * b + n * c
+            b + n * b + (c + n * c)    -- commutativity and assoc of '+'
+            (1 + n) * b + (1 + n) * c
+          where
+            hypo: n * (b + c) = n * b + n * c :=
+              times_is_distributive n b c
+\end{alba}
+
+
+Commutativity of multiplication can be proved by using distributivity.
+
+\begin{alba}
+  times_is_commutative (a b: Natural): a * b = b * a :=
+    inspect a case
+      0 :=
+       via 0 * b
+           0
+           b * 0
+       where
+         _: b * 0 = 0 := times_zero_is_zero b
+
+      1 + n :=
+        via
+          (1 + n) * b
+          b + n * b
+          b + b * n
+          b * 1 + b * n
+          b * (1 + n)
+        where
+          hypo: n * b = b * n := times_is_commutative n b
+          _: b * 1 + b * n := times_is_distributive b a n
+\end{alba}
+
+
+
 
 %%% Local Variables:
 %%% mode: latex
