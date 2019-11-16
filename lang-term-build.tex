@@ -210,8 +210,8 @@ An argument $x_i$ is implicit in the following two cases:
 \item $x_i$ is a proof argument i.e. $A_i : \Prop$ is a valid typing
   judgement.
 
-\item $x_i$ is a type constructor variable i.e. $A_i$ reduces to a kind and
-  $x_i$ occurs as a strict subterm in some other $A_j$ which is not a
+\item $x_i$ is an inferable type constructor variable i.e. $A_i$ reduces to a
+  kind and $x_i$ occurs as a strict subterm in some other $A_j$ which is not a
   proposition (i.e. $A_j:\Any_k$ for some $k$ and $\Any_k$ is the principal
   type of $A_j$) or $x_i$ occurs as a strict subterm in the result type $R$.
 \end{enumerate}
@@ -369,7 +369,7 @@ Placeholders are needed for
 \begin{enumerate}
 
 \item bound variables which do not have an explicit type (a variable of type
-  \code{Any} will be introduced.
+  $\Any_1$ will be introduced.
 
 
 \item implicit arguments of functions (arguments which can be inferred from
@@ -393,13 +393,26 @@ empty list whose element type is unknown).
 
 During the algorithm we have a set of placeholders and a substitution
 $$
-\sigma = [y_0: t_0, y_1: t_1, \ldots]
+\sigma = [x_{i_0}: a_0,\, x_{i_1}: a_1,\, \ldots]
 $$
 i.e. a list of placeholders/substitution term pairs with the invariant that a
 substituted variable must not occur in any substitution term and that the
-substituted variables $y_0, y_1, \ldots$ are a subset of the placeholders.
+substituted variables $x_{i_0}, x_{i_1}, \ldots$ are a subset of the
+placeholders.
 
+Furthermore we require that a substitution term $a_k$ must not contain any
+variables $x_m$ with $i_k \le m$.
 
+Theoretical basis: Substitution Lemma:
+$$
+\rulev
+{
+  \Gamma,x^A,\Delta \vdash t : T
+  \\
+  \Gamma \vdash a: A
+}
+{\Gamma, \Delta[x:=a] \vdash t[x:=a] : T[x:=a]}
+$$
 
 
 \subsection{Algorithm Data}
@@ -428,7 +441,7 @@ substituted variables $y_0, y_1, \ldots$ are a subset of the placeholders.
 \item Syntactic expression
 \end{enumerate}
 
-Lists are needed because of ambiguity. A elements of the list have the same
+Lists are needed because of ambiguity. All elements of the list have the same
 number of arguments. If there is an expected type, there is one for all
 elements. If the expected type is an arbitrary type, it is the same for all
 list elements.
@@ -456,60 +469,45 @@ are common elements of the input and output structure.
 
 
 \subsection{Apply Terms to Arguments}
+\label{sec:apply-terms-to_arguments}
 
-Every syntactic subterm might be applied to some arguments, either explicit or
-implicit, if it is in a function position.
 
-The term in the function position is analyzed before the terms of the actual
-arguments. Therefore placeholders are introduced for the explicit and implicit
-arguments (it is possible that there are no explicit arguments, but implicit
-arguments; in that case the term is not in a function position).
 
-The optional expected type of a syntactic term is not the type of the
-syntactic term, but the type of the syntactic term applied to its arguments.
+Input: Number of explicit arguments, Expected types of term applied to
+arguments, list of term/type pairs of the term under consideration.
 
-Therefore we cannot use the type of the term and unify it with the expected
-type. We have to extract first the argument types of the type and use the
-result type and unify the result type with the expected type.
+Every syntactic subterm might be applied to some arguments.
 
-Two difficulties:
+The analyis of the term returns a list of term/type pairs.
 
+We analyze the types and get a list of argument descriptors where each
+descriptor indicates what kind of argument it is: Proof argument, explicit
+argument, implicit type constructor argument.
+
+We introduce placeholders for the explicit arguments occurring in the
+syntactic term and all implicit arguments before, between and after the actual
+explicit arguments.
+
+Compute the type $T$ of the term
+$$
+t \, a_0 \, a_1 \, \ldots : T
+$$
+and unify it with the expected types.
+
+If unification is not successful or if the type of $t$ does not allow
+sufficient arguments, then the term $t$ is not possible in that position.
+
+If at the end no candicates remain, then a type error message has to be
+generated.
+
+Two kinds of error messages can be generated from this phase:
 \begin{enumerate}
+\item None of the terms can be applied to $n$ explicit arguments
 
-\item The type of the term might not be in normal form $\Pi \xbold^\Abold . R$
-
-\item There are several implicit arguments which all need placeholders
-  i.e. there might be more arguments needed than provided in the syntactic
-  term. In the extreme case there are only implicit arguments.
-
+\item There are some terms which can be applied to $n$ explicit arguments but
+  the result type matches non of the expected types.
 \end{enumerate}
 
-Let's assume the type of the term $t$ is $T$ and the first step of the
-transformation to key normal form is $T \reducekey \Pi
-x_0^{A_0}. R_0$. According to the previous chapter $x_0$ is implicit if
-\begin{enumerate}
-
-\item $A_0:\Prop$
-
-\item $A_0$ reduces to a kine and $x_0$ does occur as a strict subterm in the
-  type some nonpropositional argument of $R_0$ or in the final result type of
-  $R_0$.
-\end{enumerate}
-
-This analysis shows that the implicitness of an argument can be decided only
-if the complete key normalform $\Pi x_0^{A_0} x_1^{A_1} \ldots\, R_{n-1}$ is
-available. I.e. we need the complete sequence
-$$
-   T, (A_0, R_0), (A_1, R_1), \ldots, (A_{n-1}, R_{n-1})
-$$
-to define the placeholders and fill the stack of placeholders. After the
-decision we can return
-
-$$
-   t x_0 x_1 \ldots
-$$
-
-which has the expected type and push the nonimplicit ones onto the stack.
 
 
 
@@ -539,21 +537,30 @@ arguments. Identifiers, operators and numbers can have ambiguous types.
 
 The expected type is the type of the expression applied to the arguments.
 
-For each possible terminal element we get a list of term/type pairs (which can
-be a singleton list). Transforming the type into key normal form must result
-in $\Pi x^A y^B \ldots . R$ with sufficient arguments.
+\begin{enumerate}
 
-We generate placeholders for all arguments (implicit and explicit, until
-sufficient) and shift them with their corresponding types into the
-context. The essential ones are shifted onto the stack of not yet analyzed
-arguments.
+\item Get a list of term/type pairs. Examples
+  \begin{itemize}
 
-Then we unify $R$ with the expected type of the expression with arguments.
+  \item 125: [125:Natural, 125:Nat, 125:Int, 125:Float, 125:Byte]
 
-We return the term applied to the placeholder arguments (implicit and
-explicit) in the output structure. I.e. the type of the returned term has the
-expected type (if there is one).
+  \item 'a': ['a':Character, 'a':Byte]
 
+  \item ``Hello'': [``Hello'':String, ``Hello'':Byte\_string]
+
+  \item (+): [(+):$\Natural\to \Natural\to \Natural$, (+): String $\to$ String
+    $\to$ String, ...]
+
+  \item reverse: [reverse: all A: List A $\to$ List A]
+
+  \item $\Prop$: [$\Prop:\Any_0$]
+
+  \item $\Any$: [$\Any_0:\Any_1$]
+
+  \end{itemize}
+
+\item Apply arguments.
+\end{enumerate}
 
 
 
@@ -622,13 +629,13 @@ For
 %
 we need the context
 $$
-    \Gamma, A:\Any, B:\Any, x:A, y:B, z:C \ldots
+    \Gamma, A^{\Any_1}, x^A,  B^{\Any_1}, y^B, z^C \ldots
 $$
 %
-where the two placeholder type variable $A$ and $B$ have been introduced to
+where the two placeholder type variables $A$ and $B$ have been introduced to
 describe the types of the variables $x$ and $y$.
 
-The type $C$ might contain the variables $x$ and $y$ (e.g. \code{C = x < y}
+The type $C$ might contain the variables $x$ and $y$ (e.g. \code{C = x < y})
 i.e. the analysis of $C$ might already determine the type variables $A$ and
 $B$.
 
@@ -659,13 +666,13 @@ where \code{f} might occur in \code{exp}
 
 In that case we need a context like
 $$
-  \Gamma, A:\Any, B:\Any, R:\Any, f:\Pi x^A y^B.R, x:A, y:A
+  \Gamma, A^{\Any_1}, B^{\Any_1},  R^{\Any_1}, f^{\Pi x^A y^B.R}, x^A, y^B
 $$
 %
 to analyze \code{exp} with the expected type $R$.
 
 Suppose $e:E$ is the result of the analysis of \code{exp} and $f$ occurs in
-$e$. The we have to find the decreasing argument which decreases in each
+$e$. Then we have to find the decreasing argument which decreases in each
 recursive call.
 
 There is a special case that each usage of $f$ is a function call with fewer
@@ -697,7 +704,7 @@ i.e. either $\Prop$ or $\Any$ because an expression of the form \code{all x
 As in the analysis of a function term we have to introduce type variables for
 the untyped variables into the context.
 $$
-\Gamma, A:\Any, B:\Any, \ldots, x:A, y:B, \ldots
+\Gamma, A^{\Any_1}, x^A, B^{\Any_1}, y^B, \ldots
 $$
 %
 In this context we analyze \code{exp} expecting some type (note that
@@ -727,6 +734,59 @@ TBD
 \vskip 5mm
 
 
+
+
+\newpage
+\section{Draft}
+
+\subsection{Unification}
+
+We introduce placeholders for
+
+\begin{enumerate}
+
+\item Proof arguments in function applications.
+
+\item Inferable type (or type constructor) variables in function applications.
+
+\item Types of untyped variables in binders ($\lambda x^A . e$, $\Pi x^A
+  . B$). Both need a type variable $A^{\Any_1}$. The type of the variable $A$
+  is introduced as $\Any_1$ in order to be able to instantiate $A$ with
+  $\Prop$ or $\Any_0$.
+
+  The type variable $A$ will be instantiated if $x$ occurs as a proper subterm
+  in $e$ or $B$ or if $\lambda x . e$ has a required type which is not a
+  placeholder.
+
+\end{enumerate}
+
+
+The unification might add to the vector of substitutions
+$$
+\sigma = [y_0 : a_0, y_1 : a_1, \ldots]
+$$
+where $y_i$ are placeholders. Each placeholder $y_i$ is a variable $x_j$ in
+the context. Placeholders which have a substitution can be eliminated from the
+context.
+
+Invariant: Substitutions $a_i$ of the placeholder $y_i$ which is the variable
+$x_j$ must not contain variables $x_k$ with $j \le k$. This consistency
+condition guarantees that no type in the context contains \emph{future}
+variables after substitution.
+
+
+The substitution lemma
+$$
+\rulev
+{
+  \Gamma,x^A,\Delta \vdash t : T
+  \\
+  \Gamma \vdash a: A
+}
+{\Gamma, \Delta[x:=a] \vdash t[x:=a] : T[x:=a]}
+$$
+is the theoretical foundation. I.e. each substitution must be valid in the
+context before the placeholder variable.
 
 
 
