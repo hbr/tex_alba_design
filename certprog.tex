@@ -1492,6 +1492,47 @@ Commutativity of multiplication can be proved by using distributivity.
 
 
 
+
+
+\subsection{Order Relation}
+
+We define the order relation on natural numbers inductively.
+
+\begin{alba}
+  class
+    (<=): Endorelation Natural
+  create
+    init n: 0 <= n
+    step n m: n <= m => 1 + n <= 1 + m
+\end{alba}
+
+
+\begin{alba}
+  le_zero_is_zero (a: Natural) (lez: a <= 0): a = 0 :=
+    inspect lez case
+      step n m :=
+        ex_falso where
+          _: 1 + m = 0 => false
+\end{alba}
+
+The order relation is reflexive.
+
+\begin{alba}
+  reflexive (a:Natural): a <= a :=
+    inspect a case
+      0 :=
+        init 0
+      1 + n :=
+        step n n where
+          _: n <= n := reflexive n
+\end{alba}
+
+
+
+
+
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
