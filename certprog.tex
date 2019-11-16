@@ -1515,7 +1515,7 @@ We define the order relation on natural numbers inductively.
           _: 1 + m = 0 => false
 \end{alba}
 
-The order relation is reflexive.
+The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
   reflexive (a:Natural): a <= a :=
@@ -1527,7 +1527,41 @@ The order relation is reflexive.
           _: n <= n := reflexive n
 \end{alba}
 
+The proof of the implication $ 1 + a \le 1 + b \imp a \le b$ is not
+difficult.
 
+
+\begin{alba}
+  le_succ_implies_le (a b: Natural) (p: 1 + a <= 1 + b): a <= b :=
+    inspect p case
+      init (1 + b) :=
+        ex_falso      -- 1 + a cannot be 0
+      step n m :=
+        goal where
+          goal: n <= m := _
+\end{alba}
+
+
+Next we prove the law $a \le b \imp a \le 1 + b$.
+
+\begin{alba}
+  le_implies_le_succ (a b: Natural) (p: a <= b): a <= 1 + b :=
+    inpect p case
+      init b :=
+        init (1 + b)
+      step n m :=
+        goal where
+          goal: 1 + n <= 1 + 1 + m := step n (1 + m)
+          hypo: n <= 1 + m := le_implies_le_succ n m
+\end{alba}
+
+
+The strict order relation $<$ is defined as
+
+\begin{alba}
+  (<) (a b: Natural): Proposition :=
+    1 + a <= b
+\end{alba}
 
 
 
