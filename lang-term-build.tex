@@ -114,6 +114,15 @@ the intermediate language.
   functions. Therefore the user can call them by writing \code{value v} and
   \code{proof v}.
 
+  It might be interesting to use a fold like function
+  \begin{alba}
+     fold (A:Any) (f:A->Proposition) (v:Specified f)
+          (B:Any) (g: all x: f x -> B): B :=
+       inspect v case
+         specified x := g x
+  \end{alba}
+  where \code{g} is a function using the specified value and a proof of its
+  property.
 
 \item[Elimination Function]
   %
@@ -190,6 +199,131 @@ the intermediate language.
 
 
 
+
+
+\subsection{Example}
+
+We want to analyze the syntactic term
+
+\begin{alba}
+  all a: reverse (reverse a) = a
+\end{alba}
+
+in the context
+$$
+\Gamma = [e^{\Pi A^\Any. A \to A \to \Prop}, L^{\Any\to\Any}, r^{\Pi A^\Any. L A \to L A}]
+$$
+where $e$ is an abbreviation for $=$ and $r$ is an abbreviation for
+\code{reverse}
+
+For all unkown types and not yet analyzed arguments we introduce substitutable
+variables and let unification instantiated them. Step by step we get the
+following new contexts and partially analyzed terms.
+$$
+\begin{array}{lll}
+  \Gamma, A^\Any, a^A, B^\Any, u^B, v^B
+  & \vdash
+  & e B u v : \Prop
+
+  \\
+
+  \Gamma, A^\Any, a^A, B^\Any, u^B, v^B, C^\Any, w^{L C}
+  & \vdash
+  & e B (r C w) v : \Prop
+
+  \\
+
+  \Gamma, A^\Any, a^A, B^\Any, u^B, v^B, C^\Any, w^{L C}, D^\Any, x^{L D}
+  & \vdash
+  & e B (r C (r D x)) v : \Prop
+
+  \\
+
+  \Gamma, A^\Any, a^A, B^\Any, u^B, v^B, C^\Any, w^{L C}, D^\Any, x^{L D}
+  & \vdash
+  & e B (r C (r D a)) v : \Prop
+
+  \\
+
+  \Gamma, A^\Any, a^A, B^\Any, u^B, v^B, C^\Any, w^{L C}, D^\Any, x^{L D}
+  & \vdash
+  & e B (r C (r D a)) a : \Prop
+\end{array}
+$$
+%
+We don't have a type for $a$, therefore we introduce the type variables
+$A$.
+
+Equality $e$ needs a type and two elements to compare. For the type we
+introduce $B$ and for the elements to compare we introduce $u$ and $v$.
+
+List reversal $r$ needs an element type and a list to reverse. For the
+element type we introduce $C$ and for the list to reverse we introduce
+$w$. The outer reversal returns the type $L C$ which we unify with $B$
+
+
+For the inner reversal we introduce $D$ and $x$. The result type of the inner
+reversal is $L D$ which we unify with $L C$ which is the argument type of the
+outer reversal.
+
+Finally we associate $x$ and $v$ with $a$ which requires the unification of
+$A$ with $L D$ and $A$ with $B$.
+
+
+
+The following substitutions are produced by analysis of arguments and
+unification.
+$$
+\begin{array}{llll}
+  u & := & r C w  &\quad  B = L C
+  \\
+  B & := & L C
+  \\
+  w & := & r D x  &\quad  L C = L D
+  \\
+  C & := & D
+  \\
+  x & := & a      &\quad  A = L D
+  \\
+  A & := & L D
+  \\
+  v & := & a      &\quad  A = B
+\end{array}
+$$
+%
+
+Substitutable variables in the order of introduction and their substitutions.
+$$
+\begin{array}{llll}
+  A^\Any &:=& L D
+  \\
+  B^\Any &:=& L C    &\quad L D
+  \\
+  u^B   &:=& r C w  &\quad  r D (r D a)
+  \\
+  v^B    &:=& a
+  \\
+  C^\Any &:=& D
+  \\
+  w^C    &:=& r D x &\quad  r D a
+  \\
+  D^\Any
+  \\
+  x^{L D} &:=& a
+\end{array}
+$$
+
+$D$ is the only substitutable variable which remains unsubstituted. Shifting
+$D$ down and doing all substitutions we get
+$$
+\Gamma, D^\Any, a^{L D} \vdash e (L D) (r D (r D a)) a : \Prop
+$$
+%
+and finally
+$$
+\Gamma \vdash \Pi D^\Any a^{L D} .\, e (L D) (r D (r D a)) a : \Prop
+$$
+%
 
 
 \subsection{Implicit Arguments}
@@ -473,7 +607,7 @@ are common elements of the input and output structure.
 
 
 
-Input: Number of explicit arguments, Expected types of term applied to
+Input: Number of explicit arguments, Expected type(s) of term applied to
 arguments, list of term/type pairs of the term under consideration.
 
 Every syntactic subterm might be applied to some arguments.
@@ -484,15 +618,16 @@ We analyze the types and get a list of argument descriptors where each
 descriptor indicates what kind of argument it is: Proof argument, explicit
 argument, implicit type constructor argument.
 
-We introduce placeholders for the explicit arguments occurring in the
-syntactic term and all implicit arguments before, between and after the actual
-explicit arguments.
+We introduce placeholders $a_0, a_1, \ldots$ for the explicit arguments
+occurring in the syntactic term and all implicit arguments before, between and
+after the actual explicit arguments.
 
 Compute the type $T$ of the term
 $$
 t \, a_0 \, a_1 \, \ldots : T
 $$
-and unify it with the expected types.
+and unify it with the expected types. The expected type(s) do not contain any
+placeholders which have been introduced in the analyis of the term $t$.
 
 If unification is not successful or if the type of $t$ does not allow
 sufficient arguments, then the term $t$ is not possible in that position.
