@@ -203,6 +203,12 @@ the intermediate language.
 
 \subsection{Example}
 
+
+
+
+\subsubsection{Very General Example}
+
+
 We want to analyze the syntactic term
 
 \begin{alba}
@@ -251,8 +257,9 @@ $$
 \end{array}
 $$
 %
-We don't have a type for $a$, therefore we introduce the type variables
-$A$.
+We don't have a type for $a$, therefore we introduce the type variable
+$A$. Then we can introduce the variable $a$ of type $A$. The variable $a$ is
+not substitutable.
 
 Equality $e$ needs a type and two elements to compare. For the type we
 introduce $B$ and for the elements to compare we introduce $u$ and $v$.
@@ -292,7 +299,8 @@ $$
 $$
 %
 
-Substitutable variables in the order of introduction and their substitutions.
+Substitutable variables in the order of introduction and their substitutions
+and final substitutions.
 $$
 \begin{array}{llll}
   A^\Any &:=& L D
@@ -326,6 +334,139 @@ $$
 %
 
 
+We can generate a function expression
+$$
+\Gamma \vdash \lambda A a B u v C w D x. e B u v
+: \Pi A^\Any a^A u^B v^B C^\Any w^{L C} D^\Any x^{L D}
+$$
+
+
+Introduce two new variables $D$ and $a$ and evaluate the function expression
+$$
+\Gamma, D^\Any, a^{L D} \vdash (\lambda A a B u v C w D x. e B u v) (L D) a (L
+D) (r D (r D a)) a (r D a) : \Prop
+$$
+which as above results in
+$$
+\Gamma, D^\Any, a^{L D} \vdash e (L D) (r D (r D a)) a : \Prop
+$$
+and finally in
+$$
+\Gamma \vdash \Pi D^\Any a^{L D} .\, e (L D) (r D (r D a)) a : \Prop
+$$
+
+
+\subsubsection{Restrictions to Reduce Complexity}
+
+We do not allow
+\begin{alba}
+  double_reversal: all a: reverse (reverse a) = a
+\end{alba}
+
+because the polymorphic type argument of \code{reverse} cannot be inferred.
+All arguments must be explicit. Only the following expression is valid
+
+\begin{alba}
+  all (A: Any) (a: List A): reverse (reverse a) = a
+  -- or shorter
+  all A (a: List A): reverse (reverse a) = a
+\end{alba}
+
+
+Other example:
+
+\begin{alba}
+  all n a: sum (n ^ a) = n + sum a
+\end{alba}
+in the context
+$$
+\Gamma = [
+e^{\Pi A^\Any. A\to A\to\Prop},
+\Natural^\Any,
+p^{\Natural\to\Natural\to\Natural},
+L^{\Any\to\Any},
+c^{\Pi A^\Any. A \to L A \to L A},
+s^{L \Natural \to \Natural}
+]
+$$
+
+
+$$
+\begin{array}{lll}
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C
+  & \vdash
+  & e C x_0 x_1 : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural}
+  & \vdash
+  & e C (s x_2) x_1 : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural},
+  D^\Natural, x_3^D, x_4^{L D}
+  & \vdash
+  & e C (s (c D x_3 x_4) x_1 : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural},
+  D^\Natural, x_3^D, x_4^{L D}
+  & \vdash
+  & e C (s (c D n a) x_1 : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural},
+  D^\Natural, x_3^D, x_4^{L D}, x_5^\Natural, x_6^\Natural
+  & \vdash
+  & e C (s (c D n a) (p x_5 x_6) : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural},
+  D^\Natural, x_3^D, x_4^{L D}, x_5^\Natural, x_6^\Natural,
+  x_7^{L\Natural}
+  & \vdash
+  & e C (s (c D n a) (p x_5 (s x_7) : \Prop
+
+  \\
+
+  \Gamma, A^\Any, n^A, B^\Any, a^B, C^\Any, x_0^C, x_1^C, x_2^{L\Natural},
+  D^\Natural, x_3^D, x_4^{L D}, x_5^\Natural, x_6^\Natural,
+  x_7^{L\Natural}
+  & \vdash
+  & e C (s (c D n a)) (p n (s a)) : \Prop
+
+\end{array}
+$$
+%
+
+During the term building the following substitutions are produced
+$$
+\sigma = \left[
+\begin{array}{ll}
+  C:=\Natural
+  \\ x_0:= s x_2      & x_0 := s (c \Natural n a)
+  \\ D:=\Natural
+  \\ x_2:=c D x_3 x_4 & x_2 := c \Natural n a
+  \\ A := D           & A := \Natural
+  \\ x_3 := n
+  \\ B := L D         & B := L \Natural
+  \\ x_4 := a
+  \\ C := \Natural
+  \\ x_1 := p x_5 x_6 & x_1 := p n (s a)
+  \\ x_6 := s x_7     & x_6 := s a
+  \\ x_1 := n
+  \\ x_7 := a
+\end{array}
+\right]
+$$
+
+
+%
 \subsection{Implicit Arguments}
 
 The syntactic terms do not contain implicit arguments. Implicit arguments are
@@ -509,7 +650,7 @@ Placeholders are needed for
 \item implicit arguments of functions (arguments which can be inferred from
   the rest of the signature)
 
-\item actual function arguments which have not yet been analyzed
+\item subterms which have not yet been analyzed
 
 \end{enumerate}
 
@@ -517,13 +658,16 @@ The introduced variables are not arbitrary. They have to satisfy the
 constraints
 \begin{enumerate}
 \item The actual type must be unifiable with the required type
-\item A placeholder for an argument must be substitutable with the expression
-  generated from the syntactic term of the actual argument.
+\item A placeholder for a subterm must be substitutable with the expression
+  generated from the syntactic term of the subterm.
 \end{enumerate}
 
 At the end of the term building some placeholders might not have
 substitutions. This usually means that the expression is polymorphic (e.g. an
-empty list whose element type is unknown).
+empty list whose element type is unknown). However we might use the
+restriction that all placeholders (for subterms and unknown types) must have
+substitutions at the end of analysis i.e. no implicit polymorphic types
+(polymorphism must be explicit).
 
 During the algorithm we have a set of placeholders and a substitution
 $$
