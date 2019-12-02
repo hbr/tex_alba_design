@@ -200,7 +200,6 @@ the intermediate language.
 
 
 
-
 \subsection{Implicit Arguments}
 
 The syntactic terms do not contain implicit arguments. Implicit arguments are
@@ -238,6 +237,58 @@ strict subterm inside of some known types. Having the type of the last
 implicit argument, we can infer the type of the previous implicit
 argument. Continuing we can infer the types of all implicit non proof
 arguments.
+
+
+Because of the possibility of implicit arguments, a naive unification of
+required and actual types does not work. Unification must be coupled
+intelligently with term building.
+
+An example illustrates the complexity.
+
+\begin{alba}
+  -- constructors for lists
+  []:  all A: List A
+  (^): all A: A -> List A -> List A
+
+  -- left folding
+  fold_left A (a: List A) (B:Any) (f: A -> B -> B) (s:B): B :=
+    inspect a case
+      [] :=
+        s
+      h ^ t :=
+        fold_left t f (f h s)
+
+   -- list reversal
+   reverse A (a: List A): List A :=
+     fold_left a (^) []
+\end{alba}
+
+Analyzing the term building of the last line we get the following situation:
+
+\begin{itemize}
+\item substitution
+  \begin{alba}
+    B := List A
+  \end{alba}
+\item required type for $(\caret)$:
+  \begin{alba}
+    A -> B -> B
+  \end{alba}
+\item actual type for $(\caret)$:
+  \begin{alba}
+    all X: X -> List X -> List X
+  \end{alba}
+\end{itemize}
+The required type is a function type with two arguments, the actual type is a
+function type with three arguments where the first argument is the polymorphic
+argument. Unification is possible only if the first argument of the actual
+signature is considered as implicit.
+
+
+For the constructor $[]$ we have a similar situation. The required type is a
+constant (0-ary function type) and the actual type is a function type with one
+argument.
+
 
 
 
