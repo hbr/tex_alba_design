@@ -26,7 +26,7 @@ produces an elm message.
 The dom is a tree.
 \begin{description}
 \item[Text] The leave of the tree are text nodes.
-  
+
 \item[Node] The inner nodes have
 
   \begin{description}
@@ -34,22 +34,22 @@ The dom is a tree.
   \item[Attributes] A list of attributes.
   \item[Children] A list of children nodes.
   \end{description}
-  
+
 \end{description}
 
 Node navigation properties (i.e accessed by \code{nd.prop}).
 \begin{itemize}
-\item 
+\item
   parentNode
-\item 
+\item
   childNodes[nodenumber]
-\item 
+\item
   firstChild
-\item 
+\item
   lastChild
-\item 
+\item
   nextSibling
-\item 
+\item
   previousSibling
 \end{itemize}
 
@@ -103,7 +103,7 @@ The \code{style} is a property whose value is an object
 The event handlers of an attribute are properties like \code{onclick},
 \code{onmousover}, etc. Their values are the handlers which are javascript
 functions \code{(event) => {...}}. The event \code{onerror} needs a handler
-like \code{(event,source,lineno,colno,error) => {...}}. 
+like \code{(event,source,lineno,colno,error) => {...}}.
 
 
 When the event handler is invoked, the this keyword inside the handler is set
@@ -183,6 +183,27 @@ which is the innermost node where the event occurred.
 We can use e.g. the class \code{id} of the node to dispatch to the correct
 event handler.
 
+
+
+\section{Custom Elements}
+
+{\small
+\begin{verbatim}
+  <my-product>
+  </my-product>  <!-- hyphen '-' is mandatory
+\end{verbatim}
+}
+
+\begin{js}
+  class MyProduct extends HTMLElement {
+    constructor () {
+      super ()
+      this.innerHTML = 'hello'
+    }
+  }
+
+  window.customElements.define ('my-product', MyProduct)
+\end{js}
 
 %%% Local Variables:
 %%% mode: latex
