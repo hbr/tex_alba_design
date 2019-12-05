@@ -204,6 +204,45 @@ having this the function \code{run} can be implemented iteratively
 With this design no deeply nested call stack occurs.
 
 
+
+
+\section{Command Line Interface}
+
+A command line interface prompts the user for input/commands, executes the
+command and prompts for further input.
+
+It basically has to read the input one line at a time and process the line.
+
+The user can terminate the input processing by entering CTRL-D i.e. signalling
+the end of stream. End of stream is different from entering an empty string.
+
+The user needs a state.
+
+Basically a command line interface is a stateful incremental parser where the
+tokens are input lines. But there is a difference: Each command line can cause
+io actions e.g. output the result of the command.
+
+The state must have a query which returns the prompt. If there is no user
+prompt, the command line interface has ended.
+
+\begin{ocaml}
+  module type STATE =
+  sig
+    type t
+    val prompt: t -> string option (* None: end the command line interface *)
+  end
+
+  module CLI (S: STATE):
+  sig
+    (** [loop state next stop] starts with [state], uses the [next] function
+        to process a user command and the [stop] function to terminate the
+        command line session. *)
+    val loop: S.t -> (S.t -> string -> S.t Io.t) -> (S.t -> S.t Io.t) -> S.t Io.t
+  end
+\end{ocaml}
+
+
+
 %%%Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
