@@ -1037,7 +1037,23 @@ List concatenation is associative
             nil_right_neutral t
 \end{alba}
 
+Instead of writing the recursive function proving this statement explicitly,
+we could use a fixpoint instead.
 
+\begin{alba}
+  nil_right_neutral: all A (a: List A): a + [] = a :=
+    f A a :=
+      inspect a case
+        h ^ t :=
+          goal where
+            goal: h ^ t + [] = h ^ t :=
+              via
+                h ^ t + []
+                h ^ (t + [])   -- def (+)
+                h ^ t          -- hypo
+            hypo: t + [] = t :=
+              f t
+\end{alba}
 
 
 
