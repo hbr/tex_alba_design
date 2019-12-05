@@ -165,18 +165,18 @@ toplevel directory.
 \subsubsection{ Example of a library package}
 {\small
 \begin{verbatim}
-  type:   library
-  name:   mypackage         -- can be p.q.r.... or user.repo
-  source: src               -- '.' not recommended
-  export: [module1, module2, ... ]   -- exported modules
-  use:
-    public:  [pckg1, pckg2, ... ]    -- visible to users of the library
-    private: [pckg1, pckg2, ... ]    -- only private use
+  libary:
+    name:   mypackage         -- can be p.q.r.... or user.repo
+    source: src               -- '.' not recommended
+    export: [module1, module2, ... ]   -- exported modules
+    use:
+      public:  [pkg1, pkg2, ... ]    -- visible to users of the library
+      private: [pkg1, pkg2, ... ]    -- only private use
 
-  -- Information needed for published packages
-  version: 1.0.1
-  previous_version: 1.0.0      -- if exists, needed to check proper
-                               -- semantic versioning
+    -- Information needed for published packages
+    version: 1.0.1
+    previous_version: 1.0.0      -- if exists, needed to check proper
+                                 -- semantic versioning
 \end{verbatim}
 }
 %
@@ -188,13 +188,13 @@ library.
 \subsubsection{ Example of a web application}
 {\small
 \begin{verbatim}
-  type: web-application
+  web-application:
 
-  name: myprog.html           -- or myprog.js
-  main-module: mod            -- module containing the function 'main'
+    name: myprog.html           -- or myprog.js
+    main: mod                   -- module containing the function 'main'
 
-  source: src
-  use: [pckg1, pckg2, ... ]
+    source: src
+    use: [pkg1, pkg2, ... ]
 \end{verbatim}
 }
 
@@ -202,19 +202,76 @@ library.
 \subsubsection{ Example of an executable package}
 {\small
 \begin{verbatim}
-  type: executable
+  executable:
 
-  name: myprog.js             -- javascript program to be called
-                              -- by 'node myprog.js'
+    name: myprog.js             -- javascript program to be called
+                                -- by 'node myprog.js'
 
-  main-module: mod            -- module containing the function 'main'
+    main: mod                   -- module containing the function 'main'
 
-  source: src
-  use: [pckg1, pckg2, ... ]
+    source: src
+    use:
+      - pkg1
+      - pkg2
 \end{verbatim}
 }
 
+The internal format in the file \code{alba-package.sexp}:
+{\small
+\begin{verbatim}
+  (executable (myprog.js mod src (pkg1 pkg2)))
+\end{verbatim}
+}
+The mandatory elements are stored in a canonical order. Only optional elements
+are tagged, but also stored in a canonical order.
 
+
+
+
+
+\section{Workspace}
+
+A workspace has a file \code{alba-workspace.yml} and contains a set of
+packages. The packages are found in subdirectories of the workspace and must
+not overlap.
+
+
+Therfore if the workspace directory contains also a file
+\code{alba-package.yml}, then the package is the only package in the
+workspace.
+
+
+A workspace has a build directory \code{.alba-build}
+
+The contents of the file \code{alba-workspace.yml} looks like:
+{\small
+\begin{verbatim}
+   packages:
+     - alba.core
+     - program1
+     - program2
+     - lib1
+\end{verbatim}
+}
+
+However the added value of the content of the file is questionable, because
+\begin{itemize}
+
+\item The packages can be easily found by exploring the workspace, which needs
+  to be done anyhow as long as the workspace file does not contain locations.
+
+\item There is no dependency between workspaces. A workspace has an internal
+  consistency and depends only on the context, i.e. on the installed packages
+  of the context.
+\end{itemize}
+
+Therefore it might be best to use the existence of the file as a marker and
+check that there are no enclosing workspaces and no nested workspaces.
+
+An option: Use the presence of the build directory \code{.alba-build} as a
+marker for a workspace. The build directory can be created with \code{alba
+  init workspace}. Disadvantage: It is not visible to the user that a
+directory is a workspace.
 
 
 
