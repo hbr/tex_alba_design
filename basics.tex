@@ -279,7 +279,7 @@ directory is a workspace.
 \section{Dependency Management}
 
 
-\subsection{Basics}
+\subsection{Workspace}
 
 \begin{itemize}
 
@@ -287,7 +287,7 @@ directory is a workspace.
   \begin{itemize}
 
   \item Find the nearest ancestor directory having a {\tt\small
-      alba-workspace.yml} file.
+      alba-workspace.yml} file or \code{.alba-build} directory.
 
   \item Verify that there is no upper workspace directory (workspaces cannot
     be nested).
@@ -296,12 +296,87 @@ directory is a workspace.
     {\tt\small alba-package.yml} file and find all illegal nested workspaces.
   \end{itemize}
 
+
+  Result of the successful scan: A list of packages with their locations. The
+  command \code{alba init workspace} creates the \code{.alba-build} directory.
+
+  The build directory is a mirror image of the workspace subdirectories
+  containing packages. I.e. for each \code{ws/a/b/pkg} directory, there is a
+  \code{ws/.alba-build/a/b/pkg} directory. On each run of the compiler, the
+  sanity condition (no nesting of workspaces and mirroring of packages in the
+  build directory) is checked.
+
+
+
 \item Analyze the package descriptions
   \begin{itemize}
   \item Unavailable packages
   \item Circular dependencies
   \end{itemize}
 \end{itemize}
+
+
+\begin{itemize}
+
+\item A removal of a package directory in the workspace causes the removal of
+  the package in the build directory.
+
+\item The addition of a package directory in the workspace (i.e. a directory
+  with a \code{alba-package.yml} file) causes the addition of the package to
+  the build directory.
+
+\end{itemize}
+
+
+
+\subsection{Packages}
+
+Sanity conditions:
+\begin{itemize}
+
+\item A removal of a source file \code{.al} or \code{.ali} requires deletion
+  of all corresponding files \code{.cal}, \code{.cali} \code{dal}, \code{dali}
+  in the build directory.
+
+\end{itemize}
+
+
+\subsection{Module Status}
+
+\begin{itemize}
+
+\item Implementation file:
+
+  \begin{itemize}
+
+  \item Can be compiled successfully.
+
+  \item Is consistent with its interface file.
+
+  \end{itemize}
+
+\item Interface file:
+
+  \begin{itemize}
+  \item Can be compiled successfully.
+  \end{itemize}
+
+\end{itemize}
+
+
+Both files might depend on other modules of the same package or of other
+packages. Recompilation is required if an interface file of a dependency has
+been modified.
+
+
+Module dependencies: In the use section the direct dependencies are
+mentioned. If some of the direct dependencies have been modified, the module
+must be recompiled. If a used module is unchanged, the dependency file of the
+module can be checked.
+
+
+
+
 
 \subsection{\code{.al} Modification}
 
