@@ -84,8 +84,8 @@ the intermediate language.
   type
   %
   \begin{alba}
-    class Specified (A:Any) (f:A -> Proposition): Any create
-      specified (a:A): f a -> Specified f
+    class Specified A (f: Predicate A): Any create
+      specified (value: A) (proof: f value): Specified f
   \end{alba}
   %
   We use the convention that an argument of a function never has a specified
@@ -100,14 +100,13 @@ the intermediate language.
 
   The term builder uses the projection functions
   \begin{alba}
-     value (A:Any) (f:A -> Proposition) (v:Specified f): A :=
+     value A (f: Predicate A) (v: Specified f): A :=
        inspect v case
          specified a := a
 
-     proof (A:Any) (f:A -> Proposition) (v:Specified f): f (value v) :=
+     proof A (f: Predicate A) (v: Specified f): f (value v) :=
        inspect v case
-         specified _ p := p   -- result type of 'proof' is a proposition
-                              -- therefore explicit proof arguments
+         specified _ := _     -- The proof argument is implicit
   \end{alba}
   %
   Note that \code{A} and \code{f} are implicit type arguments for both
@@ -314,7 +313,7 @@ Placeholders are needed for
 \item subterms which have not yet been analyzed
 
 \item expected types if there is no explicit expected type (a variable of type
-  $\Any_1$ will be introduced)
+  $\Any_2$ will be introduced)
 
 \end{enumerate}
 
@@ -354,6 +353,26 @@ for the term to be constructed.
 
 
 
+Placeholders and substutitions
+\begin{enumerate}
+
+\item Untyped bound variables: Types of unused untyped bound variables do not
+  get substititutions. Every type variable of a used untyped bound variable
+  gets a substitution or is used in the substitution of onother placeholder.
+
+\item Inferable implicit type variables: ?
+
+\item Proof arguments: Get substitutions from the prover
+
+\item Placeholder for (sub)terms: These placeholders are guaranteed to get
+  substitutions.
+
+\item Type variable for the expected type of a toplevel expression: Since
+  every expression has a type, the type variable gets a substitution. But the
+  type of the expression might contain other type variables or might be a type
+  variable itself.
+
+\end{enumerate}
 
 
 
