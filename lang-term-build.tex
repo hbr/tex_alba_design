@@ -220,7 +220,7 @@ An argument $x_i$ is implicit in the following two cases:
 \item $x_i$ is an inferable type constructor variable i.e. $A_i$ reduces to a
   kind and $x_i$ occurs as a strict subterm in some other $A_j$ which is not a
   proposition (i.e. $A_j:\Any_k$ for some $k$ and $\Any_k$ is the principal
-  type of $A_j$) or $x_i$ occurs as a strict subterm in the result type $R$.
+  type of $A_j$) or $x_i$ occurs in the result type $R$.
 \end{enumerate}
 
 Note that both cases are mutually exclusive because ``$A_i$ is a proposition''
@@ -250,7 +250,7 @@ An example illustrates the complexity.
   (^): all A: A -> List A -> List A
 
   -- left folding
-  fold_left A (a: List A) (B:Any) (f: A -> B -> B) (s:B): B :=
+  fold_left A (a: List A) B (f: A -> B -> B) (s:B): B :=
     inspect a case
       [] :=
         s
@@ -330,49 +330,216 @@ placeholders.
 
 
 
-If we want to analyze a syntactic expression in a context $\Gamma$ we could
-start with the context, the substitution and the stack of not yet analyzed
-(sub)terms
+
+
+\subsection{Algorithm}
+
+When analyzing a syntatic expression $\text{exp}$ which is applied to $n$
+arguments we do this in a context which has a placeholder $e$ representing the
+expression applied to its arguments and potentially many more variables which
+are either placeholders or bound variables.
+
+$$
+\Gamma, \ldots, e^E, \ldots
+$$
+
+The type $E$ is the required result type of the expression applied to its
+arguments. It might be a placeholder without substitution if we do not know
+the expected result type.
+
+\begin{itemize}
+
+\item Input:
+  \begin{itemize}
+  \item Context with placeholders an substitutions
+  \item Pointer to the placeholder representing the expression applied to its
+    arguments.
+  \item Number of (explicit) arguments to which the expression is applied
+  \end{itemize}
+
+\item Output:
+  \begin{itemize}
+  \item Context with the placeholder $e$ substituted by a term for the
+    expression $\text{exp}$ applied to its arguments and at least $n$ more
+    placeholders representing the arguments.
+  \item An array of  $n$ pointers to the placeholders for the arguments.
+  \end{itemize}
+\end{itemize}
+
+Initially analyzing the syntactic expression $\text{exp}$ applied to no
+arguments in the context $\Gamma$ we start with the following context and
+substitutions
 $$
 %
 \begin{array}{l}
-  \Gamma, E^{\Any_1}, e^E
+  \Gamma, E^{\Any_2}, e^E
   \\
   \sigma =
   \begin{cases}
-    [E : R] & R \text{ is required type}
+    [E : R] & R \text{ is the required type}
     \\
     []      & \text{there is no required type}
   \end{cases}
-  \\
-  \text{stack} = [e]
 \end{array}
 $$
-where $E$ is the placeholder for the expected type and $e$ is the placeholder
-for the term to be constructed.
+%
+We use $\Any_2$ as the type of $E$ in order to be able to substitute $e$ by
+$\Any_0$ and correspondingly $E$ by $\Any_1$.
+
+We expect the algorithm to terminate with a context and substitutions where
+the placeholder $e$ has got a substitution.
+
+
+Now we have to specify the algorithm for the different cases of syntactic
+expressions.
+
+
+\subsubsection{Literals}
+
+There literals for
+\begin{itemize}
+\item numbers
+\item strings
+\item characters
+\end{itemize}
+
+None of them can accept arguments.
+
+For each of them there is a term which we have to unify with the placeholder.
+
+In case of success we are ready and return an empty array (no arguments).
 
 
 
-Placeholders and substutitions
+\subsubsection{Sorts}
+
+In user terms we have only the sorts
+\begin{itemize}
+\item \code{Any}
+\item \code{Proposition}
+\end{itemize}
+
+No sort can accept arguments.
+
+I.e. we unify $\Any_0$ or $\Prop$ with the placeholder and return the context
+with an empty array.
+
+
+
+
+\subsubsection{Names or Operators}
+
+Names and operators are stored in a string map which return a (possibly empty)
+list of variables. Each of the variables has a type.
+
+The type of the variable has to be capable to accept $n$ explicit arguments
+i.e. it has to have the key normal form $\Pi x^A y^B \ldots . R$ where $x, y,
+\ldots$ represent the $n$ explicit arguments plus all implicit arguments which
+surround the explicit arguments.
+
+We unify $R$ with the expected type, introduce the placeholders
+$x^A, y^B, \ldots$, substitute the placeholder for the expression with
+$v x y \ldots$ where $v$ is the variable with the placeholder for the
+expression and return the new context with an array pointing to the
+placeholders representing arguments.
+
+
+
+\subsubsection{Function Application}
+
+
+\begin{alba}
+  f a b c ...             -- normal function application
+  a.f b c ...             -- oo style function application
+  a + b                   -- operator expression
+\end{alba}
+
+TBD
+
+
+
+
+\vskip 5mm
+\subsubsection{Lambda Abstraction}
+
+\begin{alba}
+  \ (x: A) (y: B) ... : R := exp      -- fully typed
+  \ x y ... := exp                    -- untyped
+  (a+)                                -- means \ x := a + x
+  (+a)                                -- means \ x := x + a
+\end{alba}
+
+
 \begin{enumerate}
+\item Process signature:
 
-\item Untyped bound variables: Types of unused untyped bound variables do not
-  get substititutions. Every type variable of a used untyped bound variable
-  gets a substitution or is used in the substitution of onother placeholder.
+  For each formal argument push a placeholder for the type and the bound
+  variable onto the context to get
+  $$
+  \Gamma, \ldots, e^E, \ldots, A^{\Any_2}, x^A
+  $$
 
-\item Inferable implicit type variables: ?
+  If there is an explicit type, analyze the syntactic expression for the type
+  with a pointer to $A$.
 
-\item Proof arguments: Get substitutions from the prover
+  After pushing all arguments push a placeholer for the result type and a
+  placeholder for the inner expression onto the context to get
 
-\item Placeholder for (sub)terms: These placeholders are guaranteed to get
-  substitutions.
+  $$
+  \Gamma, \ldots, e^E, \ldots, A^{\Any_2}, x^A, \ldots, R^{\Any_2}, f^R
+  $$
 
-\item Type variable for the expected type of a toplevel expression: Since
-  every expression has a type, the type variable gets a substitution. But the
-  type of the expression might contain other type variables or might be a type
-  variable itself.
+  If there is an explicit result type, analyze the syntactic expression for the
+  result type with a pointer to $R$.
+
+\item Find prefix of the formal arguments which correspond to the $n$
+  arguments to which the lambda abstraction is applied.
+
+
+\item Exploit the information of the expected result type $E$, if possible.
+
+  TBD
+
+\item Analze $\text{exp}$ with a pointer to $f$.
+
+\item Generate the lambda abstraction applied to the arguments
 
 \end{enumerate}
+
+
+
+TBD
+
+\vskip 5mm
+\subsubsection{Function Type}
+
+
+\begin{alba}
+  all (x: A) (y: B): R                -- fully typed
+  all x y: R                          -- untyped
+\end{alba}
+TBD
+
+\vskip 5mm
+\subsubsection{Fixpoint}
+
+\begin{alba}
+  f (x: A) (y: B) ... : R := exp
+  f x y ... := exp
+\end{alba}
+
+TBD
+
+\vskip 5mm
+\subsubsection{Pattern Match}
+
+TBD
+
+
+
+
+
+
 
 
 
