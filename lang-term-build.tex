@@ -250,7 +250,7 @@ An example illustrates the complexity.
   (^): all A: A -> List A -> List A
 
   -- left folding
-  fold_left A (a: List A) B (f: A -> B -> B) (s:B): B :=
+  fold_left A (a: List A) (B: Any) (f: A -> B -> B) (s: B): B :=
     inspect a case
       [] :=
         s
@@ -287,6 +287,21 @@ signature is considered as implicit.
 For the constructor $[]$ we have a similar situation. The required type is a
 constant (0-ary function type) and the actual type is a function type with one
 argument.
+
+
+Assume that the required signature starts with $n$ implicit arguments and the
+actual signature starts with $k$ implicit arguments, then
+$$
+n \le k
+$$
+must be satisfied i.e. the required signature must not have more implicit
+arguments than the actual signature.
+
+$k - n$ implicit arguments are applied before the unification is done.
+
+Note that if an expression is used in an argument position there is always a
+non-dummy required signature.
+
 
 
 
@@ -343,9 +358,9 @@ $$
 \Gamma, \ldots, e^E, \ldots
 $$
 
-The type $E$ is the required result type of the expression applied to its
-arguments. It might be a placeholder without substitution if we do not know
-the expected result type.
+$E$ is the required result type of the expression applied to its arguments. It
+might be a placeholder without substitution if we do not know the expected
+result type.
 
 \begin{itemize}
 
@@ -432,16 +447,64 @@ with an empty array.
 Names and operators are stored in a string map which return a (possibly empty)
 list of variables. Each of the variables has a type.
 
+The type of the variable must not be a placeholder without substitution, if
+there are explicit arguments i.e. $n > 0$.
+
 The type of the variable has to be capable to accept $n$ explicit arguments
 i.e. it has to have the key normal form $\Pi x^A y^B \ldots . R$ where $x, y,
 \ldots$ represent the $n$ explicit arguments plus all implicit arguments which
-surround the explicit arguments.
+occur before  the explicit arguments.
 
-We unify $R$ with the expected type, introduce the placeholders
-$x^A, y^B, \ldots$, substitute the placeholder for the expression with
-$v x y \ldots$ where $v$ is the variable with the placeholder for the
-expression and return the new context with an array pointing to the
-placeholders representing arguments.
+Two cases are possible
+\begin{enumerate}
+
+\item The expected type $E$ is a type variable without substitution:
+
+  Substitute $E$ with $R$.
+
+  Introduce the placeholders $x, y, \ldots$.
+
+  Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
+
+  Return the new context with an array pointing to the placeholders of the
+  explicits arguments in $x, y, \ldots$.
+
+\item The expected type $E$ has a signature:
+
+  In that case we have to compare the signatures of $E$ and $R$.
+
+  \begin{enumerate}
+  \item $R$ and $E$ start with the same number of implicit arguments:
+
+    Unify the signatures of $R$ and $E$.
+
+    Introduce the placeholders $x, y, \ldots$.
+
+    Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
+
+    Return the new context with an array pointing to the placeholders of the
+    explicits arguments in $x, y, \ldots$.
+
+
+  \item $R$ starts with more implicit arguments than $E$: I.e. $R = \Pi u^U v^V
+    \ldots . R'$ where $u, v, \ldots$ are the implicit arguments in $R$ which
+    are more than the implicit arguments of $E$.
+
+    Unify $R'$ and $E$. Introduce placeholders $x, y, \ldots, u, v, \ldots$.
+
+    Substitute $E$ by $v x y \ldots u v \ldots$.
+
+    Return the new context with an array pointing to the placeholders of the
+    explicits arguments in $x, y, \ldots$.
+
+
+  \item $R$ starts with fewer implicit arguments than $E$:
+
+    This is an error condition.
+
+  \end{enumerate}
+
+\end{enumerate}
 
 
 
@@ -492,8 +555,12 @@ TBD
   If there is an explicit result type, analyze the syntactic expression for the
   result type with a pointer to $R$.
 
+
 \item Find prefix of the formal arguments which correspond to the $n$
   arguments to which the lambda abstraction is applied.
+
+  Scan the formal arguments left to right skipping all implicit arguments
+  until $n$ explicit arguments are found.
 
 
 \item Exploit the information of the expected result type $E$, if possible.
