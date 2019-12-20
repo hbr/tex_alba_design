@@ -560,22 +560,75 @@ TBD
   arguments to which the lambda abstraction is applied.
 
   Scan the formal arguments left to right skipping all implicit arguments
-  until $n$ explicit arguments are found.
+  until $n$ explicit arguments are found. Assume that $u$ is the first
+  argument which does not correspond to an explicit argument.
 
+  $$
+  \Gamma, \ldots, e^E, \ldots, A^{\Any_2}, x^A, \ldots, u^U, \ldots, R^{\Any_2}, f^R
+  $$
 
 \item Exploit the information of the expected result type $E$, if possible.
 
-  TBD
+  \begin{enumerate}
+  \item The expected result type $E$ is an unsubstituted placeholder
+
+    TBD
+
+  \item The expected result type $E$ is not an unsubstituted placeholder
+
+    Analyze the signature of $E$.
+
+    In the remaining formal arguments of the lambda abstraction (i.e. starting
+    from $u$ skip all implicit arguments until there are not more implicit
+    arguments than in the signature of $E$.
+
+    Unify the remaining formal arguments of the lambda abstraction with the
+    signature of $E$.
+  \end{enumerate}
+
 
 \item Analze $\text{exp}$ with a pointer to $f$.
 
+\item Substitute placeholders
+
+  During the analysis all placeholders for the types of the bound variables
+  must have received substitutions which do not contain placeholders to the
+  right of $A$ (the placeholder for the type of the first formal argument).
+
+  If this is not the case, the type of the corresponding bound variable cannot
+  be inferred completely which is an error condition.
+
+  There might remain some other placeholders to the left of $A$ which do not
+  have substitutions. However these placeholders do not occur in the
+  substitutions of the placeholders for the types of the formal arguments.
+
+  We eliminate all placeholders having substitutions (except $f$ and $R$) by
+  replacing them by their substitutions and move all placeholders without
+  substitutions to the left of the bound variables resulting in
+  $$
+  \Gamma, \ldots, e^E, \ldots, x^{A'}, y^{B'} \ldots, R^{\Any_2}, f^R
+  $$
+
 \item Generate the lambda abstraction applied to the arguments
+
+  If $E$ is a placeholder without substitution we add the substitution $\Pi
+  x^{A'} y^{B'} \ldots . R$ (replacing $R$ by its substitution).
+
+  Generate placeholders $x, y, \ldots$ for the formal arguments including all
+  formal arguments corresponding to explicit actual arguments and the skipped
+  implicit arguments.
+
+  Substitute $e$ by ($\lambda x^{A'} y^{B'} \ldots . f) x y \ldots$ (using the
+  substitution of $f$).
+
+  Return pointers to the part of $x, y \ldots$ which correspond to the
+  explicit actual arguments.
 
 \end{enumerate}
 
 
 
-TBD
+
 
 \vskip 5mm
 \subsubsection{Function Type}
