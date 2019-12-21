@@ -517,7 +517,21 @@ Two cases are possible
   a + b                   -- operator expression
 \end{alba}
 
-TBD
+
+\begin{enumerate}
+
+\item Analyze the syntactic expression $f$ which is applied to $n$ arguments
+  with a pointer to the placeholder of the whole expression and receive an
+  array of $n$ pointers to the placeholders for the arguments.
+
+\item Analyze each syntactic expression for the arguments which are applied to
+  $0$ arguments with a pointer to the corresponding placeholder.
+
+\end{enumerate}
+
+There is nothing more to be done, because the first step already generated a
+substitution for the placeholder of the whole expression and the subsequence
+steps generate substitutions for the placeholders of the arguments.
 
 
 
