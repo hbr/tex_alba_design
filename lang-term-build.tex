@@ -460,14 +460,16 @@ Two cases are possible
 
 \item The expected type $E$ is a type variable without substitution:
 
-  Substitute $E$ with $R$.
+  \begin{enumerate}
+  \item Substitute $E$ with $R$.
 
-  Introduce the placeholders $x, y, \ldots$.
+  \item Introduce the placeholders $x, y, \ldots$.
 
-  Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
+  \item Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
 
-  Return the new context with an array pointing to the placeholders of the
-  explicits arguments in $x, y, \ldots$.
+  \item Return the new context with an array pointing to the placeholders of
+    the explicits arguments in $x, y, \ldots$.
+  \end{enumerate}
 
 \item The expected type $E$ has a signature:
 
@@ -476,26 +478,30 @@ Two cases are possible
   \begin{enumerate}
   \item $R$ and $E$ start with the same number of implicit arguments:
 
-    Unify the signatures of $R$ and $E$.
+    \begin{enumerate}
+    \item  Unify the signatures of $R$ and $E$.
 
-    Introduce the placeholders $x, y, \ldots$.
+    \item Introduce the placeholders $x, y, \ldots$.
 
-    Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
+    \item Substitute $e$ by $v x y \ldots$ where $v$ is the variable.
 
-    Return the new context with an array pointing to the placeholders of the
-    explicits arguments in $x, y, \ldots$.
+    \item Return the new context with an array pointing to the placeholders of
+      the explicits arguments in $x, y, \ldots$.
+    \end{enumerate}
 
 
   \item $R$ starts with more implicit arguments than $E$: I.e. $R = \Pi u^U v^V
     \ldots . R'$ where $u, v, \ldots$ are the implicit arguments in $R$ which
     are more than the implicit arguments of $E$.
 
-    Unify $R'$ and $E$. Introduce placeholders $x, y, \ldots, u, v, \ldots$.
+    \begin{enumerate}
+    \item  Unify $R'$ and $E$. Introduce placeholders $x, y, \ldots, u, v, \ldots$.
 
-    Substitute $E$ by $v x y \ldots u v \ldots$.
+    \item Substitute $E$ by $v x y \ldots u v \ldots$.
 
-    Return the new context with an array pointing to the placeholders of the
-    explicits arguments in $x, y, \ldots$.
+    \item Return the new context with an array pointing to the placeholders of
+      the explicits arguments in $x, y, \ldots$.
+    \end{enumerate}
 
 
   \item $R$ starts with fewer implicit arguments than $E$:
