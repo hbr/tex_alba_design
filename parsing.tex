@@ -636,12 +636,74 @@ are backtrackable.
 
 
 
+\section{Requirements for Indentation Sensitivity}
+
+\begin{itemize}
+\item Alignment: A sequence of parser trees must be aligned means that each
+  first non-whitespace character of each sequence elements starts at the same
+  column.
+
+\item Offside: All characters of a structure must start (strictly) to the
+  right of the first character of the structure
+
+\item Indentation: A subtree of a structure must start at a higher indentation
+  level than the indentation of the parent.
+\end{itemize}
+
+
 \section{Indentation Sensitivity}
+
+Algorithm according to Adams ``Indentation-Sensitive Parsing for
+Parsec''~\cite{adams2014}.
+
+\begin{definition}
+  The \emph{indentation} of a structure is the indentation of its leftmost
+  token. The \emph{indentation} of a token is the column position of its first
+  character.
+\end{definition}
+
+
+PEG Grammar
+$$
+\begin{array}{llll}
+  p &::=& \epsilon   &\text{success}
+  \\
+    &\mid& a         &\text{token}
+  \\
+    &\mid& p \, p      &\text{sequence}
+  \\
+    &\mid& p <\mid> p  &\text{biased choice}
+  \\
+    &\mid& p^r         &\text{indentation where $r$ is one of }\{=,>,\ge,-\}
+  \\
+    &\mid& |p|         &\text{absolute alignment}
+\end{array}
+$$
 
 Annotate each token and each nonterminal with an indentation. The indentation
 of the token is the column of the first character of the token and the
 indentation of a nonterminal is the minimal indentation of a token within that
 nonterminal.
+
+
+In the state we need a set $I$ of allowed indentations and a flag $f$ for
+absolute alignment. Initially the set of allowed indentations is
+$\{0,1,2, \ldots\}$ and the absolute alignment flag is not set. The absolute
+alignment flag has the two values $\parallel$ and $\notparallel$.
+
+The set $I$ of allowed indentations can be represented by a lower bound $i$
+and an optional strict upper bound $k$ such that all $j$ with $i \le j < k$ or
+$i \le j$ are allowed. The singleton set $\{i\}$ is represented by the lower
+bound $i$ and the upper bound $i$.
+
+By default each nonterminal has the same indentation as its parent. The
+default rule can be overwritten by $p^{\ge}$ and $p^>$.
+
+By default each terminal has either indentation $\ge$ or $>$ relative to its
+parent, except when the parent is absolutely aligned and it is the first token
+of the parent.
+
+
 
 $$
 \begin{array}{lll}
@@ -679,30 +741,58 @@ $$
 }
 
 
-PEG Grammar
-$$
-\begin{array}{llll}
-  p &::=& \epsilon   &\text{success}
-  \\
-    &\mid& p \, p      &\text{sequence}
-  \\
-    &\mid& p <\mid> p  &\text{biased choice}
-  \\
-    &\mid& p^r         &\text{indentation where $r$ is one of }\{=,>,\ge,-\}
-  \\
-    &\mid& |p|         &\text{absolute alignment}
-\end{array}
-$$
 
 
-In the state we need a set of allowed indentations and a flag for absolute
-alignment. Initially the set of allowed indentations is $\{0,1,2, \ldots\}$
-and the absolute alignment flag is not set.
+\begin{itemize}
 
-The set of allowed indentation can be represented by a lower bound $i$ and an
-optional strict upper bound $k$ such that all $j$ with $i \le j < k$ or $i \le
-j$ are allowed. The singleton set $\{i\}$ is represented by the lower bound
-$i$ and the upper bound $i+1$.
+\item Terminal (i.e. token):
+  \begin{itemize}
+  \item
+    $
+    \ruleh{i \in I}{(a,a^i,I,f) \imp \top_{\{i\}}^\notparallel}
+    $
+  \item
+    $
+    \ruleh{a \ne b}{(a,b^i,I,f) \imp \perp}
+    $
+  \item
+    $
+    (a,\epsilon,I,f) \imp \perp
+    $
+  \end{itemize}
+
+\item Absolute alignment
+  $ \ruleh{(p, wu, I, \parallel) \imp o }{(|p|, wu, I, f) \imp o}$
+
+
+\item Indentation
+  \begin{itemize}
+  \item
+    $
+    \ruleh
+    {(p, wu, I, \parallel) \imp o}
+    {(p^\reduce, wu, I, \parallel) \imp o}
+    $
+
+    If the absolute flag is set, then indentation is without effect.
+
+  \item
+    $
+    \ruleh
+    {(p, wu, I^\reduce, \notparallel) \imp \perp}
+    {(p^\reduce, wu, I, \notparallel) \imp \perp}
+    $
+
+  \item
+    $
+    \ruleh
+    {(p, wu, I^\reduce, \notparallel) \imp \top_J^f}
+    {(p^\reduce, wu, I, \notparallel) \imp \top_{I \cap J^\triangleleft}^f}
+    $
+  \end{itemize}
+\end{itemize}
+
+
 
 
 Landin's offside rule
@@ -712,7 +802,9 @@ Landin's offside rule
   language should be ``further to the right'' than the first line of the
   corresponding structure. If the tokens of the subsequent lines occur further
   to the left than the first line, they are offside, and the structure is
-  invalid.\end{quote}
+  invalid.
+\end{quote}
+
 
 \section{Command Line Parsing}
 
