@@ -5,7 +5,141 @@
 \subsection{Basics of an Incremental Parser}
 
 An incremental parser receives one token at a time. At any point it gives
-information whether it needs more tokens or it has terminated.
+information whether it needs more tokens or it has terminated. The parser has
+two states. Either it needs more tokens of it has terminated.
+
+The information accumulated during parsing we store in a buffer. The buffer is
+used to store lookahead tokens, error information, user state etc.
+
+Furthermore the parser has a type of the final structure it has built after a
+successful parse and an error type which represents a failed parse.
+
+In the state where the parser can consume more tokens it needs the information
+of the buffer and a function which maps the buffer and the next token into a
+new parser.
+
+When the parser has terminated, the buffered information, the result which is
+either an object of the final type or an error and a token list representing
+the unprocessed lookahead tokens is a available.
+
+The basic structure of an incremental parser is
+\begin{ocaml}
+  type parser =
+    | More of buffer * (buffer -> token -> parser)
+    | Final of buffer * (final, error) result * token list
+\end{ocaml}
+
+Having this structure it is trivial to implement the functions
+\begin{ocaml}
+  val needs_more:    parser -> bool
+  val has_ended:     parser -> bool
+  val has_succeeded: parser -> bool
+  val has_failed:    parser -> bool
+\end{ocaml}
+
+Furthermore we can implement a function which puts a token to the parser.
+\begin{ocaml}
+  let put_token (t: token) (p: parser): parser =
+    assert (needs_more p);
+    match p with
+    | More (b, f) ->
+        f b t
+    | _ ->
+      assert false (* Illegal call. *)
+\end{ocaml}
+
+We want to build an incremental parser from combinators. A combinator builds
+some intermediate structure of type \code{'a} and has type \code{'a t}. It is
+not yet a completed parser. It needs the buffer information, a success
+continuation and a failure continuation to convert it into a complete
+incremental parser.
+
+\begin{ocaml}
+  type 'a t =
+    buffer -> ('a -> buffer -> parser) -> (buffer -> parser) -> parser
+\end{ocaml}
+
+Why does the failure continuation not have the signature \code{error -> buffer
+  -> parser}? We use the buffer to accumulate error information. If we parse a
+certain structure which has alternatives, one alternative is tried after the
+other. If one alternative fails without consuming a token, its error
+information is stored in the buffer. If all alternatives fail without
+consuming any token, the error information of all failed alternatives is
+stored in the buffer.
+
+A parser combinator of type \code{final t} can be converted into a complete
+incremental parser with the help of an initial buffer.
+
+\begin{ocaml}
+  let make (b: buffer) (p: final t): parser =
+    p buffer
+      (fun a b -> Final (b, Ok a, Buffer.lookahead b)
+      (fun b ->   Final (b, Error (Buffer.error b), Buffer.lookahead b))
+\end{ocaml}
+assuming some module \code{Buffer} which allows to extract error and lookahead
+information from the buffer. The success and failure continuations are trivial
+in that case. They just return the final structure for the success and failure
+case.
+
+Now we can make some elementary parsing combinators. The two most trival
+combinators are \code{succeed} and \code{fail} which immediately succeed or
+fail without consuming any token.
+
+\begin{ocaml}
+  let succeed (a:'a): 'a t =
+     fun b ks _ -> ks a b
+  let fail (e: error): 'a t =
+     fun b _ kf -> kf (Buffer.put_error e b)
+\end{ocaml}
+
+
+Another combinator is the sequencing combinator which parses first a
+combinator of type \code{'a t} and in case of success with
+\code{a:'a} parses a second combinator of type \code{a -> 'b t}. In case of
+failure of the first combinator, the second is not tried.
+
+\begin{ocaml}
+  let (>>=) (p: 'a t) (q: 'a -> 'b t): 'b t =
+    fun b ks kf ->
+      p b
+        (fun a b -> q a b ks kf)
+        (fun b -> kf b)
+\end{ocaml}
+
+Note that \code{ks} and \code{kf} are the success and the failure
+continuations of \code{p >>= q: 'b t}
+
+
+The last elementary combinator is the alternative combinator \code{p <|> q}
+which uses two combinators of the same type.
+It tries first the combinator \code{p}. In case of success the result is the
+result of the alternative. In case of failure with consumed token the result
+is the result of the alternative. Only in case that \code{p} fails without
+consuming any token the second alternative is tried and its result is returned
+as the result of the alternative.
+
+In order to implement this combinator we need a buffer which has a flag
+indicating if tokens has been consumed, a function returning the current
+consumption status and resetting the flag and a function setting the
+consumption information cumulatively.
+
+\begin{ocaml}
+  let (<|>) (p: 'a t) (q: 'a t): 'a t =
+    fun b ks kf ->
+      let c0, b = Buffer.reset_consumed b in
+      p b
+        (fun a b -> ks a (Buffer.set_consumed c0 b))
+        (fun b ->
+           if Buffer.has_consumed b then
+             kf b
+           else
+             q (Buffer.set_consumed c0 b) ks kf)
+\end{ocaml}
+
+
+
+\section{Old Material for Incremental Parsers}
+
 
 In order to work properly the parser has to buffer some information.
 \begin{itemize}
