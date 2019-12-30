@@ -4,9 +4,11 @@
 
 \subsection{Basics of an Incremental Parser}
 
+\subsubsection{Parser Structure}
+
 An incremental parser receives one token at a time. At any point it gives
-information whether it needs more tokens or it has terminated. The parser has
-two states. Either it needs more tokens of it has terminated.
+information whether it needs more token or it has terminated. The parser has
+two states. Either it needs more token of it has terminated.
 
 The information accumulated during parsing we store in a buffer. The buffer is
 used to store lookahead tokens, error information, user state etc.
@@ -15,18 +17,17 @@ Furthermore the parser has a type of the final structure it has built after a
 successful parse and an error type which represents a failed parse.
 
 In the state where the parser can consume more tokens it needs the information
-of the buffer and a function which maps the buffer and the next token into a
-new parser.
+of the buffer and a function which maps the buffer into a new parser.
 
-When the parser has terminated, the buffered information, the result which is
-either an object of the final type or an error and a token list representing
-the unprocessed lookahead tokens is a available.
+When the parser has terminated, the buffered information and an optional final
+result is available.
+
 
 The basic structure of an incremental parser is
 \begin{ocaml}
   type parser =
-    | More of buffer * (buffer -> token -> parser)
-    | Final of buffer * (final, error) result * token list
+    | More of buffer * (buffer -> parser)
+    | Final of buffer * final option
 \end{ocaml}
 
 Having this structure it is trivial to implement the functions
@@ -37,49 +38,61 @@ Having this structure it is trivial to implement the functions
   val has_failed:    parser -> bool
 \end{ocaml}
 
-Furthermore we can implement a function which puts a token to the parser.
+Furthermore we can implement a function which puts a token to the parser. In
+order to process a new token we first have to push it into the lookahead
+buffer stored in the buffer. Then we have to process the lookahead in the
+buffer. The second step can be recursive, because the parser might first try
+an alternative which fails, leaving the token in the lookahead buffer. I.e. we
+have to process lookahead tokens as long as there are tokens in the lookahead
+buffer or we have reached a final error state.
+
 \begin{ocaml}
   let put_token (t: token) (p: parser): parser =
-    assert (needs_more p);
-    match p with
-    | More (b, f) ->
-        f b t
-    | _ ->
-      assert false (* Illegal call. *)
+    let push_token (t: token) (p: parser): parser =
+      match p with
+      | More (b, f) ->
+          More (Buffer.push_token t p, f)
+      | Final (b, res) ->
+          Final (Buffer.push_token t p, res)
+    let rec process_lookahead (p: parser): parser =
+      match p with
+      | More (b, f) when Buffer.has_lookahead b ->
+          process_lookahead (f b)
+      | _ ->
+          p
+    in
+    process_lookahead (push_token t p)
 \end{ocaml}
+
+
+
+\subsubsection{Combinator Type}
 
 We want to build an incremental parser from combinators. A combinator builds
 some intermediate structure of type \code{'a} and has type \code{'a t}. It is
-not yet a completed parser. It needs the buffer information, a success
-continuation and a failure continuation to convert it into a complete
-incremental parser.
+not yet a completed parser. It needs the buffer information and a failure
+continuation function to convert it into a complete incremental parser.
 
 \begin{ocaml}
   type 'a t =
-    buffer -> ('a -> buffer -> parser) -> (buffer -> parser) -> parser
+    buffer -> (buffer -> 'a option -> parser) -> parser
 \end{ocaml}
 
-Why does the failure continuation not have the signature \code{error -> buffer
-  -> parser}? We use the buffer to accumulate error information. If we parse a
-certain structure which has alternatives, one alternative is tried after the
-other. If one alternative fails without consuming a token, its error
-information is stored in the buffer. If all alternatives fail without
-consuming any token, the error information of all failed alternatives is
-stored in the buffer.
 
 A parser combinator of type \code{final t} can be converted into a complete
 incremental parser with the help of an initial buffer.
 
 \begin{ocaml}
   let make (b: buffer) (p: final t): parser =
-    p buffer
-      (fun a b -> Final (b, Ok a, Buffer.lookahead b)
-      (fun b ->   Final (b, Error (Buffer.error b), Buffer.lookahead b))
+    p buffer (fun b res -> Final (b, res))
 \end{ocaml}
-assuming some module \code{Buffer} which allows to extract error and lookahead
-information from the buffer. The success and failure continuations are trivial
-in that case. They just return the final structure for the success and failure
-case.
+
+
+
+
+
+\subsubsection{Success and Failure Combinators}
+
 
 Now we can make some elementary parsing combinators. The two most trival
 combinators are \code{succeed} and \code{fail} which immediately succeed or
@@ -87,10 +100,46 @@ fail without consuming any token.
 
 \begin{ocaml}
   let succeed (a:'a): 'a t =
-     fun b ks _ -> ks a b
+     fun b k -> k b (Some a)
+
   let fail (e: error): 'a t =
-     fun b _ kf -> kf (Buffer.put_error e b)
+     fun b k -> k (Buffer.put_error e b) None
 \end{ocaml}
+
+
+
+\subsubsection{Combinator Processing One Token}
+
+In order to process a token we need a function which takes a user state and a
+token and returns either a parsing result and a new state or an indication
+what it has expected in case that the actual token does not meet the
+expectation.
+
+A token can be processed only if the buffer has a lookahead token. The
+\code{token} function extracts the lookahead token and the current state from
+the buffer, feeds it into the function and in case of success consumes the
+token, puts the new state into the buffer and calls the continuation with the
+success value or in case of failure puts the expectation into the buffer and
+calls the continuation with a failed value.
+
+\begin{ocaml}
+  let token (f: state -> token -> ('a * state, expect) result): 'a t =
+    fun b k ->
+      More (b,
+            fun b ->
+              assert (Buffer.has_lookahead b);
+              match f (Buffer.state b) (Buffer.lookahead b) with
+              | Ok (a, s) ->
+                 k (Buffer.consume_lookahead s b) (Some a)
+              | Error e ->
+                 k (Buffer.add_expected e b) None
+           )
+\end{ocaml}
+
+
+
+
+\subsubsection{Sequencing}
 
 
 Another combinator is the sequencing combinator which parses first a
@@ -100,14 +149,19 @@ failure of the first combinator, the second is not tried.
 
 \begin{ocaml}
   let (>>=) (p: 'a t) (q: 'a -> 'b t): 'b t =
-    fun b ks kf ->
+    fun b k ->
       p b
-        (fun a b -> q a b ks kf)
-        (fun b -> kf b)
+        (fun b res ->
+           match res with
+           | None ->
+               k b None
+           | Some a ->
+               q a b k)
 \end{ocaml}
 
-Note that \code{ks} and \code{kf} are the success and the failure
-continuations of \code{p >>= q: 'b t}
+
+
+\subsubsection{Alternative}
 
 
 The last elementary combinator is the alternative combinator \code{p <|> q}
@@ -125,16 +179,151 @@ consumption information cumulatively.
 
 \begin{ocaml}
   let (<|>) (p: 'a t) (q: 'a t): 'a t =
-    fun b ks kf ->
-      let c0, b = Buffer.reset_consumed b in
-      p b
-        (fun a b -> ks a (Buffer.set_consumed c0 b))
-        (fun b ->
-           if Buffer.has_consumed b then
-             kf b
-           else
-             q (Buffer.set_consumed c0 b) ks kf)
+    fun b0 k ->
+      p (Buffer.start_first_alternative b0)
+        (fun b res ->
+           let consumed = Buffer.has_consumed b0 b in
+           let b = Buffer.end_first_alternative b0 b in
+           match res with
+           | None when not consumed ->
+               q b k
+           | _ ->
+               k b res)
 \end{ocaml}
+
+
+
+
+\subsection{Error Processing}
+
+There are two functions which can add error information into the buffer,
+\code{token} and \code{fail}.
+
+
+\subsubsection{Alternatives}
+
+
+The function \code{token} adds and error message, if the lookahead token is
+not the token it had expected. In that error case, the token is not consumed
+and stays in the lookahead buffer.
+
+If the rejected token is the first token of a parser \code{p} which is part of
+an alternative \code{p <|> q}, then the alternative parser \code{q} is
+tried. The alternative can fail as well on the first token leaving the token
+in the lookahead buffer.
+
+If there is a sequence of failing alternatives (i.e. failing without consuming
+tokens) all error messages expressing the expectations must be cumulated
+within the buffer structure.
+
+If all alternatives at a certain position fail without consuming the lookahead
+token, the whole parser fails and the user can be confronted with an error
+message indicating what alternatives the parser had expected at that position.
+
+
+\subsubsection{Greedy Combinators}
+
+A combinator parsing a sequence of zero or more constructs or one ore more
+constructs is greedy i.e. it continues as long as possible.
+
+\begin{ocaml}
+  let zero_or_more (p: 'a t): 'a list t =
+     let rec many lst =
+       (p >>= fun a -> many (a :: lst))
+       <|> succeed (List.rev lst)
+     in
+     many []
+
+  let one_or_more (p: 'a t): 'a list t =
+     p >>= fun a ->
+     zero_or_more p >>= fun lst ->
+     succeed (a :: lst)
+\end{ocaml}
+
+
+A combinator which parses an optional construct has a similar greedy
+behaviour.
+\begin{ocaml}
+  let optional (p: 'a t): 'a option t =
+    (p >>= fun a -> succeed (Some a))
+    <|> succeed None
+\end{ocaml}
+
+In all these parser it can happen that the parser \code{p} fails without
+consuming a token, but the complete construct succeeds.
+
+I.e. there are combinators which can succeed and leave an error message in the
+buffer. This is quite natural when the parser could parse more, but is also
+happy by parsing not more and returning a shorter structure. This is a common
+behaviour of all greedy combinators.
+
+
+There are good reasons to leave a failed expectation in the buffer even if the
+combinator succeeds. Consider e.g. a greedy combinator which succeed and is
+followed by another combinator which fails without consuming tokens. Then it
+might make sense to present to the user an error message indicating both
+expectations. The user could either satisfy the expectation of the greedy
+combinator to make the structure longer or satisfy the expectation of the
+following combinator.
+
+However there are also situtation where it does not make sense to leave failed
+expectations in the buffer after a successful parse of a combinator.
+
+I.e. consider a combinator which parses a certain construct followed by zero
+or more whitespace characters. In case of success an expectation of a
+whitespace character remains in the buffer since the combinator which parser
+zero or more whitespace characters is greedy. In case that the combinator
+which follows fails without consuming tokens, it does not make sense to present
+the expectation of one more whitespace characters to the user. It only makes
+sense to present the failed expectation of the combinator which follows to the
+user.
+
+In order to express both possibilities we need a combinator which clears all
+expectation errors.
+
+\begin{ocaml}
+  let clear_errors (a: 'a): 'a t =
+    fun b k -> k (Buffer.clear_errors b) (Some a)
+
+  let no_success_errors (p: 'a t): 'a t =
+    p >>= clear_errors
+\end{ocaml}
+
+
+
+\subsubsection{Replacing Error Messages by More Abstract Messages}
+
+
+Sometimes the cumulated failed expectations of a block of alternatives
+generate a low level error message for the user.
+
+E.g. an expression could start with a opening parenthesis, an operand, the
+keyword \code{if}, etc. If the parser encounters a colon (\code{:}) the error
+message could point to the colon and read like ``expecting ')' or operator or
+\code{if}'' i.e. displaying to the user all ways how a legal expression could
+start. However it is much more informative to the user to point to the colon
+and displaying the error message ``expecting an expression''.
+
+In order to support this we have to group a block of alternatives, collect the
+individual error messages during the parsing of the block and in case that
+none of the alternatives in the block succeeds we replace the list of failed
+expectation by a single failed expectation which is more expressive and
+informative to the user.
+
+\begin{ocaml}
+  let (<?>) (p: 'a t) (exp: expect): 'a t =
+    fun b0 k ->
+      p (Buffer.start_alternatives b0)
+        (fun b res ->
+           match res with
+           | None ->
+               k (Buffer.end_failed_alternatives exp b0 b) None
+           | Some a ->
+               k (Buffer.end_succeeded_alternatives b0 b) None)
+\end{ocaml}
+
+
+
 
 
 
