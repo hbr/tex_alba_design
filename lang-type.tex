@@ -1581,22 +1581,29 @@ In program text we define a monad by
 \begin{alba}
    abstract class
      Monad: Any -> Any
-   section (A B C:Any) (M:Monad) :=
-     return (x:A): M A
+   section (A B C: Any) (M: Monad) :=
+     return: A -> M A
 
-     (>>=) (m:M A) (f:A -> M B): M B
+     (|>): M A -> (A -> M B) -> M B
 
-     unit (a:A) (f:A -> M B): return a >>= f = f a
+     unit (a: A)
+          (f: A -> M B)
+          : (return a |> f) = f a
 
-     assoc (m:M A)
-           (f:A -> M B)
-           (g:B -> M B)
-           : m >>= f >>= g  =  m >>= (\a := f a >>= g)
+     assoc (m: M A)
+           (f: A -> M B)
+           (g: B -> M B)
+           : m |> f |> g  =  m |> (\a := f a |> g)
 \end{alba}
 
 Remark: This is not yet very clean and needs some rework. In the class header
 the name \code{Monad} is used as if it were the type constructor. In the
 section part the name is used as if it were the type of the type constructor.
+
+
+
+
+
 
 
 
