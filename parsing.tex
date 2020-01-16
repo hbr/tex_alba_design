@@ -51,9 +51,9 @@ buffer or we have reached a final error state.
     let push_token (t: token) (p: parser): parser =
       match p with
       | More (b, f) ->
-          More (Buffer.push_token t p, f)
+          More (Buffer.push_token t b, f)
       | Final (b, res) ->
-          Final (Buffer.push_token t p, res)
+          Final (Buffer.push_token t b, res)
     let rec process_lookahead (p: parser): parser =
       match p with
       | More (b, f) when Buffer.has_lookahead b ->
