@@ -6,5 +6,6 @@
 *.out
 *.rel
 *.pdf
+*.swp
 *~
 _region_*

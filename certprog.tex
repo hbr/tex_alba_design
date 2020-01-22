@@ -390,10 +390,10 @@ The existence of an object with a certain property is expressed in Alba by the
 inductive type
 %
 \begin{alba}
-  class
-    exist A (f: Predicate A): Proposition
-  create
-    witness x: f x -> exist f
+    class
+        exist A (f: Predicate A): Proposition
+    create
+        witness x: f x -> exist f
 \end{alba}
 %
 i.e. the existence of an object with a certain property is proved by providing
@@ -430,13 +430,17 @@ Proofs using this law reads like
 
 We can prove this law in Alba by writing the function
 \begin{alba}
-  exist_elim
-    A (f: Predicate A) (ex: some x: f x)
-    a (p: all x: f x => a): a :=
-      explicit_arguments
-        inspect ex case
-          witness _ _ x pf :=
-            p x pf
+    exist_elim
+        A
+        (f: Predicate A)
+        (exist_x_fx: some x: f x)
+        (prop: Proposition)
+        (pall: all x: f x => prop)
+        : prop
+        :=
+            inspect exist_x_fx case
+                witness x proof_x_fx :=
+                    pall x proof_x_fx
 \end{alba}
 
 
@@ -458,25 +462,30 @@ or in words
 The proofs of the forward and backward direction are not complicated.
 
 \begin{alba}
-   ex_de_morgan1_forward
-     A (f: Predicate A)
-     (nex: not (some x: f x))
-     : all x: not (f x) :=
-       \ x (pf: f x): false :=
-          nex (witness _ _ x pf)
+    ex_de_morgan1_forward
+        (A: Any)
+        (f: Predicate A)
+        (not_some: not (some x: f x))
+        : all x: not (f x)
+    :=
+        \ (x: A) (proof_fx: f x): false :=
+            not_some (witness x proof_fx)
 \end{alba}
 
 
 \begin{alba}
-  ex_de_morgan1_backward
-     A (f: Predicate A)
-     (allnot: all x: not (f x))
-     : not (some x: f x) :=
-       \ (ex: some x: f x): false :=
-          explicit_arguments
-            inspect ex case
-              witness _ _ x pf :=
-                allnot x pf
+    ex_de_morgan1_backward
+        (A: Any)
+        (f: Predicate A)
+        (allnot: all x: not (f x))
+        : not (some x: f x)
+    :=
+        \ (some_x_fx: some x: f x): false :=
+            inspect
+                some_x_fx
+            case
+                witness x proof_x_fx :=
+                    allnot x proof_x_fx
 \end{alba}
 
 The second De Morgan's law states the equivalence of
@@ -489,15 +498,18 @@ The second De Morgan's law states the equivalence of
 The forward direction is easy.
 
 \begin{alba}
-  ex_de_morgan2_forward
-    A (f: Predicate A)
-    (some_not: some x: not (f x))
-    : not (all x: f x) :=
-     explicit_arguments
-       \ (pall: all x: f x): false :=
-         inspect some_not case
-           witness _ _ x nf :=
-             nf (pall x)
+    ex_de_morgan2_forward
+        (A: Any)
+        (f: Predicate A)
+        (some_not: some x: not (f x))
+        : not (all x: f x)
+    :=
+        \ (pall: all x: f x): false :=
+            inspect
+                some_not
+            case
+                witness x x_not_fx :=
+                    x_not_fx (pall x)
 \end{alba}
 
 However the backward direction is not possible to prove. Constructive logic
@@ -520,10 +532,10 @@ the property \code{f}
 
 Equality is defined in Alba as an inductive type.
 \begin{alba}
-   class
-     (=) (A: Any) (a:A): Predicate A
-   create
-     reflexive: a = a
+    class
+        (=) (A: Any) (a:A): Predicate A
+    create
+        reflexive: a = a
 \end{alba}
 
 Note that the type \code{A} and the object \code{a} are parameters of the
@@ -556,14 +568,20 @@ means that two equal objects satisfy the same properties.
 We can prove this theorem by a pattern match on the proof of the equality.
 %
 \begin{alba}
-  leibniz (A: Any) (a b:A) (eq: a = b) (f: Predicate A): f a => f b :=
-    inspect
-      eq                                  -- inspected proof object
-      (\ x (p: a = x): Proposition :=     -- elimination function
-         f a => f x)
-    case
-      reflexive :=
-        \ pa  := pa
+    leibniz
+        (A: Any)
+        (a b: A)
+        (eq: a = b)
+        (f: Predicate A)
+        : f a => f b
+    :=
+        inspect
+            eq                            -- inspected proof object
+            (\ x (p: a = x): Proposition  -- elimination function
+             := f a => f x)
+        case
+            reflexive :=
+                \ pa  := pa
 \end{alba}
 %
 In order to see why the proof is correct we have added the elimination
@@ -677,17 +695,17 @@ construction of $r^+$ from $r$ looks like.
 In Alba we write
 
 \begin{alba}
-  class
-    plus (A:Any) (r: Endorelation A): Endorelation A
-      -- 'r.plus' is the transitive closure of 'r'
-  create
-    init a b:
-      r a b
-      => r.plus a b
-    step a b c:
-      r a b
-      => r.plus b c
-      => r.plus a c
+    class
+        plus (A:Any) (r: Endorelation A): Endorelation A
+            -- 'r.plus' is the transitive closure of 'r'
+    create
+        init a b:
+            r a b
+            => r.plus a b
+        step a b c:
+            r a b
+            => r.plus b c
+            => r.plus a c
 \end{alba}
 
 The definition uses an inductive type. It has two constructors. The
@@ -725,24 +743,25 @@ hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{r.plus
 
 
 \begin{alba}
-  plus_transitive A (r:Endorelation A): r.plus.is_transitive :=
-    f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
-      inspect
-        pab
-      case
-        init a b :=   -- implicit argument '_: r a b'
-            -- a -> b +> c
-          step a b c
+    plus_transitive
+        (A: Any) (r: Endorelation A)
+        : r.plus.is_transitive
+    :=
+        f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
+            inspect
+                pab
+            case
+                init a b rab :=
+                    -- a -> b +> c
+                    step a b c rab pbc
 
-        step a x b :=
-            -- implicit arguments _:  r a x
-            --                    _: r.plus x b
-            {: goal: a -> x +> b +> c
-               by a recursive call to f we prove x +> c
-               and then use the step constructor to prove a +> c :}
-          step a x c
-          where
-             _: r.plus x c := f x b c
+                step a x b rax pxb :=
+                    {: goal: a -> x +> b +> c
+                       by a recursive call to f we prove x +> c
+                       and then use the step constructor to prove a +> c :}
+                    step a x c rax pxc
+                    where
+                        pxc: r.plus x c := f x b c pxb pbc
 \end{alba}
 
 
