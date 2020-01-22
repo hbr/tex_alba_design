@@ -1469,7 +1469,14 @@ kind (i.e. $T$ can represent a type constructor needing arguments),
 $\Delta = [d_0:D_0, d_1: D_1, \ldots]$ and the bound variable $T$ occurs in
 each $D_i$.
 
+An abstract datatype can be instantiated by applying it to a specific datatype
+with the required properties $d_0, d_1, \ldots$. I.e. its type is a function.
 
+$$
+\Abstract_{\Gamma,T^K,\Delta}
+:
+\Pi \Gamma T^K \Delta. \Any
+$$
 
 \subsubsection{Example: Group}
 A group has no parameters. The type of the bound variable $T$ of a group is
@@ -1518,7 +1525,7 @@ is $\Any$ i.e. it represents a type which is the type of sortable
 elements. The context $\Delta$ is defined as
 $$
 \begin{array}{llll}
-  \Gamma =
+  \Delta =
   &[
   & (\le): T \to T \to \Prop,
   & \text{order relation}
@@ -1547,7 +1554,7 @@ A^\Any. \Any$, i.e. $T$ is a type constructor needing one type argument like
 e.g. list.  The context $\Delta$ is defined as
 $$
 \begin{array}{llll}
-  \Gamma =
+  \Delta =
   &[
   & r: \Pi A^\Any x^A. T A,
   & \text{return}
