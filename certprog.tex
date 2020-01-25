@@ -1341,7 +1341,7 @@ The number $1$ is the constant
   1: Natural := 0.successor
 \end{alba}
 
-The compiler \emph{knows} of this type and implements it as a efficient
+The compiler \emph{knows} of this type and implements it as an efficient
 segmented array to represent arbitrary precision arithmetic. Furthermore all
 arithmetic functions like addition, multiplication and relational operators
 are implemented as efficient functions. But all these builtin functions behave
@@ -1600,6 +1600,145 @@ The strict order relation $<$ is defined as
 
 
 
+
+
+
+\section{Properties of Constructors of Inductive Types}
+
+There are two properties of constructors of inductive types which are very
+important and valid for all inductive types.
+
+\begin{enumerate}
+
+\item Constructors are unique: Objects constructed by
+different constructors are different.
+
+\item Constructors are injective: Equal objects constructed by the same
+constructor must have been constructed by applying the constructor to the same
+arguments.
+
+\end{enumerate}
+
+We prove these properties for natural numbers. The proofs for other constructors
+of other inductive types follow the same pattern.
+
+
+
+
+\subsection{Uniqueness of Constructors}
+
+In order to prove the uniqueness of the constructors of natural numbers we have
+to prove the proposition
+
+\begin{alba}
+    all (n: Natural): 0 /= n.successor
+\end{alba}
+
+Remember that \code{0 /= n.successor} is equivalent to \code{0 = n.successor =>
+false}. There in order to prove the property we have to find a function which
+maps any natural number \code{n} and a proof of \code{0 = n.successor} into a
+proof of \code{false}.
+
+Since we can assume \code{0 = n.successor} we can use the leibniz property that
+\code{0} and \code{n.successor} satisfy the same predicates. If we find a
+predicate over natural numbers which we can prove for \code{0} we can use the
+leibniz rule to prove that \code{n.successor} satisfies the same predicate.
+
+We use the predicate
+\begin{alba}
+    f: Natural -> Proposition :=
+        \ n :=
+            inspect n case
+                0     := true
+                1 + k := false
+\end{alba}
+
+Evidently \code{f 0} and \code{true} are equivalent propositions and \code{f
+n.successor} and \code{false} are equivalent propositions.
+
+A proof of \code{f 0} i.e. \code{true} is trivial, because the proposition
+\code{true} is an inductive type with one constructor.
+
+\begin{alba}
+    class
+        true: Proposition
+    create
+        true_is_true: true
+\end{alba}
+
+
+Here is the complete proof of the mutual exclusivity of the two constructors of
+natural numbers.
+
+
+\begin{alba}
+    zero_ne_successor:
+        all (n: Natural): 0 /= n.successor
+    :=
+        \ n (zero_eq_successor: 0 = n.successor): false :=
+            leibniz 0 n.successor zero_eq_successor true_is_true: f n.successor
+            where
+                f n :=
+                    inspect n case
+                        0     := true
+                        1 + k := false
+\end{alba}
+
+
+
+
+
+\subsection{Injectivity of Constructors}
+
+The injectivity of the successor function of natural numbers can be expressed
+by the property
+
+\begin{alba}
+    all (n m: Natural): 1 + n = 1 + m  =>  n = m
+\end{alba}
+
+In order to prove this property we need a function mapping two numbers and a
+proof of the equality of their successors into a proof of the equality of the
+numbers.
+
+In this function we can assume a proof of \code{1 + n = 1 + m}. This indicates
+that we can use the leibniz property of equality to transform a property
+satisfied by \code{1 + n} into a property satisfied by \code{1 + m}.  I.e. we
+need a predicate \code{f} such that \code{f (1 + m)} is equivalent to \code{n =
+m}.
+
+Playing around a little bit with functions of the type \code{Natural ->
+Proposition} we can find the function
+
+\begin{alba}
+    f (k: Natural): Proposition :=
+        inspect k case
+            0     := false
+            1 + l := n = l
+\end{alba}
+
+It might be not so easy to find this function, but it is not difficult to
+convince you that \code{f (1 + m)} is equivalent to \code{n = m}.
+
+Furthermore we can easily see that \code{f (1 + n)} is equivalent to \code{n =
+n} which is trivial to prove by the reflexivity constructor of the inductive
+type defining equality.
+
+The complete proof reads like
+
+\begin{alba}
+    successor_is_injective:
+        all (n m: Natural): 1 + n = 1 + m => n = m
+    :=
+        \ n m successors_equal :=
+            leibniz (1 + n) (1 + m) successors_equal reflexive
+                : f (1 + m)
+            where
+                f k :=
+                    inspect k case
+                        0     := false  -- never used
+                        1 + l := n = l
+\end{alba}
 
 
 %%% Local Variables:
