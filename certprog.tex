@@ -116,8 +116,9 @@ for all propositions \code{a} and \code{b}. A proof of that fact would be
 written in Alba as the function
 %
 \begin{alba}
-  contrapositive a b (ab: a => b) (nb: not b): not a :=
-    _      -- '_' means: Compiler, please generate a proof of 'not a'!
+  contrapositive (a b: Proposition): (a => b) => not b => not a
+  :=
+    _      -- '_' means: Compiler, please generate a proof!
 \end{alba}
 %
 It is not necessary to write such a proof by hand, because the compiler can
@@ -125,23 +126,21 @@ generate such a proof automatically. But if you want to write the proof
 explicitly it looks like
 
 \begin{alba}
-  contrapositive a b (ab: a => b) (nb: not b): not a :=
-    \ pa :=
-        explicit_arguments
-          nb (ab pa)
+    contrapositive (a b: Proposition): (a => b) => not b => not a
+    :=
+        \   a_implies_b
+            not_b
+            proof_of_a
+        :=
+            not_b (a_implies_b proof_of_a)
 \end{alba}
 
-\noindent Explanation: A proof of \code{not a} is a function which maps a
-proof of \code{a} into a proof of false. If we have a proof of \code{a} we can
-use the argument \code{ab} which maps a proof of \code{a} into proof of
-\code{b} and then use \code{nb} which maps a proof of \code{b} into a proof of
-\code{false} which is the desired result.
+\noindent Explanation: A proof of \code{not a} is a function which maps a proof
+of \code{a} into a proof of false. If we have a proof of \code{a} we can use the
+argument \code{a\_implies\_b} which maps a proof of \code{a} into proof of
+\code{b} and then use \code{not\_b} which maps a proof of \code{b} into a proof
+of \code{false} which is the desired result.
 
-Since proof arguments are implicit in Alba, we have to use the keyword
-\code{explicit\_argmuments} to give them explicitly. This keyword does not
-exist in the actual Alba language. It is used here just to remind you that
-proof arguments are given explicitly instead of letting the compiler infer
-them.
 
 
 Note that in classical logic the two propositions
@@ -178,28 +177,32 @@ an expression of type \code{b}.
 
 
 However there is a double negation correspondence between classical and
-constructive logic. Whenever classical logic is able to prove \code{a},
-constructive logic is capable to prove \code{not not a}. I.e. we should be
-able to prove
+constructive logic. Whenever classical logic is capable to prove \code{a},
+constructive logic is capable to prove \code{not not a}. I.e. we should be able
+to prove
+
 \begin{alba}
   (not b => not a) => a => not not b
 \end{alba}
 and define a function with the signature
-%
+
 \begin{alba}
-  contra3 a b (p: not b => not a) (pa: a): not not b :=
+  contra3 (a b: Propositon): (not b => not a) => a => not not b :=
     ...
 \end{alba}
-%
+
 Now we have more possibilities because we are no longer required to prove
 \code{b} directly, but only to derive \code{false} from \code{not b}. This
-opens the possibility to use the function \code{p}.
+opens the possibility to use the function of type \code{not b => not a}.
 %
 \begin{alba}
-  contra3 a b (p: not b => not a) (pa: a): not not b :=
-    \ (nb: not b): false :=
-        explicit_arguments
-          (p nb) a
+    contra3 (a b: Proposition): (not b => not a) => a => not not b
+    :=
+        \   not_b_to_not_a
+            proof_of_a
+            not_b
+        :=
+            (not_b_to_not_a not_b) proof_of_a
 \end{alba}
 
 
@@ -209,11 +212,11 @@ opens the possibility to use the function \code{p}.
 Logical disjunction is defined in the prelude as the inductive type
 %
 \begin{alba}
-  class
-    (or) (a b: Proposition): Proposition
-  create
-    left:  a => a or b
-    right: b => a or b
+    class
+        (or) (a b: Proposition): Proposition
+    create
+        left:  a => a or b
+        right: b => a or b
 \end{alba}
 %
 i.e. you can either use a proof of \code{a} or a proof of \code{b} to generate
@@ -230,21 +233,17 @@ We prove this fact by defining the corresponding function which pattern
 matches on the construction of \code{a or b}
 %
 \begin{alba}
-  swap_or a b (p: a or b): b or a :=
-    explicit_arguments
-      inspect
-        p
-      case
-        left  _ _ pa := right b a pa
-        right _ _ pb := left  b a pb
+    swap_or (a b: Proposition): a or b => b or a
+    :=
+        \ a_or_b :=
+            inspect
+                a_or_b
+            case
+                left pa :=
+                    right pa
+                right pb :=
+                    left pb
 \end{alba}
-
-The propositions \code{a} and \code{b} are parameters of the proposition
-\code{a or b}. Since parameters are the same for all constructors, it is not
-allowed to bind variables to them. Therefore the anonymous variables \code{\_}
-in the pattern match expression. Normally the parameters of the constructors
-are implicit, but we have decided to supply the explicitly for educational
-purposes.
 
 Another law of logic states
 \begin{alba}
@@ -259,46 +258,70 @@ A function which proves this fact is easy to implement by pattern matching on
 the construction of \code{a or b}.
 
 \begin{alba}
-  eliminate_or a b c (ab: a or b) (ac: a => c) (bc: b => c): c :=
-    explicit_arguments
-      inspect
-        ab
-      case
-        left  _ _ pa :=
-          ac pa
-        right _ _ pb :=
-          bc pb
+    eliminate_or
+        (a b c: Proposition)
+        :   a or b
+            => (a => c)
+            => (b => c)
+            => c
+    :=
+        \   a_or_b
+            ac
+            bc
+        :=
+            inspect
+                a_or_b
+            case
+                left pa :=
+                    ac pa
+                right pb :=
+                    bc pb
 \end{alba}
+
+
+
+
+
+
+
+
 
 
 \subsection{Conjunction}
 
 \begin{alba}
-  class
-    (and) (a b: Proposition): Proposition
-  create
-    conjunction: a => b => a and b
+    class
+        (and) (a b: Proposition): Proposition
+    create
+        (,): a => b => a and b
 \end{alba}
 
 
 \begin{alba}
-  swap_and (a b: Proposition) (p:a and b): b and a :=
-    explicit_arguments
-      inspect
-        p
-      case
-        conjunction _ _ pa pb := conjunction b a pb pa
+    swap_and (a b: Proposition): a and b => b and a
+    :=
+        \ a_and_b :=
+            inspect a_and_b case
+                (pa, pb) :=
+                    (pb, pa)
 \end{alba}
 
 
 \begin{alba}
-  eliminate1_and (a b: Propositon) (p: a and b): a :=
-    inpect p case
-      conjunction _ _ pa pb := pa
+    eliminate1_and (a b: Propositon): a and b => a :=
+        \ a_and_b :=
+            inspect a_and_b case
+                (pa, pb) := pa
 \end{alba}
 
 
 
+
+
+
+
+
+\vskip 5mm
 \subsection{De Morgan's Laws}
 
 The De Morgan's Laws are other basic laws of logic. The first of the De
@@ -311,34 +334,28 @@ Morgan's laws states the equivalence of the two statements
 %
 In order to prove the equivalence we have to prove both directions.
 \begin{alba}
-  de_morgan1_forward
-    (a b: Proposition)
-    (nab: not (a or b))
-    : not a and not b :=
-      explicit_arguments
-        conjunction (not a) (not b) na nb where
-          na: not a :=
-             \ (pa: a): false :=
-                nab (left a b pa)
-          nv: not b :=
-             \ (pb: a): false :=
-                nab (right a b pb)
+    de_morgan1_forward
+        (a b: Proposition)
+        : not (a or b) => not a and not b
+    :=
+        \ not__a_or_b :=
+            (\ pa := not__a_or_b (left pa),
+             \ pb := not__a_or_b (right pb))
 \end{alba}
 
 \begin{alba}
-  de_morgan1_backward
-    (a b: Proposition)
-    (nab: not a and not b))
-    : not (a or b) :=
-      explicit_arguments
-        \ (a_or_b: a or b): false :=
-          inspect nab case
-            conjunction _ _ na nb :=
-              inspect a_or_b case
-                left _ _ pa :=
-                   na pa
-                right _ _ pb :=
-                   nb pb
+    de_morgan1_backward
+        (a b: Proposition)
+        : not a and not b => not (a or b)
+    :=
+        \   nota_and_notb
+            a_or_b
+        :=
+            inspect nota_and_notb case
+                (nota, notb) :=
+                    inspect a_or_b case
+                        left pa  := nota pa
+                        right pb := notb pb
 \end{alba}
 
 
@@ -351,19 +368,18 @@ There is a second De Morgan's law stating the equivalence of
 
 The forward direction can be proved by the function
 \begin{alba}
-  de_morgan2_forward
-    (a b: Proposition)
-    (nab: not a or not b)
-    : not (a and b) :=
-      explicit_arguments
-        \ (a_and_b: a and b): false :=
-          inspect a_and_b case
-            conjunction _ _ pa pb :=
-              inspect nab case
-                left _ _ na :=
-                   na pa
-                right _ _ nb :=
-                   nb pb
+    de_morgan2_forward
+        (a b: Proposition)
+        : not a or not b => not (a and b)
+    :=
+        \   nota_or_notb
+            ab
+        :=
+            inspect ab case
+                (pa, pb) :=
+                    inspect nota_or_notb case
+                        left nota  := nota pa
+                        right notb := notb pb
 \end{alba}
 
 
@@ -379,6 +395,12 @@ In order to prove a disjunction in constructive logic we have to decide which
 of the two possibilities of \code{not a or not b} we want to prove. There is
 no possibility to make such a decision by looking only at \code{not (a and
   b)}.
+
+
+
+
+
+
 
 
 
@@ -431,20 +453,21 @@ Proofs using this law reads like
 We can prove this law in Alba by writing the function
 \begin{alba}
     exist_elim
-        A
+        (A: Any)
         (f: Predicate A)
-        (exist_x_fx: some x: f x)
         (prop: Proposition)
-        (pall: all x: f x => prop)
-        : prop
+        : some x: f x => (all x: f x => prop) => prop
+    :=
+        \   some_x
+            allx
         :=
-            inspect exist_x_fx case
-                witness x proof_x_fx :=
-                    pall x proof_x_fx
+            inspect some_x case
+                witness x fx :=
+                    allx x fx
 \end{alba}
 
 
-Like for logical disjunction and conjunction there two De Morgan's laws for
+Like for logical disjunction and conjunction there are two De Morgan's laws for
 existential and universal quantification. The first law states the equivalence
 of
 \begin{alba}
@@ -465,11 +488,13 @@ The proofs of the forward and backward direction are not complicated.
     ex_de_morgan1_forward
         (A: Any)
         (f: Predicate A)
-        (not_some: not (some x: f x))
-        : all x: not (f x)
+        : not (some x: f x) => all x: not (f x)
     :=
-        \ (x: A) (proof_fx: f x): false :=
-            not_some (witness x proof_fx)
+        \   no_x
+            x
+            fx
+        :=
+            no_x (witness x fx)
 \end{alba}
 
 
@@ -477,15 +502,14 @@ The proofs of the forward and backward direction are not complicated.
     ex_de_morgan1_backward
         (A: Any)
         (f: Predicate A)
-        (allnot: all x: not (f x))
-        : not (some x: f x)
+        : (all x: not (f x)) => not (some x: f x)
     :=
-        \ (some_x_fx: some x: f x): false :=
-            inspect
-                some_x_fx
-            case
-                witness x proof_x_fx :=
-                    allnot x proof_x_fx
+        \   all_not
+            some_x
+        :=
+            inspect some_x case
+                witness x fx :=
+                    all_not x fx
 \end{alba}
 
 The second De Morgan's law states the equivalence of
@@ -501,15 +525,14 @@ The forward direction is easy.
     ex_de_morgan2_forward
         (A: Any)
         (f: Predicate A)
-        (some_not: some x: not (f x))
-        : not (all x: f x)
+        : (some x: not (f x)) => not (all x: f x)
     :=
-        \ (pall: all x: f x): false :=
-            inspect
-                some_not
-            case
-                witness x x_not_fx :=
-                    x_not_fx (pall x)
+        \   some_x
+            all_x
+        :=
+            inspect some_x case
+                witness x not_fx :=
+                    not_fx (all_x x)
 \end{alba}
 
 However the backward direction is not possible to prove. Constructive logic
@@ -528,7 +551,16 @@ the property \code{f}
 
 
 
+
+
+
+
+
+
+
+%-----------------------------------
 \subsection{Equality}
+%-----------------------------------
 
 Equality is defined in Alba as an inductive type.
 \begin{alba}
@@ -560,56 +592,58 @@ property. This kind of equality is also known as \emph{Leibniz equality} which
 means that two equal objects satisfy the same properties.
 %
 \begin{alba}
-  leibniz (A: Any) (a b:A) (eq: a = b) (f: Predicate A): f a => f b :=
+  leibniz (A: Any) (f: Predicate A): all (a b: A): a = b => f a => f b :=
     ...
 \end{alba}
 
 
 We can prove this theorem by a pattern match on the proof of the equality.
-%
+
 \begin{alba}
     leibniz
         (A: Any)
         (a b: A)
-        (eq: a = b)
         (f: Predicate A)
-        : f a => f b
+        : a = b => f a => f b
     :=
-        inspect
-            eq                            -- inspected proof object
-            (\ x (p: a = x): Proposition  -- elimination function
-             := f a => f x)
-        case
-            reflexive :=
-                \ pa  := pa
+        \ eq :=
+            inspect
+                eq
+                \ x (_: a = x) := f a => f x
+            case
+                reflexive :=
+                    \ fa := fa
 \end{alba}
-%
-In order to see why the proof is correct we have added the elimination
-function into the pattern match expression. The arguments of an elimination
-function are the indices of the inductive type and an object of the inductive
-type. The index of \code{a = b} is \code{b} and the object of the inductive
-type is \code{eq}.
 
-If we apply the elimination function to the two arguments
-\code{b} and \code{eq}, we get the required result type \code{f a => f b} of
-the pattern match expression. This shows that the elimination function is
-correct.
+In order to see why the proof is correct we have added the elimination function
+into the pattern match expression. The arguments of an elimination function are
+the indices of the inductive type and an object of the inductive type. The index
+of \code{a = b} is \code{b} and the object of the inductive type is \code{eq}.
 
-Note that the only constructor \code{reflexive} constructs \code{a = a},
-i.e. the index is \code{a}. Therefore the expression on the right side of the
-case must construct an object of type \code{f a => f a}. The identity function
-is a proof of this trivial implication.
+If we apply the elimination function to the two arguments \code{b} and
+\code{eq}, we get the required result type \code{f a => f b} of the pattern
+match expression. This shows that the elimination function is correct.
+
+Note that the only constructor \code{reflexive} constructs \code{a = a}, i.e.
+the index is \code{a}. Therefore the expression on the right side of the case
+must construct an object of type \code{f a => f a}. The identity function is a
+proof of this trivial implication.
 
 In a similar manner we can prove the symmetry of the equality relation.
 
 \begin{alba}
-   equality_is_symmetric
-     (A: Any) (a b: A) (eq: a = b): b = a :=
-       inspect
-         eq
-         (\ x p := x = a)
-       case
-         reflexive := reflexive
+    equality_is_symmetric
+        (A: Any)
+        (a b: A)
+        : a = b => b = a
+    :=
+        \ eq :=
+            inspect
+                eq
+                \x _ := x = a
+            case
+                reflexive :=
+                    reflexive
 \end{alba}
 
 The proof of transitivity follows the same pattern.
@@ -643,8 +677,12 @@ which is rather easy to prove.
 
 
 \newpage
+
+
+%-----------------------------------
 \section{Relations}
 \label{sec:certprog-relations}
+%-----------------------------------
 
 
 \subsection{Basic Properties}
