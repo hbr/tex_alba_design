@@ -592,8 +592,13 @@ property. This kind of equality is also known as \emph{Leibniz equality} which
 means that two equal objects satisfy the same properties.
 %
 \begin{alba}
-  leibniz (A: Any) (f: Predicate A): all (a b: A): a = b => f a => f b :=
-    ...
+    leibniz
+        (A: Any)
+        (f: Predicate A)
+        (a b: A)
+        : a = b => f a => f b
+    :=
+        ...
 \end{alba}
 
 
@@ -602,8 +607,8 @@ We can prove this theorem by a pattern match on the proof of the equality.
 \begin{alba}
     leibniz
         (A: Any)
-        (a b: A)
         (f: Predicate A)
+        (a b: A)
         : a = b => f a => f b
     :=
         \ eq :=
@@ -629,7 +634,26 @@ the index is \code{a}. Therefore the expression on the right side of the case
 must construct an object of type \code{f a => f a}. The identity function is a
 proof of this trivial implication.
 
-In a similar manner we can prove the symmetry of the equality relation.
+
+The leibniz rule can be used to prove many other theorems.
+
+In order to prove the symmetry of equality i.e.
+
+\begin{alba}
+    a = b  =>  b = a
+\end{alba}
+
+we express the goal \code{b = a} as a property of \code{b} i.e. we use the fact
+that the following two expressions are equivalent.
+
+\begin{alba}
+    b = a
+
+    (\ x := x = a) b
+\end{alba}
+
+I.e. instead of the goal \code{b = a} we proof the equivalent goal.
+
 
 \begin{alba}
     equality_is_symmetric
@@ -637,39 +661,30 @@ In a similar manner we can prove the symmetry of the equality relation.
         (a b: A)
         : a = b => b = a
     :=
-        \ eq :=
-            inspect
-                eq
-                \x _ := x = a
-            case
-                reflexive :=
-                    reflexive
+        \ eq: f b
+        :=
+            leibniz a b eq reflexive
+        where
+            f x := x = a
 \end{alba}
 
 The proof of transitivity follows the same pattern.
 
 \begin{alba}
-   equality_is_transitive
-     (A: Any) (a b: A) (ab: a = b): all c: b = c => a = c :=
-       inspect
-         ab
-         (\ x p := all c: x = c => a = c)
-       case
-         reflexive :=
-           \ c p := p
+    equality_is_transitive
+        (A: Any) (a b c: A)
+        : a = b => b = c => a = c
+    :=
+        \ equal_ab equal_bc: f c
+        :=
+            leibniz b c equal_bc equal_ab
+        where
+            f x := a = x
 \end{alba}
 
-The key of understanding the proof is to use the elimination function to
-compute the required result on the right side of the constructor. By feeding
-the index \code{b} and the proof object \code{ab} into the elimination
-function we get the required proposition
-%
-\begin{alba}
-  all c: a = c => a = c
-\end{alba}
-%
-which is rather easy to prove.
-
+Note that \code{f b} is equivalent to \code{a = b} and \code{equal\_ab} proves
+this fact. The leibniz property allows us to tranform a proof of \code{f b} into
+a proof of \code{f c} using \code{equal\_bc}.
 
 
 
