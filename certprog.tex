@@ -594,9 +594,8 @@ means that two equal objects satisfy the same properties.
 \begin{alba}
     leibniz
         (A: Any)
-        (f: Predicate A)
         (a b: A)
-        : a = b => f a => f b
+        : a = b => all (f: Predicate A): f a => f b
     :=
         ...
 \end{alba}
@@ -607,14 +606,13 @@ We can prove this theorem by a pattern match on the proof of the equality.
 \begin{alba}
     leibniz
         (A: Any)
-        (f: Predicate A)
         (a b: A)
-        : a = b => f a => f b
+        : a = b => all (f: Predicate A): f a => f b
     :=
         \ eq :=
             inspect
                 eq
-                \ x (_: a = x) := f a => f x
+                \ x (_: a = x) := all (f: Predicate A): f a => f x
             case
                 reflexive :=
                     \ fa := fa
@@ -661,9 +659,9 @@ I.e. instead of the goal \code{b = a} we proof the equivalent goal.
         (a b: A)
         : a = b => b = a
     :=
-        \ eq: f b
+        \ eq
         :=
-            leibniz a b eq reflexive
+            leibniz a b eq (reflexive: f a)
         where
             f x := x = a
 \end{alba}
@@ -675,9 +673,9 @@ The proof of transitivity follows the same pattern.
         (A: Any) (a b c: A)
         : a = b => b = c => a = c
     :=
-        \ equal_ab equal_bc: f c
+        \ equal_ab equal_bc
         :=
-            leibniz b c equal_bc equal_ab
+            leibniz b c equal_bc (equal_ab: f b)
         where
             f x := a = x
 \end{alba}
