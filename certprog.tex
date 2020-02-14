@@ -559,7 +559,7 @@ the property \code{f}
 
 
 %-----------------------------------
-\subsection{Equality}
+\section{Equality}
 %-----------------------------------
 
 Equality is defined in Alba as an inductive type.
@@ -575,9 +575,9 @@ inductive type. The expression \code{(a =)} is a predicate i.e. a function
 \code{\textbackslash\ x := a = x} mapping each object \code{x} into the
 proposition \code{a = x}.
 
-In the proposition \code{a = b} the character of left argument \code{a} and
-the right argument \code{b} is different. The first argument is a parameter
-and the second argument is an index.
+In the proposition \code{a = b} the character of the left argument \code{a} and
+the right argument \code{b} is different. The first argument is a parameter and
+the second argument is an index.
 
 There is only one constructor to construct an equality proposition. The
 constructed equality is that an object is equal to itself. In order to prove
@@ -595,7 +595,8 @@ means that two equal objects satisfy the same properties.
     leibniz
         (A: Any)
         (a b: A)
-        : a = b => all (f: Predicate A): f a => f b
+        (f: Predicate A)
+        : f a => a = b => f b
     :=
         ...
 \end{alba}
@@ -607,15 +608,15 @@ We can prove this theorem by a pattern match on the proof of the equality.
     leibniz
         (A: Any)
         (a b: A)
-        : a = b => all (f: Predicate A): f a => f b
+        (f: Predicate A)
+        : f a => a = b => f b
     :=
-        \ eq :=
+        \ fa eq :=
             inspect
                 eq
-                \ x (_: a = x) := all (f: Predicate A): f a => f x
+                \ x (_: a = x) := f x
             case
-                reflexive :=
-                    \ fa := fa
+                reflexive := fa
 \end{alba}
 
 In order to see why the proof is correct we have added the elimination function
@@ -629,8 +630,7 @@ match expression. This shows that the elimination function is correct.
 
 Note that the only constructor \code{reflexive} constructs \code{a = a}, i.e.
 the index is \code{a}. Therefore the expression on the right side of the case
-must construct an object of type \code{f a => f a}. The identity function is a
-proof of this trivial implication.
+must construct an object of type \code{f a}.
 
 
 The leibniz rule can be used to prove many other theorems.
@@ -661,7 +661,7 @@ I.e. instead of the goal \code{b = a} we proof the equivalent goal.
     :=
         \ eq
         :=
-            leibniz a b eq (reflexive: f a)
+            leibniz a b (reflexive: f a) eq
         where
             f x := x = a
 \end{alba}
@@ -675,7 +675,7 @@ The proof of transitivity follows the same pattern.
     :=
         \ equal_ab equal_bc
         :=
-            leibniz b c equal_bc (equal_ab: f b)
+            leibniz b c (equal_ab: f b) equal_bc
         where
             f x := a = x
 \end{alba}
