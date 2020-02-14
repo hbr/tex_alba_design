@@ -40,7 +40,7 @@ the intermediate language.
   \begin{alba}
     1 ^ 2 ^ []           -- [] is nil and (^) is cons
 
-    reverse list
+    reverse ['a', 'b', ...]
   \end{alba}
   %
   have to be transformed to
@@ -51,127 +51,9 @@ the intermediate language.
 
     \\
 
-    \text{reverse}\, \text{String} \, \text{list}
+    \text{reverse}\, \text{Character} \, (\text{cons}\,\ldots)
   \end{array}
   $$
-
-
-\item[Implicit Proof Arguments]
-  %
-  The user does not supply explicit proof arguments. Let's assume we have the
-  function definition
-  \begin{alba}
-    predecesssor (n:Natural): 0 < n -> Natural := ...
-  \end{alba}
-  %
-  i.e. a function that can be called only with a nonnegative argument. Then
-  the user can call the function with
-  \begin{alba}
-    predecessor n
-  \end{alba}
-  %
-  The term builder does not generate the actual proof. This is the task of the
-  prover. But the term builder generates an new variable for the missing proof
-  (e.g. $p: 0 < n$) and generates the term $\text{predecesssor n p}$ in the
-  intermediate language.
-
-
-\item[Specified Type Splitting]
-  %
-  In Alba we have the specified type which is a simple type plus a
-  specification which objects of that simple type must satisfy in order to be
-  objects of the specified type. The specified type is defined as an inductive
-  type
-  %
-  \begin{alba}
-    class Specified A (f: Predicate A): Any create
-      specified (value: A) (proof: f value): Specified f
-  \end{alba}
-  %
-  We use the convention that an argument of a function never has a specified
-  type. The simple type and the proposition must be separate arguments. But
-  objects of specified type can be returned from functions (e.g. a number with
-  a proof of the fact that it is a prime number).
-
-  The term builder splits return values of specified type into simple values
-  and proof values by using projections. The simple value is fed as an
-  argument and the proof value is shifted into the context and can be used by
-  the prover.
-
-  The term builder uses the projection functions
-  \begin{alba}
-     value A (f: Predicate A) (v: Specified f): A :=
-       inspect v case
-         specified a := a
-
-     proof A (f: Predicate A) (v: Specified f): f (value v) :=
-       inspect v case
-         specified _ := _     -- The proof argument is implicit
-  \end{alba}
-  %
-  Note that \code{A} and \code{f} are implicit type arguments for both
-  functions. Therefore the user can call them by writing \code{value v} and
-  \code{proof v}.
-
-  It might be interesting to use a fold like function
-  \begin{alba}
-     fold (A:Any) (f:A->Proposition) (v:Specified f)
-          (B:Any) (g: all x: f x -> B): B :=
-       inspect v case
-         specified x := g x
-  \end{alba}
-  where \code{g} is a function using the specified value and a proof of its
-  property.
-
-\item[Elimination Function]
-  %
-  The pattern match construct
-  $\case(e, \lambda \ybold^\Abold x^T . R, \fbold)$ needs an elimination
-  function $\lambda \ybold^\Abold x^T . R$ mapping the indices of the
-  inductive type and an object of the inductive type into the result type of
-  the pattern match expression (i.e. the term $R$ can depend on $\ybold$ and
-  $x$).
-  %
-  \begin{alba}
-     (<=) (a b:Natural): Decision (a <= b) (not a <= b) :=
-        inspect a case
-          0 :=
-            left                 -- to prove: 0 <= b
-          n.successor :=
-            inspect b case
-              0 :=
-                right            -- to prove: not n.successor <= 0
-              m.successor :=
-                inspect n <= m case
-                  left  := left
-                    -- to prove: n <= m => n.successor <= m.successor
-
-                  right := right
-                    -- to prove: not n <= m => not n.successor <= m.successor
-  \end{alba}
-  %
-  The elimination function of the outer pattern match expressed in Alba syntax
-  \begin{alba}
-    \ (a:Natural): Decision (a <= b) (not a <= b) :=
-      inspect n case
-        0 :=
-          Decision (0 <= b) (not 0 <= b)
-        n.successor :=
-          Decision (n.successor <= b) (not n.successor <= b)
-  \end{alba}
-  %
-  The elimination function of the inner pattern match expressed in Alba syntax
-  \begin{alba}
-    \ (b:Natural): Decision (n.successor <= b) (not n.successor <= b) :=
-      inspect b case
-        0 :=
-          Decision (n.successor <= 0) (not n.succesor <= 0)
-
-        m.successor :=
-          Decision (n.successor <= m.successor)
-                   (not n.successor <= m.successor)
-  \end{alba}
-
 
 
 
@@ -191,13 +73,334 @@ the intermediate language.
   signature has to be unique.
 
   Whenever the builder encounters a name which does not uniquely specify a
-  global function, it has to build with the different functions in parallel
-  until a function is rule out because of the typing rules.
+  global function, it has to do the buildwith the different functions in
+  parallel until a function is rule out because of the typing rules.
 
 \end{description}
 
 
 
+\subsection{Implicit Arguments}
+
+
+The type of a function must reduce to the form
+$$
+    \Pi x^A. B
+$$
+
+The argument $x$ is implicit if the following conditions are satisfied:
+
+\begin{enumerate}
+
+\item $A$ reduces to a kind.
+
+\item $x$ occurs in $B$.
+\end{enumerate}
+
+The first condition states that $x$ is either a type or a type constructor
+variable. The second condition guarantees that it can be inferred from the rest
+of the type.
+
+
+
+\subsection{Contexts with Holes}
+
+During term building we have to be able to introduce placeholders or holes for
+terms or types which are not yet known. We introduce the holes in a form which
+maintains the context welltyped. In the course of the term building we fill the
+holes by maintaining the wellformedness of the context.
+
+At the start of a term building we introduce two holes into the context. One
+($E$) for the type of the term to be constructed and one ($e$) for the term to
+be constructed.  We start with the context
+$$
+\Gamma, E^{\Any_2}, e^E
+$$
+
+We choose the type of $E$ to be $\Any_2$ in order to be able to fill the hole
+$e$ with $\Any_0$, which requires the filling of $E$ with $\Any_1$ which
+requires the type of $E$ to be $\Any_2$.
+
+
+If we expect a type we use a placeholder $T^{\Any_1}$. This makes the filling of
+$T$ with any type e.g. with $\Natural$, $a \le b$, $\Any_0$, or $\Prop$
+possible.
+
+
+\subsection{Subexpressions}
+
+For any subexpression we have a context of the form
+
+$$
+\Gamma, \ldots, e^E, \ldots
+$$
+where $e$ is the hole to be filled with the term for the subexpression.
+
+
+
+
+
+
+
+\subsubsection{Variable $x$}
+
+In case that the expression is a variable $v$ the context has the structure
+
+$$
+\Gamma = \ldots, v^V, \ldots
+$$
+
+We unify $v^V$ with $E$.
+
+It might be the case that $V$ is not unifyable with $E$ and $V$ is a function
+type with implicit arguments $V = \Pi x^A.B$ where $A$ reduces to a kind an $x$
+is contained in $B$. In that case we introduce a placeholder $x^A$, form ${v \,
+x}_B$ and unify $B$ with $E$. If there are more implicit arguments, the same
+procedure can be repeated.
+
+
+
+
+
+
+
+
+
+\subsubsection{Function Application $f a$}
+
+We introduce the following placeholders
+
+$$
+\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, a^A, F^{A\to\Any_1}, f^{\Pi x^A. F x}
+$$
+and the constraint
+$$
+f a \ldots : E
+$$
+where $\ldots$ are potential implicit arguments, because
+the type of $f a$ (which is $F a$) might be a function type starting with implicit
+arguments.
+
+If we analyze the syntactic expression for $f$ we get a substitution of the
+placeholder $f$ and some unifications involving $A$ and $F$.
+
+
+Before analyzing the ast for $a$ we might be able to squeeze information out of
+the constraint $f a \ldots: E$. This gives useful information if the type of $f
+a$ is not a placeholder. Two cases are possible
+\begin{enumerate}
+
+\item $E$ is a placeholder: Then assign the type of $f a$ to $E$ and $f a$ to $e$
+
+\item Otherwise: Add potential implicit arguments i.e. form $f a \ldots$ where
+$\ldots$ represents the implicit arguments and unify the type of $f a \ldots$
+with $E$. Then assign $f a \ldots$ to $e$.
+
+\end{enumerate}
+
+
+It is possible that the analysis of $f$ and $a$ does not give a lot of useful
+information to evaluate the constraint. Consider e.g. the definition of the
+union of a set of predicates.
+
+\begin{alba}
+    union (pp: Predicate (Predicate Int)): Predicate Int :=
+        \x := some p: p x and pp p
+\end{alba}
+
+Analyzing $p\,x$ we know that the result must be a proposition i.e. $p\,x:
+\Prop$. But $p$ and $x$ are untyped bound variables, therefore no useful type
+information is available.  Only $x^A$ where $A^{\Any_1}$ and $p^{\Pi x^A. F x}$
+where $F^{A \to \Any_1}$. I.e. we know that $F x$ must be unifyable with $\Prop$
+which requires $F := \lambda x^A.\Prop$ i.e. $F: A \to \Prop$ which is ok,
+because $A\to\Prop$ is a subtype of $A\to\Any_1$.
+
+The best we can say about $p$ at that point is that is has type $\Pi x^A .
+(\lambda x^A. \Prop) x$ wich is equivalent to $A\to\Prop$. Further analysis of
+$pp\,p$ will show that its type is $\text{Int}\to\Prop$.
+
+
+
+
+
+
+
+
+\subsubsection{Function Application with More Arguments $f\, a\, b\, c$}
+
+
+Function application is left associative. We need placeholders for the
+intermediate results.
+
+$$
+\underbrace{\underbrace {\underbrace {f \quad a}_g \quad b}_h \quad c}_e
+$$
+
+
+The complete set of placeholders
+
+$$
+\begin{array}{ll}
+\Gamma, \ldots, e^E, \ldots,
+
+& A^{\Any_1}, a^A, F^{A\to\Any_1}, f^{\Pi x^A. F x}
+
+\\
+
+& B^{\Any_1}, b^B, G^{B\to\Any_1}, g^{\Pi y^B. G y}
+\\
+
+& C^{\Any_1}, c^C, H^{C\to\Any_1}, h^{\Pi z^C. H z}
+\end{array}
+$$
+%
+and the constraints
+$$
+\begin{array}{lll}
+
+f \, a \ldots &:& \Pi y^B. G y
+
+\\
+
+g \, b \ldots &:& \Pi z^C. H z
+
+\\
+
+h \, c \ldots &:& E
+
+\end{array}
+$$
+which must be satisfied before making the substitutions
+$$
+\begin{array}{lll}
+g &:=& f \, a \ldots
+
+\\
+
+h &:=& g \, b \ldots
+
+\\
+
+e &:=& h \, c \ldots
+\end{array}
+$$
+%
+and the typing judgements
+$$
+\begin{array}{lll}
+
+f \, a &:& F \, a
+
+\\
+
+g \, b &:& G \, b
+
+\\
+
+h \, c &:& H \, c
+\end{array}
+$$
+
+
+The building of the term consists of the following actions
+
+\begin{enumerate}
+
+\item Analyze the ast of $f$
+
+\item Then do one of the actions for all remaining arguments
+
+    \begin{enumerate}
+    \item Satisfy constraint $f \, a \ldots: \Pi y^B. G y$
+    \item Set $g := f \, a \ldots$
+    \item Analyze the ast of $a$
+    \end{enumerate}
+
+    \begin{enumerate}
+    \item Analyze the ast of $a$
+    \item Satisfy constraint $f \, a \ldots: \Pi y^B. G y$
+    \item Set $g := f \, a \ldots$
+    \end{enumerate}
+
+\end{enumerate}
+
+
+
+
+
+
+
+\subsubsection{Function Abstraction $\lambda x. t$}
+
+
+
+We introduce the following placeholders
+
+$$
+\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, F^{A\to\Any_1}, x^A, T^{\Any_1}, t^T
+$$
+%
+With these placeholders we get the valid typing judgement
+$$
+(\lambda x. t) : \Pi x^A. F x
+$$
+i.e. in order to build the term properly we have to satisfy
+$$
+\Pi x^A. F x \le E
+$$
+
+If $A$ is given explicitly, we analyze the term and fill the hole $A$ with it.
+
+If the result type is given explicitly, we analyze it and fill the hole $T$.
+
+Then either we assign $T := F x$ or $F := \lambda x^A. T$.
+
+If $E$ is not a placeholder it must have the form
+$$
+\Pi x^{A_r}. B_r
+$$
+
+In that case we unify $A \sim A_r$ and either set $F := \lambda x^A. B_r$ or
+unify $T \le B_r$ in case that $F$ has already been filled.
+
+
+Then we analyze $t$ and fill the hole.
+
+
+
+
+
+
+\subsubsection{Product Type $\Pi x^A. B$}
+
+
+$$
+\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, x^A, B^{\Any_1}
+$$
+
+We first analyze the optional type $A$ and fill the placeholder. Then we analyze
+$B$ and fill the placeholder. Then we form $\Pi x^A.B$, unify its type with $E$
+and fill the hole $e$. The term $\Pi x^A. B$ must not contain any unfilled holes
+starting from $A^{\Any_1}$.
+
+\begin{itemize}
+
+\item If $x$ does not occur in $B$ and the type $A$ is not explicitly given,
+then the type $A$ cannot be inferred.
+
+\item Even if $x$ occurs in $B$, it might be the case that $A$ cannot be
+inferred. E.g. $\Pi x . \Pi y. x = y$. Since $x$ cannot occur outside the binder,
+there is no chance to infer $A$. This case must be reported as an error.
+
+\end{itemize}
+
+
+
+
+
+
+
+\section{Draft}
 
 \subsection{Implicit Arguments}
 
@@ -1560,7 +1763,6 @@ TBD
 
 
 \newpage
-\section{Draft}
 
 \subsection{Unification}
 
