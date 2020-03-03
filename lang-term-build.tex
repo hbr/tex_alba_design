@@ -154,8 +154,8 @@ We unify $v^V$ with $E$.
 
 It might be the case that $V$ is not unifyable with $E$ and $V$ is a function
 type with implicit arguments $V = \Pi x^A.B$ where $A$ reduces to a kind an $x$
-is contained in $B$. In that case we introduce a placeholder $x^A$, form ${v \,
-x}_B$ and unify $B$ with $E$. If there are more implicit arguments, the same
+is contained in $B$. In that case we introduce a placeholder $x^A$, form $(v \,
+x)^B$ and unify $B$ with $E$. If there are more implicit arguments, the same
 procedure can be repeated.
 
 
@@ -171,7 +171,7 @@ procedure can be repeated.
 We introduce the following placeholders
 
 $$
-\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, a^A, F^{A\to\Any_1}, f^{\Pi x^A. F x}
+\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, F^{A\to\Any_1}, a^A, f^{\Pi x^A. F x}
 $$
 and the constraint
 $$
@@ -273,15 +273,15 @@ $$
 which must be satisfied before making the substitutions
 $$
 \begin{array}{lll}
-g &:=& f \, a \ldots
+g &:=& f \, a \,\ldots
 
 \\
 
-h &:=& g \, b \ldots
+h &:=& g \, b \,\ldots
 
 \\
 
-e &:=& h \, c \ldots
+e &:=& h \, c \,\ldots
 \end{array}
 $$
 %
