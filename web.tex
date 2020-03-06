@@ -2,10 +2,90 @@
 \label{chapter:web}
 
 
+\section{Interoperation with Javascript}
 
+In order to interoperate with javascript (event handling, initialization etc.)
+we need decoders.
+
+An object of type \code{Decoder Int} knows how to decode a javascript or json
+object and can return an object of type \code{Result Int Error} where
+\code{Error} is some decoding error object.
+
+A decoder is like a parse combinator.
+
+
+Event handler
+
+\begin{alba}
+    class
+        Handler (A: Any): Any
+    create
+        normal: Decoder A -> Handler A
+        mayStopPropagation: Decoder (A, Boolean) -> Handler A
+        mayPreventDefault:  Decoder (A, Boolean) -> Handler A
+        custom: ...
+\end{alba}
+
+A \code{Decoder (A, Boolean)} decodes the event and returns an object of type
+\code{A} and a boolean value which indicates if propagation is stopped or
+default action is prevented.
+
+\vskip 5mm
+\section{Virtual Dom}
+
+A virtual dom is just a tree of dom nodes where the elementary nodes are text
+nodes. The other nodes consist of a tag, a list of attributes and a list of
+children nodes. Note that a node can consist of a tag only and an empty list of
+attributes and an empty list of children.
+
+\begin{alba}
+    class
+        Attribute (A: Any): Any
+    create
+        ???
+
+    class
+        Node (A: Any): Any
+    create
+        text: String -> Node A
+        node: String -> List (Attribute A) -> List (Node A) -> Node A
+\end{alba}
+
+
+We need functions to create attributes:
+\begin{alba}
+    -- general
+    attribute:   all (A: Any): String -> String -> Attribute A
+    property:    all (A: Any): String -> JSValue -> Attribute A
+            -- JSValue can be constructed with an encoder
+
+    -- input fields
+    placeholder: all (A: Any): String -> Attribute A
+    value:       all (A: Any): String -> Attribute A
+    type:        all (A: Any): String -> Attribute A
+    onInput:     all (A: Any): (String -> A) -> Attribute A
+
+    -- handler
+    on:          all (A: Any): Decoder A -> Attribute A
+    onClick:     all (A: Any): A -> Attribute A
+    onCheck:     all (A: Any): (Boolean -> A) -> Attribute A -- checkbox
+\end{alba}
+
+Example
+\begin{alba}
+    onClick (A: Any) (a: A): Attribute A :=
+        on "click" (succeed a)
+    -- 'succeed a' is a trivial decoder which always returns the value
+    -- 'a' without looking into the event object
+\end{alba}
+
+
+
+
+\vskip 5 mm
 \section{Events}
 
-Then an event occurs javascript sends to all listeners of the event an event
+When an event occurs javascript sends to all listeners of the event an event
 object.
 
 Solution in Elm:
@@ -97,7 +177,7 @@ The \code{style} is a property whose value is an object
 (\code{n.style.property = 'red'}).
 
 
-
+\vskip 3mm
 \subsection{Events}
 
 The event handlers of an attribute are properties like \code{onclick},
