@@ -576,7 +576,7 @@ runtime evaluation of functions and are closer to intuition.
 \subsubsection{Kinds}
 
 \begin{definition}
-  A \emph{kind} is either a sort or a sort valued functions. Let $k$ range
+  A \emph{kind} is either a sort or a sort valued function. Let $k$ range
   over kinds, $A$ over terms and $s$ over sorts. Kinds are defined by the
   grammar
   $$
@@ -616,11 +616,11 @@ $$
 where $\Gamma = [p_0:P_0, p_1: P_1, \ldots]$ are the parameters of the
 inductive type and $\Cbold = [C_0, C_1, \ldots]$ its constructor types.
 
-In order to define an inductive type the type $T$ of the bound variable $I$
-must reduce to a kind i.e. $T \reduce^* \Pi \xbold^\Abold. s$. The arguments
-of $T$ are the arguments of the inductive type. In the literature the
-arguments of an inductive type are called the index or indices of the
-inductive type in order distinguish them clearly from the parameters.
+In order to define an inductive type, the type $T$ of the bound variable $I$
+must reduce to a kind i.e. $T \reduce^* \Pi \xbold^\Abold. s$. The arguments of
+$T$ are the arguments of the inductive type. In the literature the arguments of
+an inductive type are called the index or indices of the inductive type in order
+distinguish them clearly from the parameters.
 
 
 \subsubsection{Constructor}
@@ -687,8 +687,8 @@ ordinals
 $$
 \Inductive_{[],\; I:\Any,\, [I,\, I \to I, \, (\Natural \to I) \to I]}
 $$
-Note that $I$ in the argument function type of the constructor has been
-replace by a type in which $I$ does not occur.
+Note that $I$ in the argument position of the constructor has been
+replaced by the type $\Natural$ in which $I$ does not occur.
 
 
 

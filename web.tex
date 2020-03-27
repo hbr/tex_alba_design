@@ -1,6 +1,28 @@
 \chapter{Web Applications}
 \label{chapter:web}
 
+\section{Define Web Applications}
+
+
+\begin{alba}
+    Web_application: all (Model: Any) (Msg: Any): Any
+
+    sandbox (Mod: Any) (Msg: Any)
+        :
+        Mod
+        -> (Mod -> Node Msg)
+        -> (Msg -> Mod -> Mod)
+        -> Web_application Mod Msg
+
+    main: Web_application Int Int :=
+        sandbox model view update
+\end{alba}
+
+
+
+
+
+
 
 \section{Interoperation with Javascript}
 

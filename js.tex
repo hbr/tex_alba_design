@@ -377,13 +377,24 @@ $$ -2^{53} < i < 2^{53}.$$
   // -> 9_007_199_254_740_993n
 \end{js}
 
+
+Signed 32 bit integer arithmetic:
 \begin{js}
   function inc(x){
     x = x|0;  // x:int
     return (x + 1)|0;
   }
+
+  0xffffffff|0   // -1
+  0xffffffff     // 4_294_967_295 = 2^32 - 1
+
+  -1 >>> 0         // 0xffffffff
+  0xffffffff >> 0  // -1
 \end{js}
 
+
+\code{a >> 0} converts to Int32 (like \code{a|0}, \code{a >>> 0} converts to
+UInt32.
 
 \begin{js}
   var product = Math.imul(a, b); // 32 bit modulo arithmetic
@@ -394,6 +405,27 @@ $$ -2^{53} < i < 2^{53}.$$
   Math.imul(0xffffffff, 5); // -5
   Math.imul(0xfffffffe, 5); // -10
 \end{js}
+
+
+
+\section{Compilation to Javascript}
+
+Datatypes:
+
+\begin{enumerate}
+\item Booleans: Values \code{true} and \code{false}
+\item Numbers: IEEE floating point numbers
+\item Strings
+\item Objects: Maps from strings to objects
+\item Arrays
+\end{enumerate}
+
+Javascript functions have a fixed arity.
+
+
+
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
