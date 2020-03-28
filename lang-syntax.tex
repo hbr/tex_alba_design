@@ -472,23 +472,22 @@ operator and has the same precedence and associativity as $+$.
 Once the syntax tree is parsed, the parentheses have been stripped off and the
 expression structure is encoded in the syntax tree.
 
-When we want to print an expression we have to insert the necessary
-parentheses. The precedence and associativity of the operators guide the
-insertion.
+If we want to print an expression we have to insert the necessary parentheses.
+The precedence and associativity of the operators guide the insertion.
 
 We assign to each subexpression an optional precedence/assoc information.
 
-When the information is missing then the subexpression is treated as atomic
-i.e. without parentheses.
+If the information is missing then the subexpression is treated as atomic i.e.
+without parentheses.
 
-When the upper node in the syntax tree has higher precedence, then parentheses
+If the upper node in the syntax tree has higher precedence, then parentheses
 have to be inserted. When the upper node has lower precedence, then no
 parentheses are needed.
 
-If the upper node and the subexpression have the same precedence
-(i.e. equivalent operators with same associativity), then the associativity
-and the location of the subexpression as a left or right operand decides the
-need for parentheses.
+If the upper node and the subexpression have the same precedence (i.e.
+equivalent operators with same associativity), then the associativity and the
+location of the subexpression as a left or right operand decides the need for
+parentheses.
 
 Parentheses are needed if the subsexpression is the left operand and we have
 right associativity or the subsexpression is the right operand and we have
@@ -501,121 +500,6 @@ case $a \le b \,\land\, c < d$.
 
 
 
-
-
-\subsection{Ackermann Function}
-
-
-The Ackermann function is defined by the recursive equations
-
-$$
-A \, m \, n :=
-\begin{cases}
-  A\, 0\, n &:= 1 + n
-  \\
-  A\, (1+k)\, 0 &:= A\, k\, 1
-  \\
-  A\, (1+k)\, (1+o) & := A\, k\, (A\, (1+k)\, o)
-\end{cases}
-$$
-%
-Wilhelm Ackermann defined the function slightly different, but the above
-definition is equivalent and today used in the literature as the definition of
-\emph{the} Ackermann function.
-
-It is known that this function is not primitive recursive because it grows
-faster than any primitive recursive function. Wilhelm Ackermann invented this
-function to prove that there are computable functions which are not primitive
-recursive.
-
-The Ackermann function can be writen in Alba in the following manner.
-
-\begin{alba}
-   iterations (n:Natural) (A:Any) (f:A->A) (s:A): Natural :=
-       -- Iterate the function 'f' 'n' times starting at 's' i.e. compute
-       -- f (f ... (f s))
-     inspect
-       n
-     case
-       0 :=
-         s
-       1 + i :=
-         f (i.iterations f s)
-
-   ack (m n: Natural): Natural :=
-     inspect
-       m
-     case
-       0 :=
-         1 + n
-       1 + k :=
-         (1 + n).iterations (ack k) 1
-\end{alba}
-
-The function \code{ack} satisfies the specification of the Ackermann
-function. Proof
-\begin{itemize}
-
-\item For $m = 0$ or $n = 0$ it is easy to see by expanding the definitions.
-
-\item For $m = 1+k$ and $n = 1+o$ we use the equalities
-  \begin{alba}
-    ack (1+k) (1+o) = (1+1+o).iterations (ack k) 1
-                    = ack k ( (1+o).iterations (ack k) 1 )
-                    = ack k (ack (1+k) o)
-  \end{alba}
-\end{itemize}
-
-
-
-
-It is possible to define the Ackermann functions based on \code{iterations} only.
-
-\begin{alba}
-  g (f:Natural -> Natural) (o:Natural): Natural :=
-    (1 + o).iterations f 1
-
-  ack (m:Natural): Natural -> Natural :=
-    m.iterations g successor
-\end{alba}
-
-We prove that the implementation satisfies the recursion equations. We first
-start with the observation
-
-\begin{alba}
-  ack (1 + k) o  = (1 + k).iterations g succ o
-                 = g (k.iterations g succ) o
-                 = g (ack k) o
-\end{alba}
-
-The we prove the 3 equations which have to be satisfied by the Ackermann
-function
-\begin{enumerate}
-\item
-  \begin{alba}
-    ack 0 n  = 0.iterations g succ n
-             = succ n
-  \end{alba}
-
-
-\item
-  \begin{alba}
-    ack (1 + k) 0  = g (ack k) 0               -- see above
-                   = 1.iterations (ack k) 1    -- def g
-                   = ack k 1
-  \end{alba}
-
-
-\item
-  \begin{alba}
-    ack (1 + k) (1 + o) = g (ack k) (1 + o)             -- see above
-                        = (2 + o).iterations (ack k) 1  -- def g
-                        = ack k ((1 + o).iterations (ack k) 1)
-                        = ack k (g (ack k o))           -- def g
-                        = ack k (ack (1 + k) o)         -- see above
-  \end{alba}
-
-\end{enumerate}
 
 
 
