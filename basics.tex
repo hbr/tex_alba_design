@@ -706,33 +706,6 @@ platforms.
 
 
 
-
-\section{Syntax and Code Layout}
-
-\lstset{language=alba}
-Declarations are separated by semicolon {\tt ';'}. In order to avoid a lot of
-semicolons newlines can serve as implicit semicolons.
-
-Newlines serve as implicit semicolons unless
-\begin{itemize}
-\item preceded or followed by
-  \begin{itemize}
-    \item an operator
-    \item the keywords \lstinline!case else!
-  \end{itemize}
-\item preceded by
-  \begin{itemize}
-  \item an opening parenthesis like {\tt '(', '[‘, '\{‘ }
-  \item an opening keyword \lstinline!all assert do inspect require some!
-  \end{itemize}
-\item followed  by
-  \begin{itemize}
-    \item a closing parenthesis like {\tt ')', ']‘, '\}‘}
-    \item a closing keyword like \lstinline!end!
-  \end{itemize}
-\end{itemize}
-
-
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
