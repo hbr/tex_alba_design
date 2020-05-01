@@ -1,6 +1,92 @@
 \chapter{Javascript}
 
 
+\section{Javascript Applications}
+
+\begin{itemize}
+
+\item Running in Node
+
+    \begin{enumerate}
+
+    \item A full console application
+
+    It consists of a complete application of type \code{unit IO.t}.
+
+    \item A node module
+
+    It has to provide an \code{init} and an \code{onmessage} function to receive
+    initialisation data and messages from the main application. It requires a
+    \code{postMessage} function to send data to the main application.
+
+    \end{enumerate}
+
+\item Running in the browser
+
+    \begin{enumerate}
+
+    \item Taking over the body (i.e. the whole web page)
+
+    \item Taking over a browser element
+
+    We need to be able to send initialization data and the node which has been
+    reserved for the application. Furthermore we want to be able to send data
+    from the main page to the application and receive messages from the
+    application in the main page. I.e. communication between the main page and
+    the applicaction is via \code{postMessage} and \code{onmessage}.
+
+    \item Webworker
+
+    The webworker is started from the main page by \code{Worker('new
+    Worker.js')}. Therefore it cannot receive initialization data from the main
+    page. The only communication is via messages (\code{postMessage} and
+    \code{onmessage}).
+
+    \end{enumerate}
+
+\end{itemize}
+
+
+A crucial requirement for all cases is the encoding and decoding of javascript
+objects.
+
+
+In a browser environment the library needs the following primitives to access
+the dom:
+
+
+\begin{enumerate}
+
+\item Create text and element nodes.
+
+\item Set styles, attributes, properties and handlers on element nodes.
+
+\item Navigate through the dom \code{firstChild}, \code{nextChild},
+\code{nextSibling}, \code{parentNode}, ...
+
+    Note that there are different node types (element, text, document).
+    Javascript uses object inheritance for the more specific nodes which have
+    more properties and methods. E.g. a text node does not have attributes.
+
+    A node has the property \code{nodeType} which can be 1 (element), 2
+    (attribute),.., 3 (text),.., 9 (document),.., 11 (document fragment),...
+
+
+\item Set the url path by \code{pushState (null, "", "?bla=bli")} of
+\code{window.history}.
+
+
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+
 \section{Js\_of\_ocaml}
 
 
