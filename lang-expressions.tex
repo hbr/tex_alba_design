@@ -1,0 +1,435 @@
+\section{Expressions}
+
+
+
+\subsection{Primitive Expressions}
+%-----------------------------------------
+
+\begin{enumerate}
+
+\item Sorts: \code{Any}, \code{Proposition}
+
+\item Literal Values
+
+    \begin{enumerate}
+
+    \item Numbers: 1, 2, ... , 3456, 2.0, ...
+
+    \item Strings: "Hello"
+
+    \item Characters: 'A'
+
+    \end{enumerate}
+
+\item Identifiers and Operators:
+    \code{isEmpty}, \code{(+)}, \code{(,)} \code{[]},
+    \code{Int}, \code{List}
+
+\end{enumerate}
+
+
+All primtive expressions have an evident type. The type of numbers can be
+ambiguous. E.g. \code{1:Int} and \code{1:Float} are valid typing judgements. For
+characters and strings the types \code{Character} and \code{String} exist.
+
+
+The sorts have the types \code{Proposition:Any}, \code{Any:Any(1)}. The type
+\code{Any(1)} is not expressible in the source language, but it exists under the
+hood as an infinite type hierarchy \code{Any(0)}, \code{Any(1)}, \code{Any(1)},
+\code{Any(2)}, ... where \code{Any} is the same as \code{Any(0)}.
+
+Binary operators like \code{+} and \code{-} must be enclosed in parentheses in
+order to form a primitive expression. Operator expressions see below.
+
+
+
+
+
+
+
+
+\subsection{Function Application}
+%-----------------------------------------
+
+A function application is a function expression applied to one or more
+arguments. Function application is done by juxtaposition. In principle there are
+only functions with one argument. However the function can return another
+function which can be applied to further arguments. This is the way to make
+functions accepting more than one argument.
+
+\begin{alba}
+    f a b c ...
+
+    -- parsed as
+    ( ... ((f a) b) c) ...  -- i.e. left associative
+\end{alba}
+i.e. \code{f a} represents a function which can be applied to another argument
+and \code{(f a) b)} is a function which can be applied to another argument.
+
+Alba is indentation sensitive. If a function application spans more than one
+line, then the arguments appearing on subsequent  lines have to be indented. The
+indentation must be aligned with the position of the first argument
+\begin{alba}
+    -- legal                                illegal
+    f a b c d                               f  a b
+      e f                                    c
+
+    f                                       f  a b
+        a                                        c
+        b
+        c                                   f
+                                            a b c
+\end{alba}
+
+
+
+
+Any expression in a function position must have a type like
+\begin{alba}
+    f: all (x: A): B
+
+    -- or if 'x' does not occur in 'B'
+    f: A -> B
+\end{alba}
+
+A function application can have implicit arguments. I.e. if you write in the
+source code the term \code{f a b c} the compiler has to find out the implicit
+arguments. I.e. it has to find the positions and the values of the implicit
+arguments.
+\begin{alba}
+    f a b c
+
+    f . a . . b c    -- '.' is an implicit argument inferred by the compiler
+\end{alba}
+
+As an example lets look at the operator \code{|>} which serves to write function
+application as an operator expression.
+\begin{alba}
+    f a
+
+    a |> f
+\end{alba}
+The \code{|>} operator has the following type
+\begin{alba}
+    (|>): all (A: Any) (a: A) (B: Any): (A -> B) -> B
+\end{alba}
+%
+The following example shows how the compiler must infer the implicit arguments
+%
+\begin{alba}
+    (|>) 1: all (B: Any): (Int -> B) -> B
+
+    -- implicit made explicit
+    (|>) Int 1
+
+    -- one more explicit argument
+    (|>) 1 (+): Int -> Int
+    -- implicit made explicit
+    (|>) Int 1 Int (+)
+
+    -- one more explicit argument
+    (|>) 1 (+) 2: Int
+    -- implicit made explict
+    (|>) Int 1 Int (+) 2
+\end{alba}
+
+The operator \code{|>} has two explicit arguments and two implicit arguments.
+Note that even if \code{|>} has only two explicit arguments, the expression
+\code{(|>) 1 (+) 3} i.e. the expression \code{(|>)} applied to three arguments
+is legal. This is because the implicit argument \code{B} is instantiated with
+the type of \code{(+)} which is \code{Int -> Int -> Int}.
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Typed Expressions}
+%-----------------------------------------
+
+Every expression can get a type annotation.
+\begin{alba}
+    exp: Type
+
+    -- precedences and associativity:
+    -- expression                       parsed as
+    1 + 3 - 4: Int                      (1 + 3 - 4): Int
+    \ x := exp: E                       \ x := (exp: E)
+    1: Int: Any                         1: (Int: Any)
+    prf: a < b: Proposition             prf: (a < b: Proposition)
+\end{alba}
+%
+Note that types are expressions as well. Therefore you can regard \code{:} as a
+binary operator with relatively low precedence and right associativity. However
+it is not possible to define functions with the name "\code{:}".
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Operator Expressions}
+%-----------------------------------------
+
+Operator expressions of the form
+\begin{alba}
+    a + b * c / d^4
+
+    -- parsed as
+    a + ((b * c) / (d^4))
+\end{alba}
+are possible in Alba with the usual precedence and associativity rules.
+
+Besides the usual operators, the comma operator is possible in Alba. It has
+relatively low precedence and right associativity. It is mainly used for tuples.
+
+%
+\begin{alba}
+                                            -- parsed as
+    (Int, String)
+    (1, "hello")
+    (Int, String, Character)                (Int, (String, Character))
+    (\x := "hello" + x, 2)                  ((\x := "hello" + x), 2)
+    (all x y: x = y, Int)                   ((all x y: x = y), Int)
+\end{alba}
+
+\noindent Function application binds stronger than a binary operation.
+\begin{alba}
+                                    -- parsed as
+    f a + g b                       (f a) + (g b)
+\end{alba}
+
+
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Anonymous Functions}
+%-----------------------------------------
+
+General form:
+\begin{alba}
+    \ x y ... := exp                    -- untyped
+
+    \ (x: A) (y: B) ... : R := exp      -- fully typed
+
+    \ x y ...
+    :=
+        exp                         -- defining expression must be indented
+\end{alba}
+The type annotations are optional for argument types and the result type.
+However they might be needed sometimes to make a function expression
+unambiguous.
+
+\vskip 3mm
+\noindent Examples:
+\begin{alba}
+    \ x := x + 1
+
+    \ x y := x + y
+
+    \ (x: Int) (y: Int): Int    -- fully typed
+    :=
+        x + y                   -- defining expression must be indented
+\end{alba}
+
+
+
+\subsubsection{Type Inference}
+
+In a function expression the types of the arguments and the result type are
+optional. This makes the code more readable in many cases. However this means
+that the compiler must infer the types, because the intermediate language is
+fully typed and each local variable must get a type.
+
+\vskip 3mm
+\noindent Possibilities for the compiler to infer the types:
+\begin{itemize}
+
+\item There is an expected type for the function expression.
+
+\item The function expression is applied to arguments and the types of the
+arguments can be inferred.
+
+\item The defining expression \code{exp} {\em uses} some formal arguments as
+actual arguments in some function calls and the signature of the called function
+specifies the type of the argument.
+
+\item The defining expression has a type and that type must be the result type
+of the function expression.
+
+\end{itemize}
+
+\noindent In the following situations the compiler cannot infer the needed types:
+\begin{alba}
+    (\x y := x + y) = (\x y := x + y)
+    -- 'x' and 'y' can be either strings or numbers
+
+    (\x y := x + y) a b
+    -- where 'a' and 'b' are untyped local variables as well
+\end{alba}
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Local Definitions}
+%-----------------------------------------
+
+
+Local definitions allow to insert variables into an expressions and define them
+in a \code{where} block. The definitions can be constants or functions.
+%
+%
+Examples:
+\begin{alba}
+    1 + a where a := 100
+
+    1 + f 10 where f x := 2 * x ^ 2 + 7 * x + 10
+
+    1 + f 10 where
+        f x := 2 * x            -- local definition must be indented
+
+    1 + f 10 + g 20 where       -- multiple definitions must be aligned
+        f x := 2 * x
+        g x := x - 10
+
+    1 + f 10 20 where           -- multiple definitions can build on eachother
+        f x y := 2 * x + g y
+        g x := 1 + x
+
+    1 + f 30 where
+        f (x: Int): Int         -- fully typed
+        :=
+            1 + x               -- defining expression must be indented
+\end{alba}
+
+The definition dependency is inside out. The outer definitions must not depend
+on inner definitions.
+
+Local definitions are just a method to write more expressive code. For each
+where expression there is a functionally equivalent expression using anonymous
+functions.
+
+\begin{alba}
+                                        -- equivalent
+    1 + a where a := 20                 (\a := 1 + a) 10
+
+    1 + f 10 where f x := 2 * x         (\f := 1 + f 10) (\x := 2 * x)
+
+    1 + f 10 20 where                   (\g :=
+        f x y := 2 * x + g y                (\f := 1 + f 10 20)
+        g x := 1 + x                            (\x := 2 * x + g y)
+                                        ) (\x := 1 + x)
+\end{alba}
+%
+Note how the usage of local definitions improves readability.
+
+
+
+
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Function Types}
+%-----------------------------------------
+
+
+General form:
+%
+\begin{alba}
+    all (x: A) (y: B) ... : R
+
+    A -> B -> ... -> R      -- if variables x, y, ... do not occur in types
+
+    all a b: a => b => a    -- untyped
+    -- where
+    (=>): Proposition -> Proposition -> Proposition
+\end{alba}
+
+Untyped variables can be used only if the untyped variables appear in subsequent
+argument types or the result type. Otherwise the compiler has no chance to infer
+the argument types of the untyped variables. But even if untyped variables
+appear in subsequent types, the compiler might not be able to infer the types.
+
+\begin{alba}
+    all x y: x = y              -- cannot determine the type of 'x'
+    -- where
+    (=): all (A: Any): A -> A -> Proposition
+
+    all A: A -> A
+    -- can be
+    all (A: Any): A -> A
+    all (A: Sortable): A -> A
+    ...
+\end{alba}
+%
+In the first example the compiler can only infer that both arguments must have
+the same type, but it cannot find the specific type. In the second case the
+variable \code{A} could be \code{Any} or any abstract type.
+
+
+\subsubsection{Implicit Arguments}
+
+MISSING!!!
+
+
+
+
+
+
+
+
+
+\vskip 5mm
+\subsection{List Expressions}
+%-----------------------------------------
+
+General form:
+%
+\begin{alba}
+    [a, b, c, ... ]
+\end{alba}
+
+All elements of a list must have the same type. The compiler tries to transform
+such a literal list into an expression of the form
+%
+\begin{alba}
+    a +: b +: c ... +: []
+\end{alba}
+%
+i.e. it tries to find an operator pair (\code{[]}, \code{(+:)}) with the
+following signatures
+%
+\begin{alba}
+    []:   all (A: Any): F A
+    (+:): all (A: Any): A -> F A -> F A
+    -- where
+    F: Any -> Any
+\end{alba}
+%
+In the standard library there are the types \code{List} and \code{Array} which
+satisfy the requirement for \code{F}. Any container having the corresponding
+operators can be filled with a list expression.
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Pattern Match}
+%-----------------------------------------
+
+TBD
