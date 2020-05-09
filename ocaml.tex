@@ -17,17 +17,28 @@
 
 \begin{ocaml}
   (* implement trampolining *)
-  type 'a bounce = Done of 'a | Call of (unit -> 'a bounce)
+  type 'a bounce =
+    | Done of 'a
+    | Call of (unit -> 'a bounce)
 
   let rec trampoline = function  (* tail recursive function *)
-    | Call thunk -> trampoline (thunk())
-    | Done x     -> x
+    | Call thunk ->
+        trampoline (thunk())
+    | Done x ->
+        x
 
   (* define some functions which use them *)
-  let rec
-    even n = if n = 0 then (Done true) else (Call (fun () -> odd (n-1)))
-  and
-    odd n = if n = 0 then (Done false) else (Call (fun () -> even (n-1)))
+  let rec even n =
+    if n = 0 then
+        Done true
+    else
+        Call (fun () -> odd (n-1))
+
+  and odd n =
+    if n = 0 then
+        Done false
+    else
+        Call (fun () -> even (n-1))
 
   (* test them out *)
   let _ =
@@ -41,6 +52,33 @@
     assert (trampoline (odd 2) = false);
     assert (trampoline (odd 3) = true);
 \end{ocaml}
+
+
+The \code{js\_of\_ocaml} compiles the mutally recursive functions into
+
+\begin{js}
+    function even0(counter,n){
+      if(0===n)return 1;
+      var _e_=n-1|0;
+      if(counter<50){
+        var counter0=counter+1|0;
+        return odd0(counter0,_e_)
+      }
+      return caml_trampoline_return(odd0,[0,_e_])
+    }
+    function odd0(counter,n){
+      if(0===n)return 0;
+      var _d_=n-1|0;
+      if(counter<50){
+        var counter0=counter+1|0;
+        return even0(counter0,_d_)
+      }
+      return caml_trampoline_return(even0,[0,_d_])
+    }
+    function even(n){return caml_trampoline(even0(0,n))}
+    function odd(n){return caml_trampoline(odd0(0,n))}
+\end{js}
+
 
 
 
