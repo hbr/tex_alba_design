@@ -512,6 +512,107 @@ Javascript functions have a fixed arity.
 
 
 
+\section{Web Assembly}
+
+{\small
+\begin{verbatim}
+    (module
+        (func (param $lhs i32) (param $rhs i32) (result i32)
+            local.get $lhs
+            local.get $rhs
+            i32.add)
+        (export "add" (func $add))
+    )
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+    (module
+        (func $getAnswer (result i32)   ;; a constant
+            i32.const 42)
+
+        (func (export "getAnswerPlus1") (result i32)
+            call $getAnswer
+            i32.const 1
+            i32.add)
+    )
+\end{verbatim}
+}
+
+
+{\small
+\begin{verbatim}
+    (module
+        (import "console" "log" (func $log (param i32)))
+        (func (export "logIt")
+            i32.const 13
+            call $log))
+\end{verbatim}
+}
+
+
+
+
+{\small
+\begin{verbatim}
+    (func $offsetFromCoordinate (param $x i32) (param $y i32) (result i32)
+      (i32.mul
+        (i32.add
+          (i32.mul
+            (i32.const 50)
+            (get_local $y)
+          )
+          (get_local $x)
+        )
+        (i32.const 4)
+      )
+    )
+\end{verbatim}
+}
+
+
+
+
+
+{\small
+\begin{verbatim}
+(func $evolveAllCells
+  (local $x i32)
+  (local $y i32)
+
+  (set_local $y (i32.const 0))
+
+  (block
+    (loop
+
+      (set_local $x (i32.const 0))
+
+      (block
+        (loop
+          (call $evolveCellToNextGeneration
+            (get_local $x)
+            (get_local $y)
+          )
+          (set_local $x (call $increment (get_local $x)))
+          (br_if 1 (i32.eq (get_local $x) (i32.const 50))) ;; exit
+          (br 0)   ;; next iteration
+        )
+      )
+
+      (set_local $y (call $increment (get_local $y)))
+      (br_if 1 (i32.eq (get_local $y) (i32.const 50)))
+      (br 0)
+    )
+  )
+)
+\end{verbatim}
+}
+
+
+
+
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main_alba_design"
