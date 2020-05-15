@@ -73,10 +73,14 @@ the intermediate language.
   signature has to be unique.
 
   Whenever the builder encounters a name which does not uniquely specify a
-  global function, it has to do the buildwith the different functions in
-  parallel until a function is rule out because of the typing rules.
+  global function, it has to do the build with the different functions in
+  parallel until a function is ruled out because of the typing rules.
 
 \end{description}
+
+
+
+
 
 
 
@@ -103,6 +107,11 @@ of the type.
 
 
 
+
+
+
+
+
 \subsection{Contexts with Holes}
 
 During term building we have to be able to introduce placeholders or holes for
@@ -125,6 +134,163 @@ requires the type of $E$ to be $\Any_2$.
 If we expect a type we use a placeholder $T^{\Any_1}$. This makes the filling of
 $T$ with any type e.g. with $\Natural$, $a \le b$, $\Any_0$, or $\Prop$
 possible.
+
+
+
+
+
+
+\subsection{Undecidability}
+
+If a source code expression is type annotated and all bound variables have
+explicit types, then all implicit arguments can be inferred. However there might
+remain ambiguities. Example:
+%
+\begin{alba}
+   2 = 3  => 3 = 4: Proposition
+\end{alba}
+%
+This expression is type annotated and there are no untyped bound variable.
+However the expression is ambiguous.
+%
+\begin{alba}
+   (2: Int)   = (3: Int)    =>  (3: Float) = (4: Float) : Proposition
+   (2: Float) = (3: Float)  =>  (3: Float) = (4: Float) : Proposition
+   ...
+\end{alba}
+%
+Reason: The equality operator {\emph looses} information, because it has the
+type
+%
+\begin{alba}
+    (=): all (A: Any): A -> A -> Proposition
+\end{alba}
+%
+It only requires that the two explicit operands have the same type. But the type
+is not propagated into the result type.
+
+
+
+
+
+
+
+
+\subsection {Source Code Expressions}
+
+\begin{enumerate}
+
+\item Terminals
+
+    \begin{enumerate}
+    \item \code{Proposition}
+    \item \code{Any}
+    \item Literals: String, Character, Number
+    \item Identifier (or operator)
+    \end{enumerate}
+
+\item Expression with Type Annotation \code{exp : T}
+
+\item Function Application \code{f a b c ...}
+
+\item Function Abstraction
+\begin{alba}
+    \ (x:A) (y:B) ... : RT := exp
+\end{alba}
+
+\item Function Type \code{all (x:A) (y:B) ... : RT}
+
+\item Where block \code{ exp where a := aexp; b := bexp; ...}
+
+\end{enumerate}
+
+
+Note that a where block is just syntactical sugar. The following 2 expressions
+are equivalent:
+\begin{alba}
+    exp where
+        a := aexp
+        b := bexp
+        ...
+        z := zexp
+
+    (\ z := (... (\ b := (\ a := exp) aexp) bexp) ...) zexp
+\end{alba}
+%
+i.e. a where term is a function application with a function abstraction at the
+position of a function term.
+
+A proper subexpression can appear only in the following positions:
+\begin{itemize}
+
+\item Type position
+
+\item Annotated position (an expression with a type annotation)
+
+\item Argument position
+
+\item Function position
+
+\item Definition position (function abstractions and where expressions)
+\end{itemize}
+
+From the perspective of term building annotated positions and argument
+positions are equivalent, because we always get a required type in these
+positions.
+
+
+In a function position we can only have
+\begin{itemize}
+
+\item Identifier
+
+\item Type annotation
+
+\item Function abstraction
+\end{itemize}
+
+This is valid, because an expression in a function position must have the type
+$\Pi x^A.B$ which cannot be satisfied by all other expressions.
+
+
+
+
+
+
+
+\subsection{Subexpressions in a Function Position}
+
+A subexpression $f$ in a function position is applied to $n$ arguments with $0 <
+n$ and has an expected result type $E$ after application to its arguments.
+
+$$
+    f\, a_0\, a_1 \ldots a_{n-1} : E
+$$
+
+Because of the nature of the function position, no expected type for $f$ is
+available.
+
+
+\subsubsection{Type Annotation \code{exp: T}}
+
+We analyze $T$ in a type position with the expected type $\Any_1$. $T$ must be a
+function type. Its decomposition gives the types for the explicit arguments,
+generates implicit arguments and a result type which can be unified with the
+expected type $E$ of the whole function application.
+
+The inner expresssion \code{exp} can then be analyzed in an annotated position
+i.e. with complete expected type. This is practically the same as an expression
+in an argument position.
+
+\subsubsection{Identifier}
+
+
+\subsubsection{Function Abstraction}
+
+
+
+
+
 
 
 \subsection{Subexpressions}
@@ -337,7 +503,7 @@ The building of the term consists of the following actions
 We introduce the following placeholders
 
 $$
-\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, F^{A\to\Any_1}, x^A, T^{\Any_1}, t^T
+\Gamma, \ldots, e^E, \ldots, A^{\Any_1}, x^A, F^{A\to\Any_1},  t^{F x}
 $$
 %
 With these placeholders we get the valid typing judgement
@@ -349,22 +515,28 @@ $$
 \Pi x^A. F x \le E
 $$
 
-If $A$ is given explicitly, we analyze the term and fill the hole $A$ with it.
 
-If the result type is given explicitly, we analyze it and fill the hole $T$.
+\begin{itemize}
 
-Then either we assign $T := F x$ or $F := \lambda x^A. T$.
+\item
+    If $A$ is given explicitly, we analyze the term and fill the hole $A$ with it.
 
-If $E$ is not a placeholder it must have the form
-$$
-\Pi x^{A_r}. B_r
-$$
+\item
+    If the function abstraction is in a function position, we unify $A$ with the
+    type of the corresponding argument.
 
-In that case we unify $A \sim A_r$ and either set $F := \lambda x^A. B_r$ or
-unify $T \le B_r$ in case that $F$ has already been filled.
+\item
+    If the result type is given explicitly, we analyze it and unify it with $F
+    x$.
 
+\item
+    If the function abstraction is in a function position and required result
+    type is given for the function abstraction applied to the argument $a$, then
+    we unify $F a$ with the result type.
 
-Then we analyze $t$ and fill the hole.
+\item
+    Analze $t$ and fill the hole.
+\end{itemize}
 
 
 
