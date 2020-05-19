@@ -6,7 +6,7 @@ The Alba programming languages makes certain guarantees.
 \begin{enumerate}
 \item A program cannot crash.
 
-\item There are not endless loops (i.e. the program cannot not freeze).
+\item There are no endless loops (i.e. the program cannot not freeze).
 
 \item All functions perform according to their specification.
 \end{enumerate}
@@ -214,7 +214,7 @@ Logical disjunction is defined in the prelude as the inductive type
 \begin{alba}
     class
         (or) (a b: Proposition): Proposition
-    create
+    :=
         left:  a => a or b
         right: b => a or b
 \end{alba}
@@ -233,19 +233,15 @@ We prove this fact by defining the corresponding function which pattern
 matches on the construction of \code{a or b}
 %
 \begin{alba}
-    swap_or (a b: Proposition): a or b => b or a
+    swapOr (a b: Proposition): a or b => b or a
     :=
-        \ a_or_b :=
-            inspect
-                a_or_b
-            case
-                left pa :=
-                    right pa
-                right pb :=
-                    left pb
+        case
+            left pa := right pa
+
+            right pb := left pb
 \end{alba}
 
-Another law of logic states
+\noindent Another law of logic states
 \begin{alba}
   a or b  =>  (a => c) => (b => c)  =>  c
 \end{alba}
@@ -258,24 +254,19 @@ A function which proves this fact is easy to implement by pattern matching on
 the construction of \code{a or b}.
 
 \begin{alba}
-    eliminate_or
+    eliminateOr
         (a b c: Proposition)
         :   a or b
             => (a => c)
             => (b => c)
             => c
     :=
-        \   a_or_b
-            ac
-            bc
-        :=
-            inspect
-                a_or_b
-            case
-                left pa :=
-                    ac pa
-                right pb :=
-                    bc pb
+        case
+            left pa :=
+                \ fac _ := fac pa
+
+            right pb :=
+                \ _ fbc := fbc pb
 \end{alba}
 
 
@@ -292,26 +283,23 @@ the construction of \code{a or b}.
 \begin{alba}
     class
         (and) (a b: Proposition): Proposition
-    create
+    :=
         (,): a => b => a and b
 \end{alba}
 
 
 \begin{alba}
-    swap_and (a b: Proposition): a and b => b and a
+    swapAnd (a b: Proposition): a and b => b and a
     :=
-        \ a_and_b :=
-            inspect a_and_b case
-                (pa, pb) :=
-                    (pb, pa)
+        case
+            (pa, pb) := (pb, pa)
 \end{alba}
 
 
 \begin{alba}
-    eliminate1_and (a b: Propositon): a and b => a :=
-        \ a_and_b :=
-            inspect a_and_b case
-                (pa, pb) := pa
+    eliminate1And (a b: Proposition): a and b => a :=
+        case
+            (pa, pb) := pa
 \end{alba}
 
 
@@ -1585,23 +1573,29 @@ Commutativity of multiplication can be proved by using distributivity.
 We define the order relation on natural numbers inductively.
 
 \begin{alba}
-  class
-    (<=): Endorelation Natural
-  create
-    init n: 0 <= n
-    step n m: n <= m => 1 + n <= 1 + m
+    class
+        (<=): Endorelation Natural
+    :=
+        init n:
+            0 <= n
+
+        step n m:
+            n <= m
+            => n.successor <= m.successor
 \end{alba}
 
 
 \begin{alba}
-  le_zero_is_zero (a: Natural) (lez: a <= 0): a = 0 :=
+  leZeroIsZero (a: Natural) (lez: a <= 0): a = 0 :=
     inspect lez case
       step n m :=
-        ex_falso where
+        exFalso where
           _: 1 + m = 0 => false
 \end{alba}
 
-The order relation is reflexive i.e. $a \le a$.
+
+
+\noindent The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
   reflexive (a:Natural): a <= a :=
@@ -1613,36 +1607,44 @@ The order relation is reflexive i.e. $a \le a$.
           _: n <= n := reflexive n
 \end{alba}
 
-The proof of the implication $ 1 + a \le 1 + b \imp a \le b$ is not
+
+\noindent The proof of the implication $ 1 + a \le 1 + b \imp a \le b$ is not
 difficult.
 
 
 \begin{alba}
-  le_succ_implies_le (a b: Natural) (p: 1 + a <= 1 + b): a <= b :=
+  leSuccImpliesLe (a b: Natural) (p: 1 + a <= 1 + b): a <= b :=
     inspect p case
       init (1 + b) :=
-        ex_falso      -- 1 + a cannot be 0
+        exFalso      -- 1 + a cannot be 0
       step n m :=
         goal where
           goal: n <= m := _
 \end{alba}
 
 
-Next we prove the law $a \le b \imp a \le 1 + b$.
+\noindent Next we prove the law $a \le b \imp a \le 1 + b$.
 
 \begin{alba}
-  le_implies_le_succ (a b: Natural) (p: a <= b): a <= 1 + b :=
-    inpect p case
-      init b :=
-        init (1 + b)
-      step n m :=
-        goal where
-          goal: 1 + n <= 1 + 1 + m := step n (1 + m)
-          hypo: n <= 1 + m := le_implies_le_succ n m
+    leImpliesLeSucc
+        (a b: Natural)
+        :  a <= b  =>  a <= b.successor
+    :=
+        case
+            init b :=
+                init b.successor
+
+            step n m lenm :=
+                -- a = n.successor, b = m.successor
+                -- goal: n.successor <= m.successor.successor
+                step
+                    n
+                    m.successor
+                    (leImpliesLeSucc n m lenm)
 \end{alba}
 
 
-The strict order relation $<$ is defined as
+\noindent The strict order relation $<$ is defined as
 
 \begin{alba}
   (<) (a b: Natural): Proposition :=
