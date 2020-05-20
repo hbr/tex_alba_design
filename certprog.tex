@@ -1718,6 +1718,11 @@ difficult.
 
 
 
+
+
+
+
+
 \section{Properties of Constructors of Inductive Types}
 
 There are two properties of constructors of inductive types which are very
@@ -1943,6 +1948,54 @@ where we use the following properties
                     >> invert m n
                     >> (\ (eq: m = n) := leibniz m n eq evM)
 \end{alba}
+
+
+
+
+
+
+
+
+
+
+\section{Vectors}
+
+
+FOR DISCUSSION!!
+
+
+Vectors or length indexed lists are an often used example to show dependent
+types. A vector in Alba can be defined as
+
+\begin{alba}
+    class
+        Vector (A: Any): Natural -> Any
+    :=
+        nil: Vector A 0
+
+        cons: all n: A -> Vector A n -> Vector A n.successor
+\end{alba}
+
+Due to the current conventions such a type is a little bit clumsy in Alba,
+because \code{n} is not an implicit argument, i.e. one cannot construct a vector
+with
+%
+\begin{alba}
+    cons 'A' <| cons 'B' <| nil  -- Invalid!!
+\end{alba}
+%
+%
+Instead we have to write
+
+\begin{alba}
+    cons 1 'A' <| cons 0 'B' <| nil: Vector Character 2
+\end{alba}
+
+
+
+
+
+
 
 
 
