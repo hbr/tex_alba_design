@@ -1785,16 +1785,19 @@ natural numbers.
 
 
 \begin{alba}
-    discriminate:
-        all (n: Natural): 0 /= n.successor
+    discriminate (n: Natural): 0 /= n.successor
     :=
-        \ n (eq: 0 = n.sucessor):  false :=
-            leibniz 0 n.successor eq trueValid: f n.successor
-            where
-                f :=
-                    case
-                        0 := true
-                        k.successor := false
+        ev
+        where
+            ev: 0 = n.successor => f n.successor :=
+                case
+                    identical :=
+                        -- goal: f 0  which reduces to 'true'
+                        trueValid
+            f :=
+                case
+                    0 := true
+                    k.successor := false
 \end{alba}
 
 
@@ -1841,17 +1844,110 @@ inductive type defining equality.
 The complete proof reads like
 
 \begin{alba}
-    invert:
-        all (n m: Natural): n.successor = m.successor => n = m
+    invert (n m: Natural): n.successor = m.successor => n = m
     :=
-        (\ n m eq: f n m.successor :=
-            leibniz n.successor m.successor eq reflexive)
+        g
         where
-            f n :=
+            g: n = m => f m.successor :=
+                case
+                    identical :=
+                        -- goal: f n.successor
+                        -- which reduces to n = n
+                        identical
+            f: Predicate Natural :=
                 case
                     0 := false  -- never used
                     k.successor := n = k
 \end{alba}
+
+
+
+
+
+
+
+\subsection{Types with Indices}
+
+Consider the inductive predicate
+
+\begin{alba}
+    class
+        isEven: Predicate Natural
+    :=
+        zero: isEven 0
+        next: all n: isEven n => isEven n.successor.successor
+\end{alba}
+
+The proposition \code{isEven 0} can be constructed only with the first
+constructor. The proposition \code{isEven k.successor} can be constructed only
+with the second constructor. We can make a further case split on \code{k}.
+\code{isEven 0.successor} is impossible to construct and \code{isEven
+n.successor.successor} implies \code{isEven n}.
+
+I.e. we should be able to prove the following propositions:
+
+\begin{alba}
+    discriminate: not isEven 0.successor
+
+    invert: all n: isEven n.successor.successor => isEven n
+\end{alba}
+
+
+\noindent First we prove \code{discriminate}
+%
+\begin{alba}
+    discriminate: not isEven 0.successor
+    :=
+        (\ (ev: isEven 0.successor): false :=
+            f 0.successor ev identical)
+        where
+            f k: isEven k => k = 0.successor => false
+            :=
+                case
+                    zero :=
+                        discriminate 0
+                    next m _ :=
+                        -- goal: m.successor.successor = 0.successor => false
+                        invert >> flip m.successor 0 >> discriminate
+\end{alba}
+%
+where we use the following properties
+%
+\begin{alba}
+    discriminate (n: Natural): not 0 = n.successor
+
+    invert (n m: Natural): n.successor = m.successor => n = m
+
+    flip (A: Any) (a b: A): a = b => b = a
+\end{alba}
+
+
+
+
+\noindent Now we prove \code{invert}
+%
+\begin{alba}
+    invert (n: Natural): isEven n.successor.successor => isEven n
+    :=
+        (\ ev := f n.successor.successor ev identical)
+        where
+        f k: isEven k => k = n.successor.successor => isEven n
+        :=
+            case
+                zero :=
+                    discriminate n.successor
+                next m evM :=
+                    -- goal: m.successor.successor = n.successor.successor
+                    --       => isEven n
+                    invert m.successor n.successor
+                    >> invert m n
+                    >> (\ (eq: m = n) := leibniz m n eq evM)
+\end{alba}
+
+
+
+
+
 
 
 %%% Local Variables:
