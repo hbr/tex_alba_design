@@ -1762,10 +1762,11 @@ leibniz rule to prove that \code{n.successor} satisfies the same predicate.
 We use the predicate
 \begin{alba}
     f: Natural -> Proposition :=
-        \ n :=
-            inspect n case
-                0     := true
-                1 + k := false
+        case
+            0 :=
+                true
+            k.successor :=
+                false
 \end{alba}
 
 Evidently \code{f 0} and \code{true} are equivalent propositions and \code{f
@@ -1775,10 +1776,7 @@ A proof of \code{f 0} i.e. \code{true} is trivial, because the proposition
 \code{true} is an inductive type with one constructor.
 
 \begin{alba}
-    class
-        true: Proposition
-    create
-        true_is_true: true
+    class true: Proposition := trueValid
 \end{alba}
 
 
@@ -1787,16 +1785,16 @@ natural numbers.
 
 
 \begin{alba}
-    zero_ne_successor:
+    discriminate:
         all (n: Natural): 0 /= n.successor
     :=
-        \ n (zero_eq_successor: 0 = n.successor): false :=
-            leibniz 0 n.successor zero_eq_successor true_is_true: f n.successor
+        \ n (eq: 0 = n.sucessor):  false :=
+            leibniz 0 n.successor eq trueValid: f n.successor
             where
-                f n :=
-                    inspect n case
-                        0     := true
-                        1 + k := false
+                f :=
+                    case
+                        0 := true
+                        k.successor := false
 \end{alba}
 
 
@@ -1809,50 +1807,50 @@ The injectivity of the successor function of natural numbers can be expressed
 by the property
 
 \begin{alba}
-    all (n m: Natural): 1 + n = 1 + m  =>  n = m
+    all (n m: Natural): n.successor = m.successor  =>  n = m
 \end{alba}
 
 In order to prove this property we need a function mapping two numbers and a
 proof of the equality of their successors into a proof of the equality of the
 numbers.
 
-In this function we can assume a proof of \code{1 + n = 1 + m}. This indicates
-that we can use the leibniz property of equality to transform a property
-satisfied by \code{1 + n} into a property satisfied by \code{1 + m}.  I.e. we
-need a predicate \code{f} such that \code{f (1 + m)} is equivalent to \code{n =
-m}.
+In this function we can assume a proof of \code{n.successor = m.successor}. This
+indicates that we can use the leibniz property of equality to transform a
+property satisfied by \code{n.successor} into a property satisfied by
+\code{m.successor}.  I.e. we need a predicate \code{f} such that \code{f
+(m.successor)} is equivalent to \code{n = m}.
 
 Playing around a little bit with functions of the type \code{Natural ->
 Proposition} we can find the function
 
 \begin{alba}
-    f (k: Natural): Proposition :=
-        inspect k case
-            0     := false
-            1 + l := n = l
+    f (n: Natural): Natural -> Proposition :=
+        case 0 :=
+            false
+        case k.successor :=
+            n = k
 \end{alba}
 
 It might be not so easy to find this function, but it is not difficult to
-convince you that \code{f (1 + m)} is equivalent to \code{n = m}.
+convince yourself that \code{f n m.successor} is equivalent to \code{n = m}.
 
-Furthermore we can easily see that \code{f (1 + n)} is equivalent to \code{n =
-n} which is trivial to prove by the reflexivity constructor of the inductive
-type defining equality.
+Furthermore we can easily see that \code{f n n.successor} is equivalent to
+\code{n = n} which is trivial to prove by the reflexivity constructor of the
+inductive type defining equality.
 
 The complete proof reads like
 
 \begin{alba}
-    successor_is_injective:
-        all (n m: Natural): 1 + n = 1 + m => n = m
+    invert:
+        all (n m: Natural): n.successor = m.successor => n = m
     :=
-        \ n m successors_equal :=
-            leibniz (1 + n) (1 + m) successors_equal reflexive
-                : f (1 + m)
-            where
-                f k :=
-                    inspect k case
-                        0     := false  -- never used
-                        1 + l := n = l
+        (\ n m eq: f n m.successor :=
+            leibniz n.successor m.successor eq reflexive)
+        where
+            f n :=
+                case
+                    0 := false  -- never used
+                    k.successor := n = k
 \end{alba}
 
 
