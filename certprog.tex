@@ -1951,6 +1951,97 @@ where we use the following properties
 
 
 
+Now let's look at a definition of the even and odd property of natural numbers
+defined as a mutual type family.
+%
+\begin{alba}
+    mutual
+        class
+            isEven: Natural -> Proposition
+        :=
+            zero: isEven 0
+
+            fromOdd n: n.isOdd => n.successor.isEven
+
+        class
+            isOdd: Natural -> Proposition
+        :=
+            fromEven n: n.isEven => n.successor.isOdd
+\end{alba}
+%
+Looking at the possible ways to construct the even or the odd property we should
+be able to proof the following theorems.
+%
+\begin{alba}
+    discriminate: not 0.isOdd
+
+    invertEven n: n.successor.isEven => n.isOdd
+
+    invertOdd  n: n.successor.isOdd  => n.isEven
+\end{alba}
+
+
+\noindent We prove the properties one by one.
+
+\begin{alba}
+    discriminate: not 0.isOdd :=
+        (\ odd := f 0 odd identical)
+        where
+        f n: n.isOdd => 0 = n => false
+        :=
+            case
+                fromEven k _ :=
+                    -- goal: 0 = k.successor => false
+                    discriminate
+
+    invertEven n: n.successor.isEven => n.isOdd
+    :=
+        (\ ev := f n.successor ev identical)
+        where
+        f k: k.isEven => k = n.successor => n.isOdd
+        :=
+            case
+                zero :=
+                    -- goal 0 = n.successor => false
+                    discriminate n
+
+                fromOdd m mOdd :=
+                    -- goal: m.successor = n.successor => n.isOdd
+                    invert m n -- produces m = n
+                    >>
+                    case
+                        identical := mOdd
+
+    invertOdd n: n.successor.isOdd => n.isEven
+    :=
+        (\ odd := f n.successor odd identical)
+        where
+        f k: k.isOdd => k = n.successor => n.isEven
+        :=
+            case
+                fromEven m mEven :=
+                    -- goal: m.successor = n.successor => n.isEven
+                    invert m n -- produces m = n
+                    >>
+                    case
+                        identical := mEven
+\end{alba}
+
+The trick to prove these kind of properties is always the same. Whenever we have
+a goal or a premise of a special form like \code{0.isOdd} or
+\code{m.successor.isOdd} we replace the special term by a variable to get
+\code{n.isOdd} and introduce an equality like \code{0 = n} or \code{n =
+m.successor} to have an equivalent formulation.
+
+With the variable we can do a pattern match and use a further pattern match on
+the corresponding equality or a discrimination to prove the goal.
+
+Once the trick has been understood, it is a fairly mechanical excercise. Since
+this a repetitive task for all newly defined inductive propositions, it is
+better to let the compiler derive the corresponding inversion and discrimination
+properties.
+
+
 
 
 
@@ -1990,6 +2081,61 @@ Instead we have to write
 \begin{alba}
     cons 1 'A' <| cons 0 'B' <| nil: Vector Character 2
 \end{alba}
+
+
+We can append two vectors.
+
+\begin{alba}
+    append
+        (A: Any) (n m: Natural):
+        Vector A n -> Vector A m -> Vector A (n + m)
+    :=
+        case
+            nil :=
+                identity
+
+            cons k e v :=
+                \w := 
+                    cons (k + m) e <| append k m v w
+\end{alba}
+
+
+\begin{alba}
+    reverse (A: Any) (n: Natural): Vector A n -> Vector A n
+    :=
+        case
+            nil :=
+                nil
+
+            cons k e v :=
+                append
+                    (reverse k v)
+                    (cons 0 e nil)
+
+    -- Note: This function does not typecheck. The append function returns
+    --       an object of type 'Vector A (k + 0.successor)' while it
+    --       should return an object of type 'Vector A (0.successor + k)'
+    -- A proof would be necessary to show that both types are identical.
+\end{alba}
+
+
+This example shows that dependent types like \code{Vector} are not very usable
+in practice. Usually computational objects should not have a dependent type. If
+we want to specify that a type has a certain property, a good option is to use
+\code{Specified} which allows to extract the object and the proof and tread them
+separately.
+
+\noindent E.g. we could use
+\begin{alba}
+    Specified (\ (l: List A) := length l = n)
+\end{alba}
+%
+to specify a list with a certain length. The \code{value} and \code{proof}
+functions allow the extraction of the list and the proof of the property.
+
+
+
+
 
 
 
