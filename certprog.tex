@@ -1584,32 +1584,94 @@ We define the order relation on natural numbers inductively.
             => n.successor <= m.successor
 \end{alba}
 
+The inductive type has no parameters and two index arguments. The index
+arguments are of type \code{Natural}. Therefore the compiler can do some analyis
+on the patter which can constitute the proposition \code{n <= m}
 
 \begin{alba}
-  leZeroIsZero (a: Natural) (lez: a <= 0): a = 0 :=
-    inspect lez case
-      step n m :=
-        exFalso where
-          _: 1 + m = 0 => false
+        n               m                   constructor
+
+        0               0                   init 0
+
+        0               j.successor         init j.successor
+
+        i.successor     0                   impossible
+
+        i.successor     j.successor         step i j iLEj
 \end{alba}
+%
+Using this analysis the compiler generates the following propositions
+\begin{alba}
+    discriminate: all n: not n.successor <= 0
+
+    inversion: all n m: n.successor <= m.successor => n <= m
+\end{alba}
+
+
+
+\begin{alba}
+    leZeroIsZero (a: Natural): a <= 0 => a = 0
+    :=
+        (\ aLe0 := f 0 aLe0 identical)
+        where
+            f b: a <= b => 0 = b => a = 0
+            :=
+                case
+                    init b :=
+                        \ _ := identical
+
+                    step _ m _ :=
+                        -- b = m.successor
+                        -- goal: 0 = m.successor => a = 0
+                        discriminate m >> exFalso
+
+    -- note: discriminate: all m: 0 = m.successor => false
+    --       exFalso:      all (A:Any): false -> A
+\end{alba}
+
+
 
 
 
 \noindent The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
-  reflexive (a:Natural): a <= a :=
-    inspect a case
-      0 :=
-        init 0
-      1 + n :=
-        step n n where
-          _: n <= n := reflexive n
+    reflexive: all (a:Natural): a <= a :=
+        case
+            0 :=
+                init 0
+
+            n.successor :=
+                step n n (reflexive n)
 \end{alba}
+
+
 
 
 \noindent The proof of the implication $ 1 + a \le 1 + b \imp a \le b$ is not
 difficult.
+
+
+\begin{alba}
+    -- INCOMPLETE --
+    leSuccImpliesLe
+        (a b: Natural)
+        : a.successor <= b.successor =>  a <= b
+    :=
+        (\ aSuccLEbSucc :=
+            f a.successor identical b.successor identical aSuccLEbSucc)
+        where
+            f n m: n <= m => n = a.successor => m = b.successor => a <= b
+            :=
+                case
+                    init _ :=
+                        -- n = 0
+                        discriminate a >> exFalso
+
+                    step i j iLEj :=
+                        -- i.successor = n, j.successor = m
+                        -- INCOMPLETE --
+\end{alba}
 
 
 \begin{alba}
