@@ -1014,6 +1014,119 @@ term generation.
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Advanced Inductive Types}
+\label{sec:advanced-inductive-types}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\subsubsection{Mutually Inductive Types}
+
+We can define mutually inductive types.
+
+\begin{alba}
+    mutual
+        class
+            Tree A
+        :=
+            node: A -> Children A -> Tree A
+
+        class
+            Children A
+        :=
+            []: Children A
+
+            (+:): Tree A -> Children A -> Children A
+\end{alba}
+%
+and mutually recursive functions
+
+\begin{alba}
+    mutual
+        flip (A: Any): Tree A -> Tree A
+        :=
+            case
+                node a children :=
+                    node a (flip children)
+
+        flip (A: Any): Children A -> Children A
+        :=
+            case
+                [] :=
+                    []
+
+                head +: tail :=
+                    flip tail + flip head
+
+    -- with the helper function
+    (+) (A: Any): Children A -> Tree A -> Children A
+    :=
+        case
+            [] :=
+                \ tree -> tree +: []
+
+            head +: tail :=
+                \ tree ->
+                    head +: (tail + tree)
+
+
+\end{alba}
+
+
+
+
+
+
+But note that for each such set of mutually inductive types there is always an
+equivalent simple inductive type using indices
+%
+\begin{alba}
+    class T := tree; forest
+
+    class Tree A: T -> Any :=
+        []: Tree A children
+
+        node: A -> Tree A forest -> Tree A tree
+
+        (+:): Tree A tree -> Tree A forest -> Tree A forest
+\end{alba}
+%
+and a corresponding simple recursive function
+%
+\begin{alba}
+    flip (A: Any) (t: T) (tree: Tree A t): Tree A t
+    :=
+        inspect t tree case
+            [] :=
+                []
+
+            node a children :=
+                node a <| flip forest children
+
+            head +: tail :=
+                flip forest tail + flip tree head
+
+    -- helper function
+    (+) (A: Any) (children: Tree A forest): Tree A tree -> Tree A forest
+    :=
+        inspect
+            forest children
+        case
+            [] :=
+                \ last := last +: []
+
+            head +: tail :=
+                \ last := head +: (tail + last)
+\end{alba}
+
+\begin{alba}
+\end{alba}
+
+
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Typing Rules}
