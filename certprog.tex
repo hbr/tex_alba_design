@@ -553,13 +553,15 @@ the property \code{f}
 Equality is defined in Alba as an inductive type.
 \begin{alba}
     class
-        (=) (A: Any) (a:A): Predicate A
-    create
-        reflexive: a = a
+        (=) (A: Any) (a: A): Predicate A
+            -- Note: 'Predicate A' expands to
+            --       'A -> Proposition'
+    :=
+        identical: a = a
 \end{alba}
 
 Note that the type \code{A} and the object \code{a} are parameters of the
-inductive type. The expression \code{(a =)} is a predicate i.e. a function
+inductive type. The expression \code{(=) a} is a predicate i.e. a function
 \code{\textbackslash\ x := a = x} mapping each object \code{x} into the
 proposition \code{a = x}.
 
@@ -567,13 +569,84 @@ In the proposition \code{a = b} the character of the left argument \code{a} and
 the right argument \code{b} is different. The first argument is a parameter and
 the second argument is an index.
 
-There is only one constructor to construct an equality proposition. The
-constructed equality is that an object is equal to itself. In order to prove
-\code{all (n:Natural): n + 0 = n} we need a function, mapping any natural
-number \code{n} into a proof of \code{n + 0 = n}.
+A pattern match on an equality of the form \code{a = b} needs two arguments. The
+first argument is an expression for \code{b} and a proof of \code{a = b}. A
+pattern match has a dependent type.
 
-Equal objects need not be represented by identical syntactical expressions
-because of the possibility of reduction.
+\begin{alba}
+    (case identical := ...)
+    : all b: a = b => goal
+
+    -- 'b' usually occurs in 'goal'
+\end{alba}
+
+An inspect expression needs the two arguments as well
+%
+\begin{alba}
+    inspect
+        b; aEQb
+    case
+        identical := ...
+\end{alba}
+%
+which the compiler desugars to
+\begin{alba}
+    case
+            identical := ...
+
+        b aEQb
+\end{alba}
+
+
+
+It is easy to prove the symmetry of equality by using a pattern match.
+\begin{alba}
+    symmetric
+        (A: Any) (a: A)
+        : all b: a = b => b = a
+    :=
+        case
+            identical :=
+                -- goal a = a => a = a
+                identity
+\end{alba}
+
+In the same manner the transitivity of equality can be proved.
+\begin{alba}
+    transitive
+        (A: Any) (a b c: A)
+        : a = b => b = c => a = c
+    :=
+        \ aEQb :=
+            inspect
+                b aEQb
+            case
+                identical :=
+                    -- goal a = c => a = c
+                    identity
+\end{alba}
+%
+Note that the compiler needs the index argument as a variable in order to see
+how the goal depends on that variable. In the pattern match it substitutes the
+index variable \code{b} in the goal by the parameter \code{a}.
+
+\noindent The desugared form with explicit result type looks like
+\begin{alba}
+    transitive
+        (A: Any) (a b c: A)
+        : a = b => b = c => a = c
+    :=
+        \ aEQb :=
+            (
+                case
+                    identical := identity
+                : all b: a = b => b = c => a = c
+            )
+                b
+                aEQb
+\end{alba}
+
+
 
 Equality defined with the above inductive type is a rather strong
 property. This kind of equality is also known as \emph{Leibniz equality} which
@@ -582,9 +655,9 @@ means that two equal objects satisfy the same properties.
 \begin{alba}
     leibniz
         (A: Any)
-        (a b: A)
         (f: Predicate A)
-        : f a => a = b => f b
+        (a b: A)
+        : a = b => f a => f b
     :=
         ...
 \end{alba}
@@ -595,17 +668,16 @@ We can prove this theorem by a pattern match on the proof of the equality.
 \begin{alba}
     leibniz
         (A: Any)
-        (a b: A)
         (f: Predicate A)
-        : f a => a = b => f b
+        (a: A)
+        : all b: a = b => f a => f b
     :=
-        \ fa eq :=
-            inspect
-                eq
-                \ x (_: a = x) := f x
-            case
-                reflexive := fa
+        case
+            identical :=
+                -- goal f a => f a
+                identity
 \end{alba}
+
 
 In order to see why the proof is correct we have added the elimination function
 into the pattern match expression. The arguments of an elimination function are
@@ -619,58 +691,6 @@ match expression. This shows that the elimination function is correct.
 Note that the only constructor \code{reflexive} constructs \code{a = a}, i.e.
 the index is \code{a}. Therefore the expression on the right side of the case
 must construct an object of type \code{f a}.
-
-
-The leibniz rule can be used to prove many other theorems.
-
-In order to prove the symmetry of equality i.e.
-
-\begin{alba}
-    a = b  =>  b = a
-\end{alba}
-
-we express the goal \code{b = a} as a property of \code{b} i.e. we use the fact
-that the following two expressions are equivalent.
-
-\begin{alba}
-    b = a
-
-    (\ x := x = a) b
-\end{alba}
-
-I.e. instead of the goal \code{b = a} we proof the equivalent goal.
-
-
-\begin{alba}
-    equality_is_symmetric
-        (A: Any)
-        (a b: A)
-        : a = b => b = a
-    :=
-        \ eq
-        :=
-            leibniz a b (reflexive: f a) eq
-        where
-            f x := x = a
-\end{alba}
-
-The proof of transitivity follows the same pattern.
-
-\begin{alba}
-    equality_is_transitive
-        (A: Any) (a b c: A)
-        : a = b => b = c => a = c
-    :=
-        \ equal_ab equal_bc
-        :=
-            leibniz b c (equal_ab: f b) equal_bc
-        where
-            f x := a = x
-\end{alba}
-
-Note that \code{f b} is equivalent to \code{a = b} and \code{equal\_ab} proves
-this fact. The leibniz property allows us to tranform a proof of \code{f b} into
-a proof of \code{f c} using \code{equal\_bc}.
 
 
 
@@ -1792,17 +1812,15 @@ natural numbers.
 \begin{alba}
     discriminate (n: Natural): 0 /= n.successor
     :=
-        ev
+        (\ (eq: 0 = n.successor): false := g n.successor eq)
         where
-            ev: 0 = n.successor => f n.successor :=
+            g: all k: 0 = k => f k :=
                 case
                     identical :=
-                        -- goal: f 0  which reduces to 'true'
+                        -- goal: f 0
                         trueValid
             f :=
-                case
-                    0 := true
-                    k.successor := false
+                case 0 := true; k.successor := false
 \end{alba}
 
 
@@ -1818,51 +1836,39 @@ by the property
     all (n m: Natural): n.successor = m.successor  =>  n = m
 \end{alba}
 
-In order to prove this property we need a function mapping two numbers and a
-proof of the equality of their successors into a proof of the equality of the
-numbers.
-
-In this function we can assume a proof of \code{n.successor = m.successor}. This
-indicates that we can use the leibniz property of equality to transform a
-property satisfied by \code{n.successor} into a property satisfied by
-\code{m.successor}.  I.e. we need a predicate \code{f} such that \code{f
-(m.successor)} is equivalent to \code{n = m}.
-
-Playing around a little bit with functions of the type \code{Natural ->
-Proposition} we can find the function
+In order to prove this property we need only a little trick. We have to
+express the goal \code{n = m} as a function of variable representing the right
+hand side of the premise equality which returns the required goal, when
+instantiated with \code{m.successor}. It might not be trivial to find such a
+function, but it is easy to see that the following function does the job.
 
 \begin{alba}
-    f (n: Natural): Natural -> Proposition :=
+    f: Natural -> Proposition :=
         case 0 :=
-            false
-        case k.successor :=
-            n = k
+                true
+             i.successor :=
+                n = i
 \end{alba}
+%
+Having that function the actual proof is a straightforward pattern match on the
+premise equality.
 
-It might be not so easy to find this function, but it is not difficult to
-convince yourself that \code{f n m.successor} is equivalent to \code{n = m}.
-
-Furthermore we can easily see that \code{f n n.successor} is equivalent to
-\code{n = n} which is trivial to prove by the reflexivity constructor of the
-inductive type defining equality.
-
-The complete proof reads like
 
 \begin{alba}
-    invert (n m: Natural): n.successor = m.successor => n = m
+    invert (n m: Natural) (eq: n.successor = m.successor): n = m
     :=
-        g
+        g m.successor eq
         where
-            g: n = m => f m.successor :=
+            g: all k: n.successor = k => f k :=
+                case identical :=
+                    -- goal f n.successor
+                    identical
+            f :=
                 case
-                    identical :=
-                        -- goal: f n.successor
-                        -- which reduces to n = n
-                        identical
-            f: Predicate Natural :=
-                case
-                    0 := false  -- never used
-                    k.successor := n = k
+                    0 :=
+                        true -- never used
+                    i.successor :=
+                        n = i
 \end{alba}
 
 
@@ -1892,7 +1898,7 @@ n.successor.successor} implies \code{isEven n}.
 I.e. we should be able to prove the following propositions:
 
 \begin{alba}
-    discriminate: not isEven 0.successor
+    discriminate: not 0.successor.isEven
 
     invert: all n: isEven n.successor.successor => isEven n
 \end{alba}
@@ -1901,29 +1907,28 @@ I.e. we should be able to prove the following propositions:
 \noindent First we prove \code{discriminate}
 %
 \begin{alba}
-    discriminate: not isEven 0.successor
+    discriminate: not 0.successor.isEven
     :=
-        (\ (ev: isEven 0.successor): false :=
-            f 0.successor ev identical)
+        g 0.successor
         where
-            f k: isEven k => k = 0.successor => false
-            :=
+            g: all k: k.isEven => f k :=
                 case
                     zero :=
-                        discriminate 0
-                    next m _ :=
-                        -- goal: m.successor.successor = 0.successor => false
-                        invert >> flip m.successor 0 >> discriminate
-\end{alba}
-%
-where we use the following properties
-%
-\begin{alba}
-    discriminate (n: Natural): not 0 = n.successor
-
-    invert (n m: Natural): n.successor = m.successor => n = m
-
-    flip (A: Any) (a b: A): a = b => b = a
+                        -- goal: f 0
+                        trueValid
+                    next n evN :=
+                        -- goal: f n.successor.successor
+                        trueValid
+            f: Predicate Natural :=
+                case
+                    0 :=
+                        true
+                    m.successor :=
+                        inspect m case
+                            0 :=
+                                false
+                            _.successor :=
+                                true
 \end{alba}
 
 
@@ -1932,24 +1937,38 @@ where we use the following properties
 \noindent Now we prove \code{invert}
 %
 \begin{alba}
-    invert (n: Natural): isEven n.successor.successor => isEven n
+    invert (n: Natural): n.successor.successor.isEven => n.isEven
     :=
-        (\ ev := f n.successor.successor ev identical)
+        g n.sucessor.successor
         where
-        f k: isEven k => k = n.successor.successor => isEven n
-        :=
-            case
-                zero :=
-                    discriminate n.successor
-                next m evM :=
-                    -- goal: m.successor.successor = n.successor.successor
-                    --       => isEven n
-                    invert m.successor n.successor
-                    >> invert m n
-                    >> (\ (eq: m = n) := leibniz m n eq evM)
+            g: all k: k.isEven => f k :=
+                case
+                    zero :=
+                        -- goal: f 0
+                        trueValid
+                    next m evM :=
+                        -- goal: f m.successor.successor
+                        evM
+            f: Predicate Natural :=
+                case
+                    0 :=
+                        true
+                    k.successor :=
+                        inspect k case
+                            0 :=
+                                true -- never used
+                            m.successor :=
+                                m.isEven
 \end{alba}
 
 
+
+
+
+
+
+
+\noindent NEEDS REWORK WITH NEW DEPENDENT PATTERN MATCH
 
 Now let's look at a definition of the even and odd property of natural numbers
 defined as a mutual type family.
@@ -2043,7 +2062,24 @@ properties.
 
 
 
+\subsection{Compiler Generated Proofs Involving Constructors}
 
+
+
+\begin{alba}
+    reject (n: Natural): 0 = n.successor => false
+    :=
+        (\ k :=
+            (case identical := trueValid)
+            : 0 = k
+              =>
+              (case 0 := true; _.successor := false) k)
+          n.successor
+\end{alba}
+
+
+\begin{alba}
+\end{alba}
 
 
 
@@ -2095,7 +2131,7 @@ We can append two vectors.
                 identity
 
             cons k e v :=
-                \w := 
+                \w :=
                     cons (k + m) e <| append k m v w
 \end{alba}
 
