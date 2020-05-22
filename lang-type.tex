@@ -278,7 +278,7 @@ fixpoints (recursive function) need some explanation.
     &:& \Any
     \\
     \mathbb{L}
-    &:=& \Inductive_{[A^\Any],  I^\Any,  [I, A \to I \to I]}
+    &:=& \Inductive_{[A^\Any],  I^{\Any\to\Any},  [IA, A \to IA \to IA]}
     &:& \Any \to \Any
   \end{array}
   $$
@@ -302,12 +302,14 @@ fixpoints (recursive function) need some explanation.
 
   In program text we write
   \begin{alba}
-      class Natural: Any create
-        0: Natural
-        succ: Natural -> Natural
-      class List (A:Any): Any create
-        []: List A
-        (^): A -> List A -> List A
+      class Natural: Any
+      :=
+            0: Natural
+            succ: Natural -> Natural
+
+      class List (A:Any): Any :=
+            []: List A
+            (+:): A -> List A -> List A
   \end{alba}
   to express the type of natural numbers and the type of lists.
 
@@ -319,15 +321,13 @@ fixpoints (recursive function) need some explanation.
   $\Inductive_{[], I^\Any, [I, I \to I]}$ completely specifies the type and
   $\mathbb{N}$ is just a name for it.
 
-  Furthermore note that the type $T$ in $\Inductive_{\Gamma, x^T, \Cbold}$
-  might have the form $\Pi \ybold^\Abold. \ldots$ i.e. in order to build a
-  type term other arguments beside the parameters might be needed. Therefore
-  in general an inductive type (and not only a type constructor) has the form
-  $$
-  \Inductive_{\Gamma, x^T, \Cbold} \; \pbold \; \abold
-  $$
-  where $\pbold$ is the array of parameters and $\abold$ is the arrary of
-  other arguments. The arguments beside the parameters of an inductive type
+  Furthermore note that the type constructor $T$ in $\Inductive_{\Gamma, x^T,
+  \Cbold}$ might have the form $\Pi \pbold^\Pbold \ybold^\Abold. \ldots$ i.e. in
+  order to build a type term other arguments beside the parameters might be
+  needed.  Therefore in general an inductive type (and not only a type
+  constructor) has the form $$ \Inductive_{\Gamma, x^T, \Cbold} \; \pbold \;
+  \abold $$ where $\pbold$ is the array of parameters and $\abold$ is the arrary
+  of other arguments. The arguments beside the parameters of an inductive type
   are sometimes called the index or the indices of the inductive type.
 
 
@@ -379,80 +379,88 @@ fixpoints (recursive function) need some explanation.
   constructs a singleton list of natural numbers with the element zero.
 
 
-\item[Pattern match] $\case(e,\lambda \ybold^\Abold x^T.R, \fbold)$ A pattern
-  match term has an expression $e$ whose type is the inductive type
-  $\Inductive_{\ldots} \pbold \abold$ i.e. the typing judgement
-  $e : \Inductive_{\ldots} \pbold \abold$ must be valid. The inductive type
-  must be a type and not only a type constructor i.e. it must have enough
-  arguments to be a type. E.g. $\mathbb{N}$ and
-  $\mathbb{L}\, \mathbb{N}$ are types, but $\mathbb{L}$ is not a type (only a
-  type constructor).
+\item[Pattern match]
+    $\case(\fbold, \lambda \ybold^\Abold x^T. R)$
 
-  The subterm $\lambda \ybold^\Abold x^T.R$ is the elimination function. It
-  determines the result type of the pattern match expression. It is a function
-  which maps the expression $e$ of type
-  $\Inductive_{\ldots} \, \pbold \, \abold$ to $R[\ybold := \abold, x:=e]$
-  which is the result type of the expression. In many simple cases $R$ does
-  not depend on its arguments and therefore the result type is the same for
-  all cases of the pattern match. However the elimination function becomes
-  important as soon as each case returns an object of a different type.
+    A pattern match expression of this form has the type $\Pi \ybold^\Abold
+    x^T.R$ where $\Abold$ are the types of the indices of the inductive type and
+    $T = \Inductive_{\ldots} \pbold \ybold$ is the inductive type containing
+    arbitrary parameters $\pbold$ and the indices $\ybold$.  I.e. a case
+    expression expects one argument for each index and one argument for an
+    object of the inductive type. $R$ is the result type of the case expression
+    applied to its arguments. The result type might depend on the indices and on
+    the inductive object.
 
-  The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
-  constructor of the inductive type. The function $f_i$ maps the arguments of
-  the $i$-th constructor to an object of the corresponding result type of the
-  case.
+    The inductive type $\Inductive_{\ldots} \pbold \abold$ must be a type and
+    not only a type constructor i.e. it must have enough arguments to be a type.
+    E.g. $\mathbb{N}$ and $\mathbb{L}\, \mathbb{N}$ are types, but $\mathbb{L}$
+    is not a type (only a type constructor).
 
-  The following two functions are used to illustrate a pattern match term.
-  {\def\Nat{\mathbb{N}}
-    $$
-    %
-    \begin{array}{l}
-      \lambda i^\Nat.
-      \case(i, \lambda x^\Nat. \Nat, [0,\, \lambda i^\Nat. 1])
+    The subterm $\lambda \ybold^\Abold x^T.R$ is the elimination function. It
+    determines the result type of the pattern match expression. It is a function
+    which maps the index expressions $\abold$ and an expression $e$ of type
+    $\Inductive_{\ldots} \pbold \abold$ to $R[\ybold := \abold, x:=e]$
+    which is the result type of the expression. In many simple cases $R$ does
+    not depend on its arguments and therefore the result type is the same for
+    all cases of the pattern match. However the elimination function becomes
+    important as soon as each case returns an object of a different type.
 
-      \\
+    The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
+    constructor of the inductive type. The function $f_i$ maps the arguments of
+    the $i$-th constructor to an object of the corresponding result type of the
+    case.
 
-      \lambda i^\Nat.
-      \case(i, \lambda x^\Nat. \Nat, [0,\, \lambda i^\Nat. i])
+    The following two functions are used to illustrate a pattern match term.
+    {\def\Nat{\mathbb{N}}
+      $$
+      %
+      \begin{array}{l}
+          \case ([ 0 , \lambda i^\Nat. 1], \lambda \_^\Nat. \Nat)
 
-    \end{array}
-    $$
-    where $0$ is an abbreviation for $\Constructor^0_\Nat$ and $1$ is an
-    abbreviation for $\Constructor^1_\Nat\, \Constructor^0_\Nat$
-    (i.e. successor of zero).
-  }
+          \\
 
-  The first function maps the number zero to the number zero and every other
-  number to the number one. The second one computes a predecessor function
-  which maps the number zero to zero and every other number to its
-  predecessor. Since every number different from zero is constructed by
-  applying the second constructor to its predecessor, the needed function in
-  the case expression is just the identity function.
+          \case ([ 0, \lambda i^\Nat. i], \lambda \_^\Nat. \Nat)
+      \end{array}
+      $$
+      where $0$ is an abbreviation for $\Constructor^0_\Nat$ and $1$ is an
+      abbreviation for $\Constructor^1_\Nat\, \Constructor^0_\Nat$
+      (i.e. successor of zero).
+    }
 
-  Note that the elimination function is trivial in both examples because a
-  natural number is returned in each case of the pattern match.
+    The first function maps the number zero to the number zero and every other
+    number to the number one. The second one computes a predecessor function
+    which maps the number zero to zero and every other number to its
+    predecessor. Since every number different from zero is constructed by
+    applying the second constructor to its predecessor, the needed function in
+    the case expression is just the identity function.
 
-  {\def\Nat{\mathbb{N}} \def\List{\mathbb{L}}
+    Note that the elimination function is trivial in both examples because a
+    natural number is returned in each case of the pattern match.
 
-    In the calculus some weird function can be defined. E.g.
-    $$
-    F :=
-    \lambda i^\Nat.
-    \case(i, \lambda i^\Nat. \Any, [\Nat,\, \lambda i^\Nat. \List\, \Nat])
-    $$
-    defines a function $F$ which maps the number zero to the type of natural
-    numbers and every other number to the type of list of natural
-    numbers. Therefore $F$ is a type valued function whose argument is a
-    number i.e. an object.
+    {\def\Nat{\mathbb{N}} \def\List{\mathbb{L}}
 
-    We can use the function $F$ as an elimination function to define a
-    function which maps the number zero to the number zero and every other
-    number to an empty list of natural numbers.
-    $$
-    \lambda i^\Nat.
-    \case(i, F, [\Constructor^0_\Nat,\, \Constructor^0_\List\, \Nat])
-    $$
-  }
+        In the calculus some weird function can be defined. E.g.
+        $$
+        F :=
+        \case(
+            [\Nat,\, \lambda i^\Nat. \List\, \Nat],\;
+            \lambda \_^\Nat. \Any
+        )
+        $$
+        defines a function which maps the number zero to the type of natural numbers
+        and every other number to the type of list of natural numbers. Therefore the
+        $F$ is a type valued function whose argument is a number i.e. an
+        object.
+
+        We can use the function $F$ as an elimination function to define a
+        function which maps the number zero to the number zero and every other
+        number to an empty list of natural numbers.
+        $$
+        \case([\Constructor^0_\Nat,\, \Constructor^0_\List\, \Nat],\; F)
+        $$
+    }
+
+
 \item[Fixpoint] $\fix(x^T, t, k)$ A Fixpoint encodes a recursive function. It
   consists of a bound variable $x$ and its type $T$, a term $t$ using this
   bound variable an a number $k$ indicating that the $k$-th argument of the
@@ -617,10 +625,13 @@ where $\Gamma = [p_0:P_0, p_1: P_1, \ldots]$ are the parameters of the
 inductive type and $\Cbold = [C_0, C_1, \ldots]$ its constructor types.
 
 In order to define an inductive type, the type $T$ of the bound variable $I$
-must reduce to a kind i.e. $T \reduce^* \Pi \xbold^\Abold. s$. The arguments of
-$T$ are the arguments of the inductive type. In the literature the arguments of
-an inductive type are called the index or indices of the inductive type in order
-distinguish them clearly from the parameters.
+must reduce to a kind i.e. $T \reduce^* \Pi \pbold^\Pbold \xbold^\Abold. s$. The
+arguments $\xbold$ of $T$ are the arguments of the inductive type. In the
+literature the arguments of an inductive type are called the index or indices of
+the inductive type in order distinguish them clearly from the parameters.
+
+
+
 
 
 \subsubsection{Constructor}
@@ -631,15 +642,16 @@ distinguish them clearly from the parameters.
   $$
   \begin{array}{lll}
     C
-    &:= & I \abold
+    &:= & I \pbold \abold
     \\
     &\mid& \Pi x^A . C
   \end{array}
   $$
-  where $C$ ranges over type of constructors and $\abold$ is an array of
-  terms. I.e. the type of a constructor for the bound variable $I$ has the
-  form $\Pi \xbold^\Abold. I \abold$ where $|\abold|$ corresponds to the
-  number of arguments (indices) of the inductive type.
+  where $C$ ranges over type of constructors, $\pbold$ are the parameters and
+  $\abold$ is an array of terms. I.e. the type of a constructor for the bound
+  variable $I$ has the form $\Pi \xbold^\Abold. I \pbold  \abold$ where
+  $|\abold|$ corresponds to the number of arguments (indices) of the inductive
+  type.
 \end{definition}
 
 All constructor types of an inductive definition must reduce to a type of a
@@ -719,6 +731,7 @@ replaced by the type $\Natural$ in which $I$ does not occur.
 
   \end{itemize}
 \end{definition}
+%
 In a case expression only valid elimination function can be used for the
 following reasons:
 \begin{itemize}
@@ -782,13 +795,10 @@ is no branch because the type has no constructors.
 
 In source code we write
 \begin{alba}
-  class false: Proposition create
-    -- no constructors
+    class false: Proposition := -- no constructors
 
-  ex_falso: all(A:Any): false -> A
-  ex_falso A p :=
-    inspect p case
-      -- no cases
+    exFalso (A: Any): false -> A
+    := case -- no cases
 \end{alba}
 
 
@@ -1262,27 +1272,27 @@ and a corresponding simple recursive function
   \item[inductive type]
     $$
     \rulev
-    { T = \Pi \xbold^\Abold.s
+    { T = \Pi \pbold^\Pbold \xbold^\Abold.s
       \\
-      \Gamma, \pbold:\Pbold, I:T \vdash I:T
+      \Gamma, I:T \vdash I:T
       \\
-      \forall i\;.\; C_i = \Pi \ybold^{\Bbold_i}. I \, \abold_i
+      \forall i\;.\; C_i = \Pi \ybold^{\Bbold_i}. I \,\pbold \, \abold_i
       \;\text{\small(constructor type with positivity)}
       \\
-      \forall i\;.\, \Gamma, \pbold:\Pbold, I:T \vdash C_i : s
+      \forall i\;.\, \Gamma, I:T, \pbold:\Pbold \vdash C_i : s
     }
     {
       \Gamma \vdash
       \Inductive_{[\pbold:\Pbold], I:T, [C_0,C_1,\ldots]}
       :
-      \Pi \pbold^\Pbold . T
+      T
     }
     $$
     where the conditions above the line require
     \begin{enumerate}
     \item $T$ must be a kind.
 
-    \item $T$ is a valid type in a context with all parameters so that a
+    \item $T$ is a valid type so that a
       variable can be defined which has that type.
 
     \item The types $C_i$ are constructor types for the variable $I$ which
