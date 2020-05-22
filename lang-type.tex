@@ -1345,7 +1345,42 @@ and a corresponding simple recursive function
 
 
   \item[pattern match]
-    TODO
+    $$
+    \rulev
+    {
+        T = \Pi \ybold^\Abold. s_I
+        \\
+        \forall i\;.\; C_i = \Pi \zbold^{\Bbold_i}. I \, \abold_i
+        \\
+        U =
+            \Inductive_{
+                [\pbold:\Pbold],
+                I: T,
+                [C_0, C_1, \ldots]}
+        \\
+        \Gamma \vdash U \qbold: T
+        \\
+        \Gamma, \ybold^\Abold, x^{U\qbold\ybold} \vdash R: s_R
+        \\
+        U \text{ can eliminate to } s_R
+        \\
+        F = \lambda \ybold^\Abold x^{U\qbold\ybold}. R
+        \\
+        \forall i\;.\;
+            \Gamma
+            \vdash
+            f_i: \Pi \zbold^{\Bbold_i}. 
+                F\, 
+                \abold_i\, 
+                (\Constructor^i_U \qbold\zbold)
+    }
+    {
+        \Gamma
+        \vdash
+        \case(\fbold, F)
+        : \Pi \ybold^\Abold x^{U\qbold\ybold} . F \ybold x
+    }
+    $$
 
   \item[fixpoint]
     TODO
