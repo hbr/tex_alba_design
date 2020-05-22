@@ -533,16 +533,27 @@ fixpoints (recursive function) need some explanation.
 
   \item Pattern match
     $$
-    \ruleh
-    {|\Gamma| = |\pbold|}
+    \rulev
     {
-      \case(
-      \Constructor^j_{\Inductive_{\Gamma,x:T,\Cbold}}\,\pbold\,\abold,
-      \lambda x^A.R,
-      \fbold)
-      \reduce f_j \, \abold
+        T \text{ is an inductive type}
+        \\
+        |\fbold| \text{ number of constructors}
+        \\
+        j < |\fbold|
+        \\
+        |\abold| \text{ number of indices}
+        \\
+        |\pbold| \text{ number of parameters}
+        \\
+        |\bbold| \text{ number of arguments of constructor } j
+    }
+    {
+        \case(\fbold, \_)\, \abold \, (\Constructor^j_T \pbold \bbold)
+        \reduce
+        f_j \, \bbold
     }
     $$
+
 
   \item Fixpoint
     $$
