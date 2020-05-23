@@ -68,28 +68,26 @@ can conclude anything, is a basic law of logic. It is possible to prove this
 law in Alba by writing a function with the signature
 
 \begin{alba}
-  ex_falso (pf: false) (A: Any): A :=
-    ...
+    exFalso (A: Any): false -> A := ...
 \end{alba}
 %
-The signature of this function gives the promise: \emph{Give me a proof of
-  \code{false} and an arbitrary type and I return you an object of that
-  type}. Since \code{a:Proposition} implies \code{a:Any} in Alba, all
-propositions can be entered as actual arguments for \code{A}.
+The signature of this function gives the promise: \emph{Give me an arbitrary
+type and a proof of \code{false} and I return you an object of that type}. Since
+\code{a:Proposition} implies \code{a:Any} in Alba, all propositions can be
+entered as actual arguments for \code{A}.
 
 
 Remember that \code{false} is an inductive type with the following definition.
 \begin{alba}
-  class false: Proposition create
-    -- no constructors
+    class false: Proposition := -- no constructors
 \end{alba}
 %
 Since there are no constructors we can complete the desired function
 
 \begin{alba}
-  ex_falso (pf: false) (A: Any): A :=
-    inspect pf case
-      -- empty pattern match, because there are no constructors
+    exFalso (A: Any): false -> A :=
+        case
+            -- empty pattern match, because there are no constructors
 \end{alba}
 %
 Each case must return an object of the desired type. But since there are no
@@ -128,17 +126,13 @@ explicitly it looks like
 \begin{alba}
     contrapositive (a b: Proposition): (a => b) => not b => not a
     :=
-        \   a_implies_b
-            not_b
-            proof_of_a
-        :=
-            not_b (a_implies_b proof_of_a)
+        \ fab notB evA := fab evA |> notB
 \end{alba}
 
 \noindent Explanation: A proof of \code{not a} is a function which maps a proof
 of \code{a} into a proof of false. If we have a proof of \code{a} we can use the
-argument \code{a\_implies\_b} which maps a proof of \code{a} into proof of
-\code{b} and then use \code{not\_b} which maps a proof of \code{b} into a proof
+argument \code{fab} which maps a proof of \code{a} into proof of
+\code{b} and then use \code{notB} which maps a proof of \code{b} into a proof
 of \code{false} which is the desired result.
 
 
@@ -198,12 +192,12 @@ opens the possibility to use the function of type \code{not b => not a}.
 \begin{alba}
     contra3 (a b: Proposition): (not b => not a) => a => not not b
     :=
-        \   not_b_to_not_a
-            proof_of_a
-            not_b
-        :=
-            (not_b_to_not_a not_b) proof_of_a
+        \   fNotBNotA evA notB: false :=
+                fNotBNotA notB evA
 \end{alba}
+
+
+
 
 
 
@@ -236,8 +230,7 @@ matches on the construction of \code{a or b}
     swapOr (a b: Proposition): a or b => b or a
     :=
         case
-            left pa := right pa
-
+            left pa  := right pa
             right pb := left pb
 \end{alba}
 
@@ -322,28 +315,36 @@ Morgan's laws states the equivalence of the two statements
 %
 In order to prove the equivalence we have to prove both directions.
 \begin{alba}
-    de_morgan1_forward
+    deMorgan1Forward
         (a b: Proposition)
         : not (a or b) => not a and not b
     :=
-        \ not__a_or_b :=
-            (\ pa := not__a_or_b (left pa),
-             \ pb := not__a_or_b (right pb))
+        \ notAOrB :=
+            (left >> notAOrB,  right >> notAOrB)
 \end{alba}
+%
+Explanation: \code{notAOrB} is a function which maps evidence of \code{a or b}
+into evidence of \code{false}. A proof of \code{not a} needs a function which
+maps evidence of \code{a} into evidence of \code{false}. Therefore we can
+combine \code{left} which maps evidence of \code{a} into evidence of \code{a or
+b} and \code{notAOrB} which maps evidence of \code{a or b} into evidence of
+\code{false} and we are done for \code{not a}. The proof of \code{not b} follows
+the same pattern.
+
+
 
 \begin{alba}
-    de_morgan1_backward
+    deMorgan1Backward
         (a b: Proposition)
         : not a and not b => not (a or b)
     :=
-        \   nota_and_notb
-            a_or_b
-        :=
-            inspect nota_and_notb case
-                (nota, notb) :=
-                    inspect a_or_b case
-                        left pa  := nota pa
-                        right pb := notb pb
+        case
+            (notA, notB) :=
+                case
+                    left evA :=
+                        notA evA
+                    right evB :=
+                        notB evB
 \end{alba}
 
 
@@ -356,18 +357,19 @@ There is a second De Morgan's law stating the equivalence of
 
 The forward direction can be proved by the function
 \begin{alba}
-    de_morgan2_forward
+    deMorgan2Forward
         (a b: Proposition)
         : not a or not b => not (a and b)
     :=
-        \   nota_or_notb
-            ab
-        :=
-            inspect ab case
-                (pa, pb) :=
-                    inspect nota_or_notb case
-                        left nota  := nota pa
-                        right notb := notb pb
+        case
+            left notA :=
+                case
+                    (evA, _) :=
+                        notA evA
+            right notB :=
+                case
+                    (_, evB) :=
+                        notB evB
 \end{alba}
 
 
