@@ -3,42 +3,101 @@
 
 \subsection{Recursion Schemes}
 
+Goal: Separation of recursion and algebraic operations on subterms.
+
+\subsubsection{Example: Expression Evaluation}
+
 \begin{alba}
-    class Expression :=
-        value: Int -> Expression
-        plus:  Expression -> Expression -> Expression
-        times: Expression -> Expression -> Expression
+    class Ring :=
+        zero:   Ring
+        one:    Ring
+        add:    Ring -> Ring -> Ring
+        times:  Ring -> Ring -> Ring
+        negate: Ring -> Ring
+
+    eval: Ring -> Int :=
+            -- specific evaluation function
+        case
+            zero :=
+                0
+            one  :=
+                1
+            add a b :=
+                eval a + eval b
+            times a b :=
+                eval a * eval b
+            negate a :=
+                - eval a
 \end{alba}
 
 
 
-\noindent Parametrized expression:
+\noindent Parametrized expression with F-Algebra
 
 \begin{alba}
-    class Expr (A: Any): Any :=
-        value: Int -> Expr A
-        plus:  A -> A -> Expr A
-        times: A -> A -> Expr A
+    Algebra (F: Any -> Any) (A: Any): Any :=
+        F A -> A
+
+    class RingF  (A: Any): Any :=
+        zero:   RingF A
+        one:    RingF A
+        add:    A -> A -> RingF A
+        times:  A -> A -> RingF A
+        negate: A -> RingF A
+
+    evalF: Algebra RingF Int :=
+        -- note: Algebra RingF Int = (RingF Int -> Int)
+        case
+            zero :=
+                0
+            one :=
+                1
+            add a b :=
+                a + b
+            times a b :=
+                a * b
+            negate a :=
+                - a
+\end{alba}
+
+\noindent Generic evaluation function using F-Algebra
+
+\begin{alba}
+    eval (A: Any) (eF: Algebra RingF A): Expression -> A
+    :=
+        case
+            zero :=
+                eF zero
+            one :=
+                eF one
+            add a b :=
+                eF <| add (eval a) (eval b)
+            times a b :=
+                eF <| times (eval a) (eval b)
+            negate a :=
+                eF <| negate (eval a)
 \end{alba}
 
 
-\noindent Fixpoint:
+
+\subsubsection{Example: List}
 
 \begin{alba}
-    class Fix (F: Any -> Any): Any :=
-        make: F (Fix F) -> Fix F
-\end{alba}
-%
-Problem: \code{Fix} occurs in \code{F (Fix F)} in a positive position, but it is
-nested in \code{F}. At the time of compilation the compiler does not know that
-the type constructor \code{F} is an inductively defined type constructor. This
-is known only a instantiation time.
+    class List A :=
+        []: List A
+        (+:): A -> List A -> List A
 
-Possible solution: Mark the parameter \code{F} is a parameter which can be
-instantiated only with an inductively defined type constructor.
+    class ListF A B :=
+        nil := ListF A B
+        cons: A -> B -> ListF A B
 
-
-\begin{alba}
+    eval (A B: Any) (e: ListF A B -> B): List A -> B
+    :=
+        case
+            [] :=
+                e nil
+            head +: tail :=
+                eval tail |> cons head |> e
 \end{alba}
 
 
