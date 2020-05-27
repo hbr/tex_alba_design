@@ -1,5 +1,49 @@
 \section{Syntax}
 
+
+\subsection{Recursion Schemes}
+
+\begin{alba}
+    class Expression :=
+        value: Int -> Expression
+        plus:  Expression -> Expression -> Expression
+        times: Expression -> Expression -> Expression
+\end{alba}
+
+
+
+\noindent Parametrized expression:
+
+\begin{alba}
+    class Expr (A: Any): Any :=
+        value: Int -> Expr A
+        plus:  A -> A -> Expr A
+        times: A -> A -> Expr A
+\end{alba}
+
+
+\noindent Fixpoint:
+
+\begin{alba}
+    class Fix (F: Any -> Any): Any :=
+        make: F (Fix F) -> Fix F
+\end{alba}
+%
+Problem: \code{Fix} occurs in \code{F (Fix F)} in a positive position, but it is
+nested in \code{F}. At the time of compilation the compiler does not know that
+the type constructor \code{F} is an inductively defined type constructor. This
+is known only a instantiation time.
+
+Possible solution: Mark the parameter \code{F} is a parameter which can be
+instantiated only with an inductively defined type constructor.
+
+
+\begin{alba}
+\end{alba}
+
+
+
+
 \subsection{Indentation Blocks}
 
 There are certain constructs which require that the following construct must
