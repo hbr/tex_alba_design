@@ -151,7 +151,207 @@ algebra.
 
 
 
+\subsection{Anamorphism}
+
+Example: List unfold
+
+\begin{alba}
+    -- Note: Function might not terminate!! Not valid in Alba!!
+    unfold (A B: Any) (f: A -> Maybe (B, A)) (a: A): List B :=
+        inspect f a case
+            nothing :=
+                []
+            just (b, a) :=
+                b +: unfold f a
+
+    -- example: Range function
+    range (a n: Natural): List Natural :=
+            -- start from 'a', 'n' elements
+        unfold f (a,n)
+        where
+            f :=
+                case
+                    (a,n) :=
+                        inspect n case
+                            0 :=
+                                nothing
+                            k.successor :=
+                                just (a, (a + 1, k))
+\end{alba}
+
+
+
+
+
+\begin{alba}
+    factorial (n: Natural): Natural :=
+        foldRight (\i acc := acc * i) 1 (range 1 n)
+
+        -- foldLeft would be more efficient (tail recursive)
+\end{alba}
+
+
+\begin{alba}
+    -- Note: Function might not terminate!! Not valid in Alba!!
+    ana (A B: Any) (make: B -> ListF A B): B -> List A :=
+        f where
+            f b1 :=
+                inspect make b1 case
+                    nil :=
+                        []
+                    cons a b2 :=
+                        a +: f b2
+\end{alba}
+
+
+
+
+
+
+
+\begin{alba}
+\end{alba}
+
+
+
+
+
+
+
+
 \subsection{Abstract Datatypes: Different Approach}
+
+
+
+The 3 most important abstract data types.
+
+\begin{alba}
+    class Decidable (A: Any): Any :=
+        decidable: (all (a b: A): Decision (a = b) (a /= b)) -> Decidable A
+
+    class Sortable (A: Any): Any :=
+        sortable
+            (r: Endorelation A)
+            :
+                r.isTransitive
+                ->
+                (all a b: Comparison r a b)
+                ->
+                Sortable A
+
+    class SortableKey (A: Any): Any :=
+        sortable
+            (r: Endorelation A)
+            :
+                r.isTransitive
+                ->
+                r.isAntisymmetric
+                ->
+                (all a b: Comparison r a b)
+                ->
+                Sortable A
+
+    -- with the following comparison type:
+    class Comparison (A: Any) (r: Endorelation A) (a b: A): Any :=
+        lessThan: r a b -> not r b a -> Comparison r a b
+
+        equivalent: r a b -> r b a -> Comparison r a b
+
+        greaterThan: not r a b -> r b a -> Comparison r a b
+\end{alba}
+%
+Every sortable type has a transitive endorelation and a comparison function. The
+presence of a comparison function guarantees reflexivity. Reason:
+An object of type \code{Comparison a a} can only be constructed by
+\code{equivalent} which guarantees \code{r a a}. The other constructors imply a
+contradiction.
+
+Furthermore the endorelation of a sortable type is linear. Reason: The
+comparison function does not allow that two elements are unrelated i.e.
+\code{not r a b and not r b a} is not possible by construction.
+
+Every sortable key has in addition to a sortable an antisymmetric order
+relation. The antisymmetry guarantees that {\em equivalence} implies {\em
+equality}.
+
+Note that a sortable key is decidable. Reason: Equivalence proves equality. Less
+than and greater than together with equality lead to a contradiction, therefore
+both prove inequality.
+
+
+
+
+\begin{alba}
+\end{alba}
+
+
+
+
+
+
+
+We define an inductive type which captures the essence of a partial order.
+
+\begin{alba}
+    class
+        PartialOrder (A: Any): Any
+    :=
+        partialOrder
+            (r: Endorelation A)
+            :   r.isReflexive -> r.isAntisymmetric -> r.isTransitive
+                -> PartialOrder A
+\end{alba}
+
+
+We introduce a section to define more functions on partial orders.
+
+\begin{alba}
+    section
+        A: Any
+        (<=): Endorelation A
+        reflexive: (<=).isReflexive
+        antisymmetric: (<=).isAntisymmetric
+        transitive: (<=).isTransitive
+    :=
+        lowerBound (p: Predicate A) (x: A): Proposition :=
+            all y: p y => x <= y
+
+        lowerBoundTransitive
+            (x y: A) (p: Predicate A)
+            : x <= y => lowerBound p y => lowerBound p x
+        :=
+            \ xLEy lbY z pZ: x <= z :=
+                transitive xLEy <| lbY pZ
+
+        least (p: Predicate A) (x: A): Proposition :=
+            p x and lowerBound p x
+
+        upperBound (p: Predicate A) (x: A): Proposition :=
+            all y: p y => y <= x
+
+        greatest (p: Predicate A) (x: A): Proposition :=
+            p x and upperBound p x
+
+        infimum (p: Predicate A)  (x: A): Proposition :=
+            greatest (lowerBound p) x
+
+        supremum (p: Predicate A)  (x: A): Proposition :=
+            least (upperBound p) x
+
+        ...
+\end{alba}
+
+
+
+
+
+
+
+
+\begin{alba}
+\end{alba}
+
+
 
 
 
