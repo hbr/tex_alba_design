@@ -103,6 +103,51 @@ Goal: Separation of recursion and algebraic operations on subterms.
 
 
 
+\subsubsection{Top Down Traversal}
+
+The previous generic evaluation function used a postorder traversel of the tree.
+It first evaluated the children, and then evaluated the node. This traversal is
+essentially bottoms up. For lists this recursion corresponds to
+\code{foldRight}.
+
+There is also a top down traversal e.g. for lists \code{foldLeft}.
+
+\begin{alba}
+    foldLeft (A B: Any) (f: A -> B -> B) (start: B): List A -> B
+    :=
+        case
+            [] :=
+                start
+            head +: tail :=
+                foldLeft f (f head start) tail
+\end{alba}
+%
+This recursion has the advantage that it is tail recursive. How can we encode
+this function as a generic recursion with some algebra?
+
+The following function does the job.
+
+\begin{alba}
+    evalRight (A B: Any) (e: Algebra (ListF A) B): List A -> B
+    :=
+        f (e nil) where
+        f start :=
+            case
+                [] :=
+                    start
+                head +: tail :=
+                    f (e <| cons head start) tail
+\end{alba}
+
+Does this work in the generic case? Probably not, because it violates the
+algebra.
+
+
+
+
+
+
+
 \subsection{Indentation Blocks}
 
 There are certain constructs which require that the following construct must
