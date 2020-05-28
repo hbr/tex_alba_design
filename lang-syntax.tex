@@ -1,5 +1,10 @@
 \section{Syntax}
 
+This chapter would be better named "Experimental Language Concepts".
+
+
+
+
 
 \subsection{Recursion Schemes}
 
@@ -143,6 +148,49 @@ Does this work in the generic case? Probably not, because it violates the
 algebra.
 
 
+
+
+
+\subsection{Abstract Datatypes: Different Approach}
+
+
+
+\begin{alba}
+    class Group A :=
+        group
+            (zero: A)
+            (plus: A -> A -> A)
+            (invers: A -> A)
+            (assoc: all a b c: (a.plus b).plus c = a.plus(b.plus c))
+            (rightNeutral: all a: a.plus zero = a)
+            (rightInvers:  all a: a.plus a.invers = zero) = e)
+
+    -- Having this, the following shall be provable
+    section
+        (A: Any)
+        (g: Group A)
+    :=
+        leftNeutral: all a: g.zero.(g.plus) a = a := ...
+
+        leftInvers:  all a: a.(g.invers).(g.plus) a = g.zero
+\end{alba}
+
+Some syntactic sugar might be necessary to make it more readable.
+
+
+
+\begin{alba}
+    intGroup: Group Int :=
+        group 0 (+) (-) assocProof rightNeutralProof rightInversProof
+\end{alba}
+
+This approach has the advantage, that no name clashes are possible, inheritance
+is trivial etc. (like modules in Coq).
+
+
+
+\begin{alba}
+\end{alba}
 
 
 
