@@ -119,21 +119,107 @@ terms or types which are not yet known. We introduce the holes in a form which
 maintains the context welltyped. In the course of the term building we fill the
 holes by maintaining the wellformedness of the context.
 
-At the start of a term building we introduce two holes into the context. One
-($E$) for the type of the term to be constructed and one ($e$) for the term to
-be constructed.  We start with the context
+It is important that every context with holes is well formed. In the following
+we show, how to introduce variables representing holes into a context and
+maintain the wellformedness condition.
+
+Let $u$, $v$, $w$ be variables representing predicative sorts (i.e. the stand
+for $\Any_i$ for an arbitrary $i$). $u'$ represents $\Any_{i+1}$, when $u$
+represents $\Any_i$.
+
+
+\subsubsection{Introduce type variables}
+
+If $\Gamma$ is a wellformed context, then $\Gamma, A^u$ is valid as well. This
+fact can be proved by looking at a specialized version of the variable
+introduction rule
+%
 $$
-\Gamma, E^{\Any_2}, e^E
+\ruleh
+{\Gamma \vdash u: u'}
+{\Gamma, A^u \vdash A: u}
+$$
+%
+Having a valid context $\Gamma,A^u$ we can introduce variables of type $A$ i.e.
+form $\Gamma, A^u, x^A$ with the two holes $A$ and $x$.
+
+Note that we can fill the holes with $x := \Any_0$ and $A := \Any_1$ by
+generating the constraint $\Any_1 < u$.
+
+If we analyze an expression $e$ of unkown type in a context $\Gamma$, we can
+introduce a variable $E$ representing the unknown type and a variable $e$
+representing the expression and start with the context
+%
+$$
+\Gamma, E^u, e^E
 $$
 
-We choose the type of $E$ to be $\Any_2$ in order to be able to fill the hole
-$e$ with $\Any_0$, which requires the filling of $E$ with $\Any_1$ which
-requires the type of $E$ to be $\Any_2$.
 
 
-If we expect a type we use a placeholder $T^{\Any_1}$. This makes the filling of
-$T$ with any type e.g. with $\Natural$, $a \le b$, $\Any_0$, or $\Prop$
-possible.
+
+\subsubsection{Introduce type constructor variables}
+
+From the product rule and the subtype rule we can derive the validity of
+%
+$$
+\rulev
+{
+    \Gamma \vdash A: u
+    \\
+    \Gamma, x^A \vdash B: v
+}
+{
+    \Gamma \vdash \Pi x^A. B : \max(u, v)
+}
+$$
+%
+We can specialize this rule to
+%
+$$
+\rulev
+{
+    \Gamma \vdash A: u
+    \\
+    \Gamma, x^A \vdash v: v'
+}
+{
+    \Gamma \vdash A \to v : \max(u,v')
+}
+$$
+and by using the variable introduction rule we generate the valid context
+%
+$$
+\Gamma, F^{A \to v}
+$$
+i.e. introduce a hole $F$ representing a type constructor. In this context the
+following typing derivation is valid
+%
+$$
+\rulev
+{
+    \Gamma, F^{A \to v} \vdash A : u
+    \\
+    \Gamma, F^{A \to v}, x^A \vdash x: A
+    \\
+    \Gamma, F^{A \to v}, x^A \vdash F x: v[x := x]
+}
+{
+    \Gamma, F^{A \to v} \vdash \Pi x^A. F x: \max(u, v)
+}
+$$
+%
+Based on this validity we can introduce a variable $f$ having as its type the
+product
+$$
+\Gamma, F^{A \to v}, f^{\Pi x^A. F x}
+$$
+%
+With all these derivations it can be seen, that the function application
+$$
+\Gamma, A^u, a^A, F^{A \to v}, f^{\Pi x^A. F x} \vdash f a: F a
+$$
+%
+based on pure holes is valid.
 
 
 
@@ -150,7 +236,7 @@ remain ambiguities. Example:
    2 = 3  => 3 = 4: Proposition
 \end{alba}
 %
-This expression is type annotated and there are no untyped bound variable.
+This expression is type annotated and there are no untyped bound variables.
 However the expression is ambiguous.
 %
 \begin{alba}
@@ -159,7 +245,7 @@ However the expression is ambiguous.
    ...
 \end{alba}
 %
-Reason: The equality operator {\emph looses} information, because it has the
+Reason: The equality operator \emph{looses} information, because it has the
 type
 %
 \begin{alba}
