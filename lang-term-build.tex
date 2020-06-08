@@ -394,11 +394,77 @@ $$
 $$
 
 
+In a unification problem we encounter only the following type of holes.
+\begin{itemize}
+
+\item Implicit arguments: The type of these holes are always kinds, i.e. the
+implicit arguments stand either for types or type constructors. The types of
+these holes do not contain any universe variables.
+
+\item Unknown types of expressions (or bound variables) and the corresponding
+types of these types. The types of these holes usually contain universe
+variables.
+
+\end{itemize}
+
+
+Cases to consider
+\begin{description}
+\item[sort-sort]
+Sorts can only be unified if the figure in the required relation.
+$$
+\rulev {
+    E + \Psi \vdash s_1 \relmust{r} s_2, \quad \sigma
+    \\
+    \Psi \vdash s_1 \mathrel{r} s_2
+}
+{
+    E, \quad \sigma
+}
+$$
+
+\item[product-product]
+For products we have two rules. The first rule applies if the argument types are
+not yet unified.
+$$
+\rulev
+{
+    E + \Psi \vdash \Pi x^A.B \relmust{r} \Pi x^C. D, \quad \sigma
+    \\
+    \lnot \Psi \vdash A \mathrel{r} C
+}
+{
+    E
+    + \Psi \vdash A \eqmust{r} C
+    + \Psi \vdash \Pi x^A.B \relmust{r} \Pi x^C. D,
+    \quad \sigma
+}
+$$
+%
+The second rule applies, when the argument types have been unified.
+$$
+\rulev
+{
+    E + \Psi \vdash \Pi x^A.B \relmust{r} \Pi x^C. D, \quad \sigma
+    \\
+    \Psi \vdash A \mathrel{r} C
+}
+{
+    E
+    + \Psi,x^A \vdash B \relmust{r} D
+    ,\quad \sigma
+}
+$$
+
+
+\end{description}
 
 
 
+\subsection{Examples}
 
-\subsection{Example}
+
+\subsubsection {Function Application}
 
 We analyze the source code expression
 \begin{alba}
@@ -437,11 +503,11 @@ g^{\Pi x^C.Gx}. Gx$:
     Creating the unification problem
     $$
     \begin{array}{l}
-        C \eqmust A
+        ([], C \eqmust A)
         \\
-        \Pi x^C . G x \eqmust B x
+        ([x^C], \Pi x^C . G x \eqmust B x)
         \\
-        G x \lemust F x y
+        ([x^C, y^{\Pi x^C.G x}], G x \lemust F x y)
     \end{array}
     $$
     %
@@ -506,6 +572,77 @@ $i$ as an abbreviation for \code{identical}.
 
     \end{enumerate}
 \end{enumerate}
+
+
+\subsubsection{Product}
+
+We analyze the source code expression
+\begin{alba}
+    all C: C -> C
+
+    -- which is equivalent to
+    all (x: _) (y: x): x
+\end{alba}
+
+A product with two arguments has the most general form.
+%
+\begin{alba}
+    all (x: A) (y: B): R
+\end{alba}
+%
+and we need the following context
+$$
+\Gamma, A^{u_A}, x^A, B^{u_B}, y^B, R^{u_R}
+$$
+%
+with the metavariables $A$, $B$ and $R$ representing types (or sorts).
+
+
+
+\begin{enumerate}
+
+\item First argument \code{(x: \_)}: There is nothing to do, because we have no
+explicit type for $x$.
+
+\item Second argument \code{(y: x)}:
+
+We want to try the substitution $B := x$. Before we have to solve the constraint
+$[x^A] \vdash A \lemust u_B$ which generates the constraint $u_A \lemust u_B'$.
+Since the latter constraint does not create any universe inconsistency, we can
+do the substitution.
+
+\item Result type \code{x}:
+
+We want to try the substitution $R := x$. This generates the constraint
+$[x^A, y^x] \vdash A \lemust u_R$
+which in turn generates the constraint
+$u_A \lemust u_R'$.
+%
+Again, no circularity has been introduced, therefore the substitution is valid.
+
+\end{enumerate}
+
+The unification created the substitution $[B := x, R := x]$ and the constraints
+$[u_A \lemust u_B', u_A \lemust u_R']$. However we have no substitution for the
+metavariable $A$.
+
+But since we have used $x$ as a substitution for types, we know, that $x$ must
+be a type. This implies that its type i.e. $A$ must be some sort $s$ which has
+to satisfy the constraints $[s \lemust u_B, s \lemust u_R]$. Therefore the most
+general replacement for $A$ is described by $A := \Any$. The substitution $A :=
+\Prop$ would be possible as well, but it is not the most general one.
+
+
+The substitutions $[B := x; R := x]$ are possible only if $x$ is a type which
+implies that $A$ must be a sort. Since $A$ is in a position, where an explicit
+type (i.e. a user given type) is possible, the metavariable $A$ can only
+represent $\Any$ or $\Prop$. Other sorts cannot be entered by the user. I.e.
+whenever we get a unification obligation $A \relmust{r} u$ when $u$ is a
+universe variable, we know that the metavariable $A$ must represent one of the
+sorts $\Any$ and $\Prop$. In case that the relation is equality (which is
+normally not the case), the only possibility is $\Any$.
+
+
 
 
 
