@@ -352,11 +352,13 @@ $$
 During term building we first introduce holes into the context and then we try
 to fill these holes by some candidate terms. Let's assume we have a hole $x^R$
 where $R$ is the required type of the hole $x$. Then we construct a term $e$
-with actual type $A$. We can fill the hole $x$ by $e$ only if $R$ is a supertype
-of $A$ i.e. if $A \le R$ is valid. Since we do not yet know the validity, we can
-only state the requirement $A \lemust R$ which reads \emph{The holes in $A$ and
-$R$ must be filled such that the substituted $A$ is a subtype of the substituted
-$R$}.
+with actual type $A$. We can fill the hole $x$ with $e$ only if $R$ is a
+supertype of $A$ i.e. if $A \le R$ is valid. Since we do not yet know the
+validity, we can only state the requirement $A \lemust R$ which reads \emph{The
+holes in $A$ and $R$ must be filled such that the substituted $A$ is a subtype
+of the substituted $R$}.
+
+
 
 \begin{definition} A \emph{Unification Problem} consists of a context $\Gamma$
 with holes, a substitution $\sigma$ of some of the holes and a set of
@@ -411,7 +413,7 @@ variables.
 Cases to consider
 \begin{description}
 \item[sort-sort]
-Sorts can only be unified if the figure in the required relation.
+Sorts can only be unified if they figure in the required relation.
 $$
 \rulev {
     E + \Psi \vdash s_1 \relmust{r} s_2, \quad \sigma
@@ -423,7 +425,100 @@ $$
 }
 $$
 
+\item[universe-universe] Universe constraints like $u_1 \relmust{r} u_2$ can be
+added to the unification problem only if no circularity is possible within the
+constraints. If circularity appears, then the problem is unsolvable.
+
+
+\item[same variable]
+$$
+\rulev
+{
+    E + \Psi \vdash x \abold \relmust{r} y \bbold, \quad \sigma
+    \\
+    x = y
+    \\
+    |\abold| = |\bbold|
+}
+{
+    E + \Psi \vdash a_0 \eqmust b_0 + \Psi \vdash a_1 \eqmust b_1 + \ldots,
+    \quad \sigma
+}
+$$
+
+
+
+
+
+
+\item[rigid-flex]
+
+$$
+\rulev
+{
+    E + \Psi \vdash t \relmust{r} F x y \ldots, \quad \sigma
+    \\
+    \text{$F$ is a metavariable}
+    \\
+    \Gamma \vdash F: \Pi x^A y^{Bx} \ldots. R
+    \\
+    \{x, y \ldots\} \subseteq |\Psi|
+    \\
+    \text{FV}(t) \cap |\Psi| \subseteq \{x,y,\ldots\}
+    \\
+    \Psi \vdash \text{type}\, t \le \text{type}(F x y \ldots)
+}
+{
+    E[F := \lambda x^A y^{Bx}\ldots . t],
+    \quad
+    \sigma + (F := \lambda x^A y^{Bx}\ldots . t)
+}
+$$
+%
+Note that the substitution $F := \lambda x^A y^{Bx}\ldots . t$ unifies the two
+expressions $t$ and $F x y \ldots$ in the sense that they become beta equivalent
+after the substitution. We can see this by
+$$
+\begin{array}{lll}
+    F x y \ldots &=& (\lambda x^A y^{Bx}\ldots . t) x y \ldots
+    \\
+    &\reduce& t
+\end{array}
+$$
+
+
+\item[flex-rigid]
+
+A unification obligation of the form $\Psi \vdash F x y \ldots \relmust{r}
+t$ is just a mirror image of the previous case, if the conditions are satisfied.
+
+
+
+\item[flex-flex]
+
+$$
+\rulev
+{
+    E + \Psi \vdash F x y \ldots \relmust{r} G x y \ldots,
+    \quad \sigma
+    \\
+    \text{$F$ and $G$ are metavariables}
+    \\
+    \{x, y \ldots\} \subseteq |\Psi|
+    \\
+    \text{type}(F x y \ldots) \le \text{type}(G x y \ldots)
+}
+{
+    E[G := F], \quad \sigma + (G := F)
+}
+$$
+
+
+
+
+
 \item[product-product]
+
 For products we have two rules. The first rule applies if the argument types are
 not yet unified.
 $$
