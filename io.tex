@@ -90,6 +90,81 @@ E.g. the open-file operation could in the success case return a file
 descriptor and a proof that the corresponding file descriptor is open.
 
 
+
+
+\subsection {State Monad}
+
+A state monad has a state (let's call its type \code{State}). A specification of
+a state affecting operation is a relation of the prestate, an element of some
+generic type and the poststate
+%
+\begin{alba}
+    Spec (A: Any): Any :=
+        State -> A -> State -> Proposition
+
+    -- with the operations
+    return (a: A): Spec A :=
+        \ pre x post :=
+            pre = post and x = a
+
+    (|>) (A B: Any) (r: Spec A) (f: A -> Spec B): Spec B :=
+        \ s0 b s2 :=
+            some a s1:
+                r s0 a s1
+                and f a s1 b s2
+\end{alba}
+
+Having this we can write a specification for the opening of a file
+
+\begin{alba}
+    openSpec: Spec (Maybe FileDescriptor) :=
+        \ s1 fd s2 :=
+            inspect fd case
+                nothing :=
+                    s1 = s2
+                just fd :=
+                    not s1.hasOpen fd
+                    and
+                    s2 = s1.withOpen fd
+\end{alba}
+
+In order to do io we need an io monad with the type
+\begin{alba}
+    IO (A: Any): Spec A -> Any  -- Builtin type
+\end{alba}
+%
+with the monadic operations
+\begin{alba}
+    return (a: A): IO A (return a)
+
+    (|>)
+        (A B: Any)
+        (r1: Spec A)
+        (r2: A -> Spec B)
+        (m: IO A r1)
+        (f: all a: IO B (r2 a)):
+        IO B (r1 |> r2)
+\end{alba}
+
+
+
+
+The \code{open} function has the signature
+%
+\begin{alba}
+    open: IO (Maybe FileDescriptor) openSpec
+\end{alba}
+
+
+
+\begin{alba}
+\end{alba}
+
+
+
+
+
+
 \subsection{Hoare State Monad}
 
 A computation $C(A,S)$ has a value type and a specification. The specification
@@ -100,13 +175,14 @@ yields a value of type $A$ and ends in a state satisfying the postcondition.
 \begin{alba}
   State: Any := ...
 
-  Spec(A:Any): Any :=  State -> A -> State -> Proposition
+  Spec(A:Any): Any :=
+    State -> A -> State -> Proposition
 
-  pre(A: Any, r: Spec A , s1:State): Proposition :=
-    some(a,s2) r s1 a s2
+  pre(A: Any) (r: Spec A)  (s1: State): Proposition :=
+    some a s2: r s1 a s2
 
-  post(A:Any, r: Spec A, s1:State, a:A): Proposition :=
-    some(s2) r s1 a s2
+  post(A: Any) (r: Spec A) (s1: State) (a: A): Proposition :=
+    some s2: r s1 a s2
 
 
   Hoare(A:Any, r: Spec A ): Any := (A, r)
@@ -132,9 +208,15 @@ Now we declare the types of the function \code{open} and the type constructor
 \code{IO} as
 %
 \begin{alba}
-  IO(A:Any, spec: Spec A ): Any
+    Spec (A: Any): Any :=
+            -- A specification over 'A' is a relation between the prestate,
+            -- an element of 'A' and the poststate.
+        State -> A -> State -> Proposition
 
-  open: IO Descriptor open_spec
+    IO (A: Any) (spec: Spec A): Any
+        -- Signature of the IO monad.
+
+    open: IO Descriptor openSpec
 \end{alba}
 %
 The type of \code{return} is easy. The call \code{return a} just injects the
@@ -167,15 +249,15 @@ something like
 
 %
 \begin{alba}
-  (>>=) ( A B: Any, r1: Spec A, r2: A -> Spec B,
-          m: IO A r1               -- r1 inferable from this type!
-          f: all a: IO B (r2 a)    -- r2 inferable from this type!
-        )
-        : IO  B
-              (\ s1 b s3 :=
-                  some a s2:
-                    r1 s1 a s2  and
-                    r2 a s2 b s3)
+    (>>=)
+        (A B: Any)
+        (r1: Spec A)            -- Spec A = State -> A -> State -> Proposition
+        (r2: A -> Spec B)
+        (m: IO A r1)
+        (f: all a: IO B (r2 a):
+        IO  B
+            (\ s1 b s3 :=
+                some a s2: r1 s1 a s2 and r2 a s2 b s3)
 \end{alba}
 %
 
