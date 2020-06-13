@@ -714,6 +714,26 @@ Note that $I$ in the argument position of the constructor has been
 replaced by the type $\Natural$ in which $I$ does not occur.
 
 
+The following example shows the necessity of the positivity condition. Without
+the positivity condition we can define an inductive type \code{T} and a
+nonrecursive function \code{run} and an expression \code{run (co run)} which
+would end up in an endless loop.
+%
+\begin{alba}
+    class T: Any :=
+        co: (T -> T) -> T
+        --   ^ T appears in a negative position
+
+    run (t: T): T :=
+        inspect t case
+            co f :=
+                f t
+
+    -- non terminating expression
+    run (co run)
+\end{alba}
+
+
 
 
 \subsubsection{Elimination Function}
