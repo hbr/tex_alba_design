@@ -105,6 +105,15 @@ The first condition states that $x$ is either a type or a type constructor
 variable. The second condition guarantees that it can be inferred from the rest
 of the type.
 
+\noindent Some examples of kinds:
+\begin{alba}
+    Any
+    Int -> Any
+    String -> Proposition
+    Int -> String -> Proposition
+\end{alba}
+
+
 
 
 
@@ -123,7 +132,7 @@ It is important that every context with holes is well formed. In the following
 we show, how to introduce variables representing holes into a context and
 maintain the wellformedness condition.
 
-Let $u$, $v$, $w$ be variables representing predicative sorts (i.e. the stand
+Let $u$, $v$, $w$ be variables representing predicative sorts (i.e. they stand
 for $\Any_i$ for an arbitrary $i$). $u'$ represents $\Any_{i+1}$, when $u$
 represents $\Any_i$.
 
