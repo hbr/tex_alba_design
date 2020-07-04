@@ -203,6 +203,9 @@ in the case of an infinite type hierachy.
     & \text{abstraction}
 
     \\
+        & \mid & \where(x^A, e, a) & \text{local definition}
+
+    \\
 
       & \mid & \Pi x^A.B
     & \text{dependent product}
@@ -219,7 +222,7 @@ in the case of an infinite type hierachy.
 
     \\
 
-      & \mid & \case(e, \lambda \ybold^\Abold x^T.R, \fbold)
+      & \mid & \case(\fbold, \lambda \ybold^\Abold x^T.R)
     & \text{pattern match}
 
     \\
@@ -233,10 +236,16 @@ in the case of an infinite type hierachy.
 The terms $x$, $f a$, $\lambda x^A.e$ are already known from untyped lambda
 calculus except that in untyped lamda calculus the bound variable $x$ in the
 abstraction does not have a type and in our typed calculus the it has the type
-$A$. The terms for products, inductive types, constructors, pattern match and
-fixpoints (recursive function) need some explanation.
+$A$. The terms for where, products, inductive types, constructors, pattern match
+and fixpoints (recursive function) need some explanation.
 
 \begin{description}
+\item[Where Expression]
+    $\where(x^A,e,a)$ is nearly identical to $(\lambda x^A.e) a$. It has the
+    same reduction $\where(x^A,e,a) \reduce e[x:=a]$, but its typing introduces
+    some kind of shortcut where $\lambda x^A.e$ is not necessarily well typed,
+    but $\where(x^A,e,a)$ is well typed.
+
 \item[Dependent product] $\Pi x^A.B$ In simply typed lambda calculus
   $A \to B$ is the type of a functions from objects of type $A$ to objects of
   type $B$. But since we have dependent types, a variable of type $A$ might
@@ -1281,6 +1290,19 @@ and a corresponding simple recursive function
       \Gamma \vdash a:A
     }
     {\Gamma \vdash f \, a : B[x:=a]}
+    $$
+
+  \item[where]
+    $$
+    \rulev
+    {
+        \Gamma \vdash a : A
+        \\
+        \Gamma \vdash e[x:=a]: T
+    }
+    {
+        \Gamma \vdash \where(x^A, e, a): T
+    }
     $$
 
   \item[reduction]
