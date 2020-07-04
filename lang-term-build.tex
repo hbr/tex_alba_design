@@ -140,6 +140,77 @@ reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
 
 
 
+\subsection{Constraint Typing}
+
+At the start of term building we have a valid context $\Gamma$ and a syntactical
+term $t_S$. The syntactical term does not have implicit arguments, the type
+annotations are optional and the names can be ambiguous.
+
+Furthermore we have a strip function which maps a language term into a
+syntactical term. It strips off all implicit arguments and all type annotations
+which are marked untyped (note: we record in the term the type annotations which
+have not been present in the syntactic term) and maps all unambiguous names into
+the corresponding ambiguous names (an unambiguous name might be a number and the
+corresponding ambiguous name is a string).
+
+A solution to the term building problem is a term $t$ and a type $T$ such that
+$\Gamma \vdash t: T$ is valid and $\strip(t) = t_S$. The term building problem
+might be unsolvable or it might have more than one solution. Clearly we want a
+unique solution.
+
+Multiple solutions can be introduced because of ambiguous types of literals and
+names. If we restrict ourselves to minimal types $T$ and regard beta equivalent
+types as the same type, the literals and the names are the only source of
+ambiguity.
+
+
+We introduce a constraint typing relation
+$$
+\ctype{\Gamma}{t:T}{M}{C}
+$$
+where $\Gamma$ is a valid context, $M \subseteq |\Gamma|$ is a set of
+metavariables where each metavariable is either a type variable or a type
+contructor variable, $C$ is a set of constraints of the form $A \eqmust B$ where
+$A$ and $B$ are valid types in $\Gamma$.
+
+A solution to $\ctype{\Gamma}{t:T}{M}{C}$ is a substitution $\sigma$ with
+$|\sigma| \subseteq M$ such that $\Gamma \vdash \sigma t: \sigma T$ is a valid
+typing judgement and for all $A\eqmust B$ in $C$ the terms $\sigma A$ and
+$\sigma B$ are beta equivalent. I.e. $\sigma$ satisfies the constraints and
+converts the constraint typing into a valid typing judgement.
+
+Furthermore we want to maintain $\Gamma_0 = \Gamma - M$ i.e. the context
+$\Gamma$ of the constraint typing relation is just an extension of the context
+of the original problem by welltyped metavariables.
+
+Since our metavariable are types or type constructors, their types are kinds (or
+kind reducing). We use the typing rule
+$$
+\rulev
+{\Gamma \vdash K: s}
+{\Gamma, X^K \vdash X: K}
+$$
+to introduce them in a welltyped manner ($K$ is a kind i.e. either a sort or a
+product $\Pi x^A. K$). We use the upper case letters $X$, $Y$, $Z$, $\ldots$ to
+range over type (constructor) variables.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \subsection{Hindley-Milner Explosion}
 
