@@ -98,7 +98,7 @@ The argument $x$ is implicit if the following conditions are satisfied:
 
 \item $A$ reduces to a kind.
 
-\item $x$ occurs in $B$.
+\item $x$ occurs in $B$, but not in a function position.
 \end{enumerate}
 
 The first condition states that $x$ is either a type or a type constructor
@@ -113,6 +113,225 @@ of the type.
     Int -> String -> Proposition
 \end{alba}
 
+
+\noindent Example to explain implicit arguments.
+\begin{alba}
+class
+    Specified (A: Any) (f: Predicate A): Any
+:=
+    (,) (x: A): f x -> Specified f
+
+-- typing judgements
+Specified: all (A: Any): Predicate A -> Any
+
+(,): all (A: Any) (f: Predicate A) (x: A): f x -> Specified f
+\end{alba}
+
+For the function \code{Specified} the argument \code{A} is implicit since it
+occurs in the type of the second argument. For the same reason the argument
+\code{A} is implicit in the constructor \code{(,)}. But the argument \code{f} is
+not implicit, because it occurs in the forth argument. It is implicit, because
+it occurs in the result type.
+
+E.g. \code{f} could be \code{isPrime}. The forth argument is a proof of
+\code{isPrime x}. It proves (i.e. inhabits) some type equivalent to
+\code{isPrime x}.  Therefore the predicate \code{isPrime} cannot be
+reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
+
+
+
+
+\subsection{Hindley-Milner Explosion}
+
+\begin{alba}
+    f0 (\ x := x) where
+        f0 x := f1 (f1 x)
+        f1 x := f2 (f2 x)
+        ...
+        f4 x := f5 (f5 x)
+        f5 x := (x,x)
+
+    f4 x := f5 (f5 x)   ~>  ((x,x),(x,x))
+
+    f3 x := f4 (f4 x)   ~>  ((((x,x),(x,x)),((x,x),(x,x))),(((x,x),(x,x)),((x,x),(x,x))))
+
+    -- f4 x contains 4 x               4
+    -- f3 x contains 4^2 x            16
+    -- f2 x contains 4^3 x            64
+    -- f1 x contains 4^4 x           256
+    -- f0 x contains 4^5 x          1024
+\end{alba}
+
+
+At a small scale
+\begin{alba}
+    f0 "Hello" where
+        f0 x := f1 (f1 x)
+        f1 x := (x,x)
+
+    -- with type annotations
+    f0 "Hello": ((String,String),(String,String))
+    where
+        f0 (A: Any) (x: A): ((A,A),(A,A)) :=
+            f1 (f1 x)
+        f1 (A: Any) (x: A): (A,A) :=
+            (x,x)
+
+
+    (,): all (A B: Any): A -> B -> (A,B)
+\end{alba}
+All functions must be polymorphic, otherwise the expression would not be typable.
+
+Type inference of \code{f1} needs the introduction of a metavariable
+\code{A:Any} for the type of the variable \code{x}. At the end of the analysis
+of \code{f1} the metavariable remains open. Hindley-Milner requires to
+universally quantify the type variable.
+
+\begin{alba}
+    -- textual substitution
+    f0 "Hello" where
+        f0 y := f1 (f1 y)
+        f1 x := (x,x)
+
+    (\ y := f1 (f1 y)) "Hello"
+
+    (\ y := (\ x := (x,x)) ((\ x := (x,x)) y)) "Hello"
+\end{alba}
+
+
+
+
+\vskip 5mm
+\subsection{Redexes}
+
+Redexes are challenging in term building. Some examples of redexes.
+
+\begin{alba}
+    (\ x := e) a
+
+    1 + f 10 where
+        f x := 2 * x
+
+    (\ f := 1 + f 10) (\ x := 2 * x)
+
+    (\ TC := TC (TC Int)) List
+\end{alba}
+%
+%
+Some questions:
+
+\begin{itemize}
+\item Is it possible, that the function argument is implicit?
+
+    First reaction: Better not. Why on earth would we make a redex, where the
+    formal argument is implicit?
+
+\item What to construct first? The function term or the argument?
+
+    If we construct the argument first and assume that the formal argument is
+    not allowed to be implicit, then we can assign the type of the argument to
+    the type of the formal argument. This helps only if the argument is not a
+    formal untyped argument of an outer binder like
+    \begin{alba}
+    \ y := (\ x := e) y
+    \end{alba}
+
+\end{itemize}
+
+\begin{alba}
+    predecessor (n: Natural): isSuccessor n -> Natural
+
+    (\ n p := predecessor n p) 1 (proof: isSuccessor 1)
+\end{alba}
+
+In order to get a type for \code{p} we cannot use the type of \code{proof}, because
+the only legal type for \code{p} is \code{isSuccessor x} and not
+\code{isSuccessor 1}. The latter one does not reflect the dependency correctly.
+
+\begin{alba}
+    predecessor n p where
+        p: isSuccessor 1 := proof
+        n := 1
+
+    -- transforms to
+    (\ n := (\ p := predecessor n p) proof ) 1
+\end{alba}
+%
+This does not type check, because it requires a unification of \code{isSuccessor
+n} with \code{isSuccessor 1} i.e. a unification of the bound variable \code{n}
+with the number \code{1}, which fails. The other way
+
+\begin{alba}
+    predecessor n p where
+        p: isSuccessor n := proof
+        n := 1
+\end{alba}
+%
+fails as well, because \code{proof} has type \code{isSuccessor 1} which cannot
+be unified with \code{isSuccessor n}.
+
+The failures demonstrated above are caused by trying to unify a bound variable
+(here \code{n}) with a term (here \code{1}). However if we do textual substition
+we get the term
+%
+\begin{alba}
+    predecessor 1 proof
+\end{alba}
+%
+which is type correct. Therefore the failures are somewhat artificial since the
+fully typed term
+\begin{alba}
+    (\ (n: Natural) (p: isSuccessor n): Natural := predecessor n p) 1 proof
+\end{alba}
+%
+Therefore it should be possible to infer correct types for the term
+\begin{alba}
+    (\ n p := predecessor n p) 1 proof
+\end{alba}
+
+
+Possible solution: Introduce the bound variables in a redex not as bound
+variables, but as metavariables which can get a substitution. Finally unify the
+substitutions (if there are any) with the actual arguments.
+
+
+\begin{alba}
+    exFalso (A: Any): false -> A :=
+        case -- no cases
+
+    isSuccessor: Natural -> Proposition :=
+        case
+            zero        := false
+            successor _ := true
+
+    predecessor (n: Natural): isSuccessor n -> Natural :=
+        case
+            zero :=
+                exFalso
+            successor i :=
+                \ _ := i
+
+    :typecheck trueValid: isSuccessor one
+
+
+    -- Term
+        predecessor n p where
+            p := trueValid
+            n := one
+    -- equivalent to
+        (\ n p := predecessor n p) one trueValid
+
+    -- Term
+        predecessor n p where
+            p: isSuccessor n := trueValid
+            n := one
+    -- equivalent to
+        (\ n := (\ p := predecessor n p) (trueValid: isSuccessor n)) one
+\end{alba}
+
+
+RADICAL IDEA: Disallow completely direct redexes of the form \code{(\ x := e)
+a}, only allow \code{e where x := a} and treat the latter like let-polymorphism.
 
 
 
