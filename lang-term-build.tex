@@ -140,6 +140,10 @@ reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
 
 
 
+
+
+
+
 \subsection{Constraint Typing}
 
 At the start of term building we have a valid context $\Gamma$ and a syntactical
@@ -194,6 +198,35 @@ to introduce them in a welltyped manner ($K$ is a kind i.e. either a sort or a
 product $\Pi x^A. K$). We use the upper case letters $X$, $Y$, $Z$, $\ldots$ to
 range over type (constructor) variables.
 
+
+We want the constraint typing relation to be sound in the sense that every
+solution $\sigma$ to the contraint problem
+$\ctype{\Gamma}{t:T}{M}{C}$
+generates a solution $\sigma t:
+\sigma T$ of the original problem $(\Gamma_0,t_S)$ with $\strip(\sigma t) =
+t_S$, if $|\sigma| = M$.
+
+It is not meaningful to require completeness, i.e. to require each solution of
+the original problem can be generated from a solution of the constraint problem.
+This is not meaningful, because the type inference problem is not decidable for
+the calculus. Remember that even for system $F$ the type inference problem is
+not decidable.
+
+The only meaningful outputs of a term building algorithm can be
+\begin{itemize}
+
+\item There is a unique solution
+
+\item There is more than one solution
+
+\item There is no solution
+
+\item Some type annotations or implicit arguments cannot be inferred.
+
+\end{itemize}
+
+The last point indicates a semidecision. The algorithm fails. But it tells the
+user that there might be a solution if more type annotations where present.
 
 
 
@@ -272,8 +305,17 @@ universally quantify the type variable.
 
 
 
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \vskip 5mm
 \subsection{Redexes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Redexes are challenging in term building. Some examples of redexes.
 
@@ -288,121 +330,272 @@ Redexes are challenging in term building. Some examples of redexes.
     (\ TC := TC (TC Int)) List
 \end{alba}
 %
-%
-Some questions:
 
-\begin{itemize}
-\item Is it possible, that the function argument is implicit?
 
-    First reaction: Better not. Why on earth would we make a redex, where the
-    formal argument is implicit?
 
-\item What to construct first? The function term or the argument?
 
-    If we construct the argument first and assume that the formal argument is
-    not allowed to be implicit, then we can assign the type of the argument to
-    the type of the formal argument. This helps only if the argument is not a
-    formal untyped argument of an outer binder like
-    \begin{alba}
-    \ y := (\ x := e) y
-    \end{alba}
 
-\end{itemize}
+\subsubsection{Untyped Multiargument Redexes}
 
+\begin{alba}
+    (\ x := e) a
+
+    (\ x y := e) a b
+\end{alba}
+
+In \code{(\textbackslash x := e) a} we could build \code{a} first getting a type
+\code{A} for the term, and then analyse \code{\textbackslash (x:A) := e}.
+
+This does not work for \code{(\textbackslash\ x y := e) a b} for the second
+argument. The type of \code{y} might depend on \code{x}. Example
 \begin{alba}
     predecessor (n: Natural): isSuccessor n -> Natural
 
-    (\ n p := predecessor n p) 1 (proof: isSuccessor 1)
+    (\ n p := predecessor n p) 1 trueValid
 \end{alba}
+The only valid type of \code{p} is \code{isSuccessor n}. However the type of
+\code{trueValid} is \code{true} which is equivalent to \code{isSuccessor 1}, but
+not to \code{isSuccessor n} for arbitrary \code{n}.
 
-In order to get a type for \code{p} we cannot use the type of \code{proof}, because
-the only legal type for \code{p} is \code{isSuccessor x} and not
-\code{isSuccessor 1}. The latter one does not reflect the dependency correctly.
+Therefore: In a multiargument redex we can use the type of the first argument as
+the type of the first formal argument. But we cannot use the type of the second
+argument as the type of the second formal argument.
+
+
+\vskip 5mm
+\subsubsection{Implicit Arguments}
 
 \begin{alba}
-    predecessor n p where
-        p: isSuccessor 1 := proof
-        n := 1
+    (\ x := e) a
+\end{alba}
 
-    -- transforms to
-    (\ n := (\ p := predecessor n p) proof ) 1
+Theoretically the argument \code{x} could be implicit (either a type or a type
+constructor variable). Example
+
+\begin{alba}
+    (\ A := ((\ e := [e]): A -> List A) ) 1
 \end{alba}
 %
-This does not type check, because it requires a unification of \code{isSuccessor
-n} with \code{isSuccessor 1} i.e. a unification of the bound variable \code{n}
-with the number \code{1}, which fails. The other way
+This example is contrived. Why should be write a generic function abstraction
+and then specialize it immediately? However the term is syntactically correct
+and typeable. The following term is equivalent.
 
 \begin{alba}
-    predecessor n p where
-        p: isSuccessor n := proof
-        n := 1
+    (\ (A: Any) (e: A) := [e]) 1
+\end{alba}
+
+If we want to type silly but legal redexes correctly, it might not be a good
+idea to analyze the argument first and then use the argument type as a type for
+the first formal argument. We should analyze the function abstraction first and
+then the argument with a required type.
+
+However the strategy to analyze the function abstraction first does not work
+well in the following case
+%
+\begin{alba}
+    (\ f := 1 + f 10) (\ x := 2 * x)
 \end{alba}
 %
-fails as well, because \code{proof} has type \code{isSuccessor 1} which cannot
-be unified with \code{isSuccessor n}.
+In that case \code{(+)} might be ambiguous for ints, floats, naturals etc. and
+the number literals are ambiguous as well. Analyzing the function abstraction
+with the general typing \code{f: all (x:A): F x} where \code{A} and \code{F}
+are metavariables, causes a combinatorial explosion for all valid combinations
+for both metavariables.
 
-The failures demonstrated above are caused by trying to unify a bound variable
-(here \code{n}) with a term (here \code{1}). However if we do textual substition
-we get the term
-%
-\begin{alba}
-    predecessor 1 proof
-\end{alba}
-%
-which is type correct. Therefore the failures are somewhat artificial since the
-fully typed term
-\begin{alba}
-    (\ (n: Natural) (p: isSuccessor n): Natural := predecessor n p) 1 proof
-\end{alba}
-%
-Therefore it should be possible to infer correct types for the term
-\begin{alba}
-    (\ n p := predecessor n p) 1 proof
-\end{alba}
+Here it would be better analyze the argument first with some ambiguity, but no
+explosion. And then analyze the function abstraction which remains only linear
+ambiguous.
+
+The second example is suceptible to combinatorial explosion, because the formal
+argument \code{f} is used in a function position which requires at least two
+metavariables to get the most general type.
 
 
-Possible solution: Introduce the bound variables in a redex not as bound
-variables, but as metavariables which can get a substitution. Finally unify the
-substitutions (if there are any) with the actual arguments.
+
+
+
+
+
+\vskip 5mm
+\subsubsection{Generic Combinators}
+
 
 
 \begin{alba}
-    exFalso (A: Any): false -> A :=
-        case -- no cases
+    pair A B x y C (f: A -> B -> C): C :=
+        f x y
 
-    isSuccessor: Natural -> Proposition :=
-        case
-            zero        := false
-            successor _ := true
+    pair 1 2: all C: (Num1 -> Num2 -> C) -> C
+\end{alba}
 
-    predecessor (n: Natural): isSuccessor n -> Natural :=
-        case
-            zero :=
-                exFalso
-            successor i :=
-                \ _ := i
-
-    :typecheck trueValid: isSuccessor one
+There might already start a combinatorial explosion, because a numeric literal
+is ambiguous. It can be a \code{Natural}, \code{Float}, \code{Int},
+\code{Int64} ...
 
 
-    -- Term
-        predecessor n p where
-            p := trueValid
-            n := one
-    -- equivalent to
-        (\ n p := predecessor n p) one trueValid
 
-    -- Term
-        predecessor n p where
-            p: isSuccessor n := trueValid
-            n := one
-    -- equivalent to
-        (\ n := (\ p := predecessor n p) (trueValid: isSuccessor n)) one
+
+\vskip 5mm
+\subsubsection{Restriction: All Functions Typed}
+
+Possible Restriction: All bound variables which are used in a function position
+of an expression must have a type prior to analyzing the expression. The type
+can be either
+
+\begin{itemize}
+\item explicitly provided by a type annotation
+
+\item implicitly provided by a required type of a function abstraction.
+\end{itemize}
+
+Example
+
+\begin{alba}
+    (\ (f: Int -> Int) := 1 + f 10) (\ x := 2 * x)
+\end{alba}
+
+This annotation forces all numbers to be of type \code{Int}.
+
+This requirement might be a good trade off between easy code writing and code
+analysis. The combinatorial explosion can be very problematic. Consider the
+following case.
+
+\begin{alba}
+    (\ f := 1 + f 1 2 3 4 5) (\ x1 x2 x3 x4 x5 := x1 + x2 + x3 + x4 + x5)
+\end{alba}
+
+Having 3 number types (at least we have \code{Natural, Int, Float}) results in
+$3^5 = 243$ variants for the function type which are in the second step reduced
+to $3$ variants, because $(+)$ requires that both arguments and the result have
+the same type. A simple type annotation on the bound variable \code{f} would
+have reduced the number of variants to $1$ on all subexpressions.
+
+
+
+
+
+
+
+\vskip 5mm
+\subsubsection{Ambiguity}
+
+We have two sources of ambiguity in the language
+
+\begin{itemize}
+
+\item Number literals: The number literal \code{1} can have one of the types
+\code{Int, Natural, Float, Integer, Byte, ...}
+
+\item Global functions: The same name can be used as the name for different
+global functions as long as the signatures of the functions are different.
+
+\end{itemize}
+
+We want to resolve ambiguities as early as possible and we certainly don't want
+any combinatorial explosion due to ambiguities.
+
+\begin{alba}
+    (1: Int) + 2 + 3 + 4 + 5
+
+    1 + 2 + 3 + 4 + 5: Float
+\end{alba}
+
+The second expression can be analyzed more efficiently than the first, all
+ambiguities are resolve immediately.
+
+The first expression has $n$ variants until the first operand is found, which
+selects the correct variant.
+
+Both variants are legal, because no combinatorial explosion is possible.
+
+The expressions
+
+\begin{alba}
+    1 = 2: Proposition
+
+    1 = 2: Decision (1 = 2)
+\end{alba}
+
+are inherently ambiguous. The ambiguity is unresolved because the propositional
+equality \code{(=)} just requires that both arguments are of the same type, but
+the type can be arbitrary. And since that type of the arguments to be compared
+is not in the result type of the comparison, the expression cannot be
+disambiguated by a type annotation on the result type.
+
+Each number type has a decision procedure to decide equality. Each decision
+procedure connects the argument type with the result type. Therefore the correct
+decision procedure for the equality test can be selected by knowing the result
+type of the decision procedure.
+
+
+To disambiguate we need some type annotations.
+
+\begin{alba}
+    (1: Int) = 2: Proposition
+
+    1 = 2: Decision ((1: Natural) = 2)
+
+    (1: Float) = 2: Decision (1 = 2)
 \end{alba}
 
 
-RADICAL IDEA: Disallow completely direct redexes of the form \code{(\ x := e)
-a}, only allow \code{e where x := a} and treat the latter like let-polymorphism.
+In order to reduce the linear ambiguities further we could introduce an abstract
+datatype \code{Number} which has addition, multiplication, order relation and
+decision functions for equality and order.
+
+
+Ambiguous global names must have different type signatures. I.e. either one or
+more of the argument types and or the result type are different.
+
+If only some argument types are different, the ambiguity cannot be resolved by
+the required result type. This is can be a problem for relations. E.g. all
+numeric types have an order relation
+
+\begin{alba}
+    (<=): Int -> Int -> Proposition             -- Endorelation Int
+
+    (<=): Natural -> Natural -> Proposition     -- Endorelation Natural
+
+    (<=): Float -> Float -> Proposition         -- Endorelation Float
+\end{alba}
+
+Therefore expressions like \code{1 <= 2} are inherently ambiguous and need a
+type annotation to make them legal. Expressions like \code{a <= b} are
+unambiguous only if at least one of the arguments has a unique type (this should
+be the normal case).
+
+Furthermore we have deciders for the order relation
+
+\begin{alba}
+    (<=): all (x y: Int): Decision (x <= y)
+
+    (<=): all (x y: Natural): Decision (x <= y)
+
+    (<=): all (x y: Float): Decision (x <= y)
+\end{alba}
+
+An expression like \code{Decision (a <= b)} is unambiguous only if at least one
+of its arguments has a unique type.
+
+A non polymorphic function always requires a unique type for each of its
+arguments. Therefore ambiguous expressions cannot enter as arguments to a
+monomorphic function.
+
+Ambiguous expressions might enter as arguments to polymorphic functions (e.g.
+propositional equality, see above). More than one type parameter is possible.
+Therefore more than one ambiguous argument can enter a polymorphic function.
+
+This might lead to some combinatorial explosion. The resulting ambiguity can
+only be resolve by another argument or the result type. If neither another
+argument nor the required result type resolve the ambiguity, then an error has
+to be flagged, because the ambiguity in that case unresolvable.
+
+QUESTION: Is there any possibility to avoid the combinatorial explosion in case
+of multiply polymorphic functions? Is such a case realistic.
+
+The pair \code{(1,2)} is ambiguous, if there is no required result type (or the
+result type is polymorphic).
+
 
 
 
