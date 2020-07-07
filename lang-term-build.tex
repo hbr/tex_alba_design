@@ -596,9 +596,124 @@ of multiply polymorphic functions? Is such a case realistic.
 The pair \code{(1,2)} is ambiguous, if there is no required result type (or the
 result type is polymorphic).
 
+An ambiguous name or literal can be entered only if the ambiguity cannot be
+resolved immediately. We call such an ambiguity a pending ambiguity. This can
+happen, if the name or literal is used as a polymorphic argument of a
+polymorphic function.
+
+Under what conditions can pending ambiguities appear?
+\begin{itemize}
+
+\item Name or literal used as a polymorphic argument of a polymorphic function.
+
+\item Name or literal used in a function position where there is no required
+result type or the function type does not yet allow to unify the result type
+with the expected result type because the result type depends on actual
+arguments.
+
+\end{itemize}
 
 
 
+
+
+\vskip 5mm
+\subsubsection{Where Expressions}
+
+Example:
+
+\begin{alba}
+    1 + f 10 20 where
+        f x y := x * y
+\end{alba}
+
+Where expressions are local definitions or local abbreviations. The main
+expression contains a variable and the variable is defined within a following
+where block. The main expression can contain more than one variable and each
+variable is defined within the where block.
+
+It is important, whether the variable is used in the main expression in a
+function position or only in argument positions. If the variable is used in a
+function position, it is better to analyze the definition first and then the
+main expression. If the variable is used only in argument positions, it might be
+better to analyze the main expression first to get a required type for the
+variable and then analyze the defining expression.
+
+The analysis can be done with a hole for the variable type. An analysis of the
+main expression where the variable is used only in argument positions might fill
+the type hole. An analysis of the definition term might do the same. As opposed
+to a function abstraction or a function type, we don't use the variable to
+abstract over it.
+
+
+
+
+
+\vskip 5mm
+\subsubsection{Pattern Match}
+
+$$
+    \case (\fbold, \lambda \ybold^{\Abold} x^T . R)
+$$
+
+
+\begin{alba}
+    inspect
+        ia0; ia1; ...; e    -- ia0,... index arguments
+                            -- e: expression to be inspected
+    case
+        c z0 z1 ... := ce       -- one clause for each constructor
+        ...
+\end{alba}
+
+The type of a case expression is a function type with $n + 1$ argument types
+where $n$ is the number of indices of the indutive type.
+
+If we have an expected type for a case expression it must have the form
+\begin{alba}
+    all (y: A) (x: T): R
+\end{alba}
+
+\code{R} can still be a function type. We have to find out the inductive type
+and the index types to split up the type correctly.
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Rules for Term Building}
+
+\begin{enumerate}
+
+\item A bound variable occurring in a function position must have an explicit
+type annotation or its type must be inferrable from
+
+    \begin{enumerate}
+
+    \item the result type in case of a function abstraction (i.e. either the
+    function abstraction has a type annotation or it is used as an argument and
+    has therefore a required type)
+
+    \item the type of the local definition in case of a where expression.
+    \end{enumerate}
+
+A bound variable occurring in a function position without explicit or inferred
+type is reported as an error ({\em Cannot infer function type}).
+
+\item A bound variable of a redex occurring in a function position must have an
+explicit type annotation. Its type cannot be inferred neither from the required
+result type nor from the argument types because of the possibility of implicit
+arguments (for all formal arguments) and dependencies (for all formal arguments
+starting from the second one).
+
+\item At most one pending ambiguity is allowed. If there is already a pending
+ambiguity, all upcoming ambiguities must be resolvable immediately. Otherwise an
+error is issued. As soon as the pending ambiguity is resolved, new pending
+ambiguities are allowed.
+
+\end{enumerate}
 
 
 
