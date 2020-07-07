@@ -576,7 +576,7 @@ first argument is an expression for \code{b} and a proof of \code{a = b}. A
 pattern match has a dependent type.
 
 \begin{alba}
-    (case identical := ...)
+    (case identical a := ...)
     : all b: a = b => goal
 
     -- 'b' usually occurs in 'goal'
@@ -588,14 +588,14 @@ An inspect expression needs the two arguments as well
     inspect
         b; aEQb
     case
-        identical := ...
+        identical a := ...
 \end{alba}
 %
 which the compiler desugars to
 \begin{alba}
-    case
-            identical := ...
-
+    (case
+        identical a := ...
+    )
         b aEQb
 \end{alba}
 
@@ -607,10 +607,12 @@ It is easy to prove the symmetry of equality by using a pattern match.
         (A: Any) (a: A)
         : all b: a = b => b = a
     :=
+        -- Elimination function
+        -- \ b (p: a = b) := b = a
         case
-            identical :=
-                -- goal a = a => a = a
-                identity
+            identical a :=
+                    -- goal: a = a
+                identical a
 \end{alba}
 
 In the same manner the transitivity of equality can be proved.
@@ -623,8 +625,10 @@ In the same manner the transitivity of equality can be proved.
             inspect
                 b aEQb
             case
-                identical :=
-                    -- goal a = c => a = c
+                -- Elimination function
+                -- \ b (p: a = b) := b = c => a = c
+                identical a :=
+                        -- goal a = c => a = c
                     identity
 \end{alba}
 %
@@ -641,7 +645,7 @@ index variable \code{b} in the goal by the parameter \code{a}.
         \ aEQb :=
             (
                 case
-                    identical := identity
+                    identical a := identity
                 : all b: a = b => b = c => a = c
             )
                 b
@@ -675,7 +679,9 @@ We can prove this theorem by a pattern match on the proof of the equality.
         : all b: a = b => f a => f b
     :=
         case
-            identical :=
+            -- Elimination function
+            -- \ b (p: a = b) := f a => f b
+            identical a:=
                 -- goal f a => f a
                 identity
 \end{alba}
@@ -690,7 +696,7 @@ If we apply the elimination function to the two arguments \code{b} and
 \code{eq}, we get the required result type \code{f a => f b} of the pattern
 match expression. This shows that the elimination function is correct.
 
-Note that the only constructor \code{reflexive} constructs \code{a = a}, i.e.
+Note that the only constructor \code{identical} constructs \code{a = a}, i.e.
 the index is \code{a}. Therefore the expression on the right side of the case
 must construct an object of type \code{f a}.
 
