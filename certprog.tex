@@ -549,8 +549,114 @@ the property \code{f}
 
 
 %-----------------------------------
+\section{Specified Types}
+%-----------------------------------
+
+In the previous section we defined a function \code{reverse\_prepend} which
+should reverse a list and prepend it in front of another list. In a second
+step we proved that the function does the expected.
+
+This signals that we might be able to use a specified type (i.e. a type whose
+inhabitants satisfy a specification) as a result and implement the function
+and the proof of its specification hand in hand.
+
+A specified type is an inductive type of the form
+%
+\begin{alba}
+   class Specified A (f: Predicate A): Any create
+     specified x: f x -> Specified f
+\end{alba}
+
+The type \code{Specified} is known to the compiler and instead of writing
+%
+\begin{alba}
+  Specified (\ (x:T) := exp)
+\end{alba}
+%
+we can use syntactic sugar and write
+%
+\begin{alba}
+  {x: T : exp}
+  -- or
+  {x: exp}     -- if the type 'T' can be inferred from the context.
+\end{alba}
+
+
+If we use a specified type in \code{reverse\_prepend} we get the signature
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    ...
+\end{alba}
+
+Any implementation of \code{reverse\_prepend} must satisfy the specification
+i.e. it has to return a list \code{c} which satisfies
+\begin{alba}
+  c = a.reverse + b
+\end{alba}
+
+
+The implementation of the function includes the proof of the specification.
+
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    inspect a case
+      [] :=
+        specified b where
+          _: b = [].reverse + b := _
+
+      h ^ t :=
+        inspect t.reverse_prepend (h ^ b) case
+          specified c :=
+            specified c where
+              _: c = (h ^ t).reverse + b :=
+                via t.reverse + (h ^ b)      -- hypo
+                    t.reverse + ([h] + b)    -- def '+'
+                    t.reverse + [h] + b      -- '+' assoc
+                    (h ^ t).reverse + b      -- def 'reverse'
+\end{alba}
+
+
+Since the Alba compiler \emph{knows} the mechanics of a specified type, we can
+omit one pattern match.
+
+\begin{alba}
+  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
+    inspect a case
+      [] :=
+        specified b
+
+      h ^ t :=
+        t.reverse_prepend (h ^ b) where
+          _ c (p: c = t.reverse + (h ^ b))
+            : c = (h ^ t).reverse + b :=
+             via t.reverse + (h ^ b)      -- 'p'
+                 t.reverse + ([h] + b)    -- def '+'
+                 t.reverse + [h] + b      -- '+' assoc
+                 (h ^ t).reverse + b      -- def 'reverse'
+\end{alba}
+
+In this definition we give the compiler a hint on how to transform a proof of
+the specification of the recursive call into a proof of the specification of
+the outer call.
+
+In the runtime all specifications and proofs are erased. Therefore the
+definition of the function \code{reverse\_prepend} in this chapter and the
+previous chapter are identical in the runtime.
+
+
+
+
+
+
+
+
+%-----------------------------------
 \section{Equality}
 %-----------------------------------
+
+
+
+\subsection{Definition and Properties}
 
 Equality is defined in Alba as an inductive type.
 \begin{alba}
@@ -654,6 +760,8 @@ index variable \code{b} in the goal by the parameter \code{a}.
 
 
 
+\subsection{Leibniz Equality}
+
 Equality defined with the above inductive type is a rather strong
 property. This kind of equality is also known as \emph{Leibniz equality} which
 means that two equal objects satisfy the same properties.
@@ -699,6 +807,24 @@ match expression. This shows that the elimination function is correct.
 Note that the only constructor \code{identical} constructs \code{a = a}, i.e.
 the index is \code{a}. Therefore the expression on the right side of the case
 must construct an object of type \code{f a}.
+
+
+
+\subsection{Argument Equality}
+
+\begin{alba}
+    inject
+        A (F: A -> Any)
+        (a b: A)
+        (aEQb: a = b)
+        (f: all x: F x):
+        f a = f b
+    :=
+        inspect aEQb case
+            identical x := identical (f x)
+\end{alba}
+
+
 
 
 
@@ -765,7 +891,7 @@ In Alba we write
     class
         plus (A:Any) (r: Endorelation A): Endorelation A
             -- 'r.plus' is the transitive closure of 'r'
-    create
+    :=
         init a b:
             r a b
             => r.plus a b
@@ -816,7 +942,7 @@ hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{r.plus
     :=
         f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
             inspect
-                pab
+                a; b; pab
             case
                 init a b rab :=
                     -- a -> b +> c
@@ -853,34 +979,34 @@ transitive closure of a relation.
 
 \vbox{
 \begin{alba}
-  class
-    star (A:Any) (r: Endorelation A): Endorelation A
-      -- 'r.star' is the reflexive transitive closure of 'r'
-  create
-    init a:
-      r.star a a
+    class
+        star (A:Any) (r: Endorelation A): Endorelation A
+          -- 'r.star' is the reflexive transitive closure of 'r'
+    :=
+        init a:
+           r.star a a
 
-    step a b c:
-      r a b
-      => r.star b c
-      => r.star a c
+        step a b c:
+            r a b
+            => r.star b c
+            => r.star a c
 \end{alba}}
 
 Having the definition we prove that the reflexive transitive closure is
 transitive.
 
 \begin{alba}
-  star_transitive A (r:Endorelation A): r.star.is_transitive :=
-    f a b c (sab: r.star a b) (sbc: r.star b c): r.star a c :=
-      inspect
-        sab
-      case
-        init a :=
-          sbc  -- a = b in this case
+    star_transitive A (r:Endorelation A): r.star.is_transitive :=
+        f a b c (sab: r.star a b) (sbc: r.star b c): r.star a c :=
+            inspect
+                a; b; sab
+            case
+                init a :=
+                    sbc  -- a = b in this case
 
-        step a x b :=
-          step a x c where
-            hypo: r.star x c := f x b c
+                step a x b :=
+                    step a x c where
+                        hypo: r.star x c := f x b c
 \end{alba}
 
 
@@ -1051,6 +1177,60 @@ Then we can prove that a diamond relation is confluent.
               exist_e: some e: r.star x e and r c e := stripe_lemma r a c x
 
 \end{alba}
+
+
+
+\vskip 5mm
+\subsection{Transitivity Proofs}
+
+DRAFT: Work with more implicit arguments. Assumption here: All arguments which
+can be inferred by the type checker are implicit.
+
+
+
+\begin{alba}
+    TransitiveRelation (A: Any): Any :=
+        Specified (\ (r: Endorelation A) := isTransitive r)
+
+    class
+        TransitiveRelation A
+    :=
+        makeTransitive
+            (relation: Endorelation A)
+            (transitive:
+                all a b c:
+                    relation a b => relation b c => relation a c)
+
+    class
+        Path A (r: TransitiveRelation A) (a b: A)
+    :=
+        makePath: r.relation a b -> Path r a b
+
+
+    (<+>)
+        A (r: TransitiveRelation A) a b c
+        (p1: Path r a b)
+        (p2: Path r b c):
+        Path a c
+    :=
+        inspect p1 case
+            makePath rab :=
+                inspect p2 case
+                    makePath rbc :=
+                        inspect r case
+                            makeTransitive rel trans :=
+                                makePath
+                                    (transitive rab rbc)
+
+\end{alba}
+
+
+
+
+
+
+
+
 
 
 
@@ -1291,106 +1471,6 @@ of the runtime.
 
 
 
-\subsection{Specified Types}
-
-In the previous section we defined a function \code{reverse\_prepend} which
-should reverse a list and prepend it in front of another list. In a second
-step we proved that the function does the expected.
-
-This signals that we might be able to use a specified type (i.e. a type whose
-inhabitants satisfy a specification) as a result and implement the function
-and the proof of its specification hand in hand.
-
-A specified type is an inductive type of the form
-%
-\begin{alba}
-   class Specified A (f: Predicate A): Any create
-     specified x: f x -> Specified f
-\end{alba}
-
-The type \code{Specified} is known to the compiler and instead of writing
-%
-\begin{alba}
-  Specified (\ (x:T) := exp)
-\end{alba}
-%
-we can use syntactic sugar and write
-%
-\begin{alba}
-  {x: T : exp}
-  -- or
-  {x: exp}     -- if the type 'T' can be inferred from the context.
-\end{alba}
-
-
-If we use a specified type in \code{reverse\_prepend} we get the signature
-\begin{alba}
-  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
-    ...
-\end{alba}
-
-Any implementation of \code{reverse\_prepend} must satisfy the specification
-i.e. it has to return a list \code{c} which satisfies
-\begin{alba}
-  c = a.reverse + b
-\end{alba}
-
-
-The implementation of the function includes the proof of the specification.
-
-\begin{alba}
-  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
-    inspect a case
-      [] :=
-        specified b where
-          _: b = [].reverse + b := _
-
-      h ^ t :=
-        inspect t.reverse_prepend (h ^ b) case
-          specified c :=
-            specified c where
-              _: c = (h ^ t).reverse + b :=
-                via t.reverse + (h ^ b)      -- hypo
-                    t.reverse + ([h] + b)    -- def '+'
-                    t.reverse + [h] + b      -- '+' assoc
-                    (h ^ t).reverse + b      -- def 'reverse'
-\end{alba}
-
-
-Since the Alba compiler \emph{knows} the mechanics of a specified type, we can
-omit one pattern match.
-
-\begin{alba}
-  reverse_prepend A (a b: List A): {c: c = a.reverse + b} :=
-    inspect a case
-      [] :=
-        specified b
-
-      h ^ t :=
-        t.reverse_prepend (h ^ b) where
-          _ c (p: c = t.reverse + (h ^ b))
-            : c = (h ^ t).reverse + b :=
-             via t.reverse + (h ^ b)      -- 'p'
-                 t.reverse + ([h] + b)    -- def '+'
-                 t.reverse + [h] + b      -- '+' assoc
-                 (h ^ t).reverse + b      -- def 'reverse'
-\end{alba}
-
-In this definition we give the compiler a hint on how to transform a proof of
-the specification of the recursive call into a proof of the specification of
-the outer call.
-
-In the runtime all specifications and proofs are erased. Therefore the
-definition of the function \code{reverse\_prepend} in this chapter and the
-previous chapter are identical in the runtime.
-
-
-
-
-
-
-
-
 \section{Natural Numbers}
 
 
@@ -1438,68 +1518,80 @@ First we need addition
 Addition is associative
 %
 \begin{alba}
-  plus_is_associative (a b c: Natural): a + b + c = a + (b + c) :=
-    inspect a case
-      n.successor :=
-        via
-          n.successor + b + c
-          (n + b + c).successor
-          (n + (b + c)).successor
-          n.successor + (b + c)
-        where
-          hypo: n + b + c = n + (b + c) :=
-            plus_is_associative n b c
+    plusAssociative (a b c: Natural): a + b + c = a + (b + c) :=
+        inspect a case
+            zero :=
+                identical (b + c)
+
+            successor n :=
+                -- goal:
+                --      n.successor + b + c = n.successor + (b + c)
+                -- reduces to
+                --      successor (n + b + c) = successor (n + (b + c))
+                inject _ _
+                    (plusAssociative n b c: n + b + c = n + (b + c))
+                    successor
 \end{alba}
+
+
 
 Now we prove that addition is commutative. In order to prove commutativity of
 addition we need two lemmas.
 
 \begin{alba}
-  zero_is_right_neutral (a: Natural): a + 0 = a :=
-    inspect a case
-      n.successor :=
-        via
-          n.successor + 0
-          (n + 0).successor
-          n.successor
-        where
-          hypo: n + 0 = n := zero_is_right_neutral n
+    zeroRightNeutral (a: Natural): a + zero = a :=
+        inspect a case
+            zero :=
+                identical zero
+
+            successor i :=
+                -- goal: successor i + zero = successor i
+                inject _ _
+                    (zeroRightNeutral i: i + zero = i)
+                    successor
 \end{alba}
 
-\begin{alba}
-  pull_successor (a b: Natural): a + b.successor = (a + b).successor
-    inspect a case
-       n.successor :=
-         via n.successor + b.successor
-             (n + b.successor).successor
-             (n + b).successor.successor
-             (n.successor + b).successor
-         where
-           hypo: n + b.successor = (n + b).successor :=
-             pull_successor n b
-\end{alba}
 
 
 \begin{alba}
-   plus_is_commutative (a b: Natural): a + b = b + a :=
-     inspect a case
-       0 :=
-         via 0 + b
-             b
-             b + 0
-         where
-           _: b + 0 = b := zero_is_right_neutral b
+    pushSuccessor (a b: Natural): successor (a + b) = a + successor b :=
+        inspect a case
+            zero :=
+                identical (successor b)
 
-       n.successor :=
-         via
-           n.successor + b
-           (n + b).successor
-           (b + n).successor
-           b + n.successor
-         where
-           hypo: n + b = b + n := plus_is_commutative n b
-           _: b + n.successor = (b + n).successor := pull_successor b n
+            successor i :=
+                -- goal:
+                --   successor (successor i + b) = successor i + successor b
+                -- ~>
+                --   successor (successor (i + b))
+                --   = successor (i + successor b)
+                inject _ _
+                    (pushSuccessor i b)
+                    successor
 \end{alba}
+
+
+
+\begin{alba}
+    plusCommutes (a b: Natural): a + b = b + a :=
+        inspect a case
+            zero :=
+                -- goal: zero + b = b + zero
+                -- reduces to: b = b + zero
+                zeroRightNeutral b
+
+            successor i :=
+                -- goal: successor i + b = b + successor i
+                -- ~>    successor (i + b) = b + successor i
+                eqTransitive
+                    _ _ _
+                    (inject _ _ (plusCommutes i b) successor:
+                        successor (i + b) = successor (b + i))
+                    (pushSuccessor b i:
+                        successor (b + i) =  b + successor i)
+\end{alba}
+
+
 
 
 
@@ -1514,22 +1606,23 @@ Multiplication can be defined as a recursive function as well.
 \begin{alba}
   (*) (a b: Natural): Natural :=
     inspect a case
-      0 :=
-        0
-      1 + n :=
-        b + n * b
+        0 :=
+            0
+        successor i :=
+            b + i * b
 \end{alba}
 
 \begin{alba}
-  times_zero_is_zero (a: Natural): a * 0 = 0 :=
-    inpect a case
-      1 + n :=
-       via (1 + n) * 0
-           0 + n * 0
-           0 + 0
-           0
-       where
-         hypo: n * 0 = 0 := times_zero_is_zero n
+    zeroRightAbsorber (a: Natural): a * zero = zero :=
+        inspect a case
+            zero :=
+                identical zero
+
+            successor i :=
+                -- goal: successor i * zero = zero
+                -- ~>    zero + i * zero = zero
+                -- ~>    i * zero = zero
+                zeroRightAbsorber i
 \end{alba}
 
 By substitution is is evident, that $1$ is the left neutral of
@@ -1537,15 +1630,18 @@ multiplication. The number $1$ is right neutral as well, but this assertion
 needs a proof.
 
 \begin{alba}
-  one_is_right_neutral (a: Natural): a * 1 = a :=
-    inspect a case
-      1 + n :=
-        via
-          (1 + n) * 1
-          1 + n * 1
-          1 + n
-        where
-          hypo: n * 1 = n := one_is_right_neutral n
+    oneRightNeutral (a: Natural): a * one = a :=
+        inspect a case
+            zero :=
+                identical zero
+
+            successor i :=
+                -- goal:  successor i * one = successor i
+                -- ~>     one + i * one = successor i
+                -- ~>     successor (i * one) = successor i
+                inject _ _
+                    (oneRightNeutral i)
+                    successor
 \end{alba}
 
 
@@ -1743,6 +1839,41 @@ difficult.
 
 
 
+\subsection{Iterators, Recursors and Induction}
+
+\begin{alba}
+    iterate A (start: A) (step: A -> A): Natural -> A :=
+        iter where
+            iter :=
+                case
+                    zero :=
+                        start
+                    successor i :=
+                        step (iter i)
+
+    recurse A (start: A) (step: Natural -> A -> A): Natural -> A :=
+        rec where
+            rec :=
+                case
+                    zero :=
+                        start
+                    successor i :=
+                        step i (rec i)
+
+    induce
+        (F: Natural -> Any)
+        (start: F zero)
+        (step: all i: F i -> F (successor i)) :
+        all n: F n
+    :=
+        ind where
+            ind :=
+                case
+                    zero :=
+                        start
+                    successor i :=
+                        step i (ind i)
+\end{alba}
 
 
 
@@ -1751,6 +1882,8 @@ difficult.
 
 
 
+
+\vskip 5mm
 \section{Properties of Constructors of Inductive Types}
 
 There are two properties of constructors of inductive types which are very
