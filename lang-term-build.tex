@@ -645,12 +645,59 @@ the type hole. An analysis of the definition term might do the same. As opposed
 to a function abstraction or a function type, we don't use the variable to
 abstract over it.
 
+Some more examples:
+\begin{alba}
+    reverse A (list: List A): List A :=
+        f [] list where
+            f accu list :=
+                inspect list case
+                    [] :=
+                        accu
+                    head +: tail :=
+                        f (head +: accu) tail
+
+\end{alba}
+In that case the result type and the type of the second argument of \code{f} are
+given by looking only at the signature of \code{reverse} and the actual
+arguments of the function call \code{f [] list}. Note that \code{[]} can be
+polymorphic. I.e. its type is either \code{all B: List B} or \code{List B} for
+some specific \code{B}. Therefore by looking at the main expression we can infer
+two possible types for \code{f}
+\begin{alba}
+    f: (all B: List B) -> List A -> List A
+    f: List B -> List A -> List A
+\end{alba}
+
+The local definition has \code{f} in a function position in its definition
+block. Without other information we could just use a generic telescope as a type
+of \code{f}
+\begin{alba}
+    f: (x: B) (y: C x): R x y
+    -- where
+    B: Any
+    C: A -> Any
+    R: all (x: A): C x -> Any
+\end{alba}
+Further analysis generate the unification constraints:
+\begin{alba}
+    C accu = List D            -- because of the pattern match
+    R accu list = B
+    B = D
+    C accu = List D
+
+\end{alba}
+
+
+
+
+
+
 
 
 
 
 \vskip 5mm
-\subsubsection{Pattern Match}
+\subsection{Pattern Match}
 
 $$
     \case (\fbold, \lambda \ybold^{\Abold} x^T . R)
@@ -658,6 +705,12 @@ $$
 
 
 \begin{alba}
+    -- without inspect
+    case
+        c z0 z1 ... := ce       -- one clause for each constructor
+        ...
+
+    -- with inspect
     inspect
         ia0; ia1; ...; e    -- ia0,... index arguments
                             -- e: expression to be inspected
@@ -675,7 +728,38 @@ If we have an expected type for a case expression it must have the form
 \end{alba}
 
 \code{R} can still be a function type. We have to find out the inductive type
-and the index types to split up the type correctly.
+and the index types to split up the type correctly. The type alone does not
+uniquely identify the inductive type in which is pattern matched. Examples:
+
+\begin{alba}
+    all (n m: Natural): n + m = m + n
+
+    all (n m: Natural): n <= m => n <= successor m
+\end{alba}
+
+The first proposition is proved by a pattern match on \code{n} and the second
+one is proved by a pattern match on \code{n <= m} with the indices \code{n} and
+\code{m}.
+
+Therefore we have to look at the constructors as well to identify the inductive
+type.
+
+Each match clause has the form \code{c z0 z1 ...} where \code{c} is the name of
+a constructor (can be an infix operator as well) and \code{z0, z1, ...} are
+names of formal arguments.
+
+If there is an inspect clause, we have a clear indication on the indices and the
+object of the inductive type. The analysis of the indices gives the index types
+and the analysis of the inspected expression gives the inductive type. If there
+is an expected type, we are able to reconstruct the type of the case expression.
+
+However there might be difficulties in reconstructing the elimination function.
+The expected result type is
+\begin{alba}
+    R[ya0:=ia0, y1:=ia1, ..., x:=e]
+\end{alba}
+
+
 
 
 
