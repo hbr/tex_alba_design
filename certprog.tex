@@ -1648,20 +1648,30 @@ needs a proof.
 The distributivity of multiplication over addition is proved by induction.
 %
 \begin{alba}
-   times_is_distributive (a b c: Natural): a * (b + c) = a * b + a * c :=
-      inspect a case
-        1 + n :=
-          via
-            (1 + n) * (b + c)
-            (b + c) + n * (b + c)
-            (b + c) + n * b + n * c
-            b + n * b + (c + n * c)    -- commutativity and assoc of '+'
-            (1 + n) * b + (1 + n) * c
-          where
-            hypo: n * (b + c) = n * b + n * c :=
-              times_is_distributive n b c
-\end{alba}
+    distributeTimes (a b c: Natural): a * (b + c) = a * b + a * c :=
+        inspect a case
+            zero :=
+                identical zero
 
+            successor n :=
+                -- goal:  successor n * (b + c)
+                --        = successor n * b + successor n * c
+
+                -- ~>     (b + c) + n * (b + c)
+                --        = (b + n * b) + (c + n * c)
+                eqTransitive _ _ _
+                    (inject _ _
+                        (distributeTimes n b c)
+                        (\ x := (b + c) + x)
+                        : (b + c) + n * (b + c) = (b + c) + (n * b + n * c))
+                    reorder b c (n * b) (n * c)
+                where
+                    reorder b c x y: (b + c) + x + y = (b + x) + (c + y)
+                    :=
+                        -- reordering manually is very tedious
+                        -- must invent some compiler support
+                        ??
+\end{alba}
 
 Commutativity of multiplication can be proved by using distributivity.
 

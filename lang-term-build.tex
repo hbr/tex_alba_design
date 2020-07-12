@@ -138,6 +138,30 @@ E.g. \code{f} could be \code{isPrime}. The forth argument is a proof of
 \code{isPrime x}.  Therefore the predicate \code{isPrime} cannot be
 reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
 
+\begin{quote}
+    Potential problem: If a type constructor variable occurs as an argument to a
+    function, the function might ignore the argument. Problem: Unification works
+    on normal forms (at least on key normal forms) i.e. key redexes are reduced.
+    The implicit argument might disappear during unification and therefore it
+    cannot be assigned a value during unification.
+
+    Possible solution: Disallow functions ignore type variable or type
+    constructor variable arguments.
+
+    \begin{alba}
+        Eraser (A: Any): Any := Int
+
+        poly (A: Any) (x: Eraser A): Int := x
+
+        -- legal call
+        poly 1
+    \end{alba}
+
+    The implicit argument \code{A} cannot be inferred. The unification of
+    \code{Int} with {Eraser A} a succeeds without assigning a type to the type
+    variable \code{A}. This case can be avoided, if \code{Eraser} is illegal.
+
+\end{quote}
 
 
 
