@@ -2325,6 +2325,43 @@ functions allow the extraction of the list and the proof of the property.
 
 
 
+\section{Red Black Trees}
+
+Ideas from Stephanie Weyrich's Haskell implementation:
+
+\begin{alba}
+    class Color := red; black
+
+    class height: Proposition := zero: height; succ: height -> height
+
+
+    incr (c: Color) (h: height): height :=
+        inspect c case
+            red := h
+            black := succ h
+
+    class
+        RBT A: Color -> height -> Any
+    :=
+        nil: RBT A black zero
+
+        tr h c1 c2: RBT A c1 h -> A -> RBT A c2 h -> RBT A black (succ h)
+
+        tb h: RBT A black h -> A -> RBT A black h -> RBT A red h
+
+
+    class
+        Almost A: height -> Any
+    :=
+        almost h c1 c2 c: RBT c1 h -> A -> RBT c2 h -> Almost (incr c h)
+
+    class
+        Hidden A: height -> Any
+    :=
+        hr h: RBT red h -> Hidden h
+
+        hb h: RBT black (succ h) -> Hidden (succ h)
+\end{alba}
 
 
 
