@@ -165,6 +165,206 @@ reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
 
 
 
+\vskip 5mm
+\subsection{Rules for Term Building}
+
+The type reconstruction problem is undecidable. This is true already for system
+F. Since system F is included in the type system of Alba, the type
+reconstruction problem for Alba is undecidable as well.
+
+Therefore we must require that some type annotations are present in order to
+make the type reconstruction problem decidable. In the this section we describe
+the rules which make the type reconstruction problem in Alba decidable.
+
+
+
+\subsubsection{Type Variables must not be Ignored}
+
+A type variable is a bound variable whose type is a kind or reduces to a kind.
+We require that a type variable cannot be ignored. I.e. a type variable must
+either appear in the subsequent part of the signature or in the body of a
+function abstraction or function type.
+
+This rule guarantees that implicit type variables are inferable from the rest of
+the signature i.e. from a subsequent argument type or result type.
+
+
+The following expressions are illegal
+\begin{alba}
+    -- Illegal expressions
+    Erase (A: Any): Any :=
+        Int
+
+    \ (A: Any) := Int
+\end{alba}
+
+
+
+
+\subsubsection{Typed Function Abstractions and Implicit Arguments}
+
+A function abstraction
+\begin{alba}
+    (\ x y ... := exp): E
+\end{alba}
+might have the required type \code{E}. The required type might come from an
+explicit type annotation or because the function abstraction is used as an
+argument of a function with a required argument type which is not a hole.
+
+In that case \code{E} must have the form
+\begin{alba}
+    all (x: A) (y: B) ... : R
+\end{alba}
+The types \code{A, B, ...} are assigned as the types of the variables \code{x,
+y, ...}.
+
+It is not allowed that the function abstraction starts with implicit arguments
+not included in the signature of \code{E}.
+
+Furthermore, if the function abstraction has more formal arguments than the
+expected type \code{E}, then the types of the exceeding formal arguments which
+occur in a function position if \code{exp} have to be inferable from explicit
+type annotations in the signature of the function abstraction.
+
+
+
+
+\subsubsection{Untyped Variables in Function Positions}
+
+If an untype bound variable occurs in a function position of an expression, then
+the type of the bound variable must be inferable before the expression is built
+i.e. the type of the bound variable must be inferable from the context of the
+expression.
+
+\paragraph{Redexes} Bound variables used in a function position in the function
+part of a redex must have an explicit type annotation.
+
+\begin{alba}
+    -- Illegal
+    (\ f g := a + f b * c - g d) arg1 arg2
+
+    -- 'f' and 'g' must have type annotations!
+\end{alba}
+
+
+\paragraph{Top Level Recursive Functions} Since recursive functions are
+fixpoints, they need a bound variable representing the recursive function which
+occurs in a function position inside the function body. Therefore recursive
+functions defined at the top level must have a type signature whose argument
+types and whose result type must be inferable by looking at the signature only.
+
+In order to have a uniform treatment of top level functions, we put this
+requirement on all toplevel functions, regardless if recursive or not recursive.
+
+
+\paragraph{Where Expressions} The type of a local definition must be usually
+inferable by looking at the definition only.
+
+I.e. the following form is illegal, if \code{f} is recursive.
+\begin{alba}
+    exp where
+        f x y z := def
+\end{alba}
+
+There is one exception. The whole where expression has a required type and the
+main expression is either \code{f} or \code{f v1 v2 ...} where \code{v1, v2,
+...} are bound varibles of the surrounding function with an explicitely given
+type. Reason: Having \code{f (v1: V1) (v2: V2) ... : R} the type of \code{f}
+must be \code{all (v1: V1) (v2:V2) ... : R}. Side condition: The order of the
+variables must respect dependencies.
+
+Note that where expressions might be nested.
+\begin{alba}
+    exp where
+        f x y z := fdef
+        g x := gdef
+\end{alba}
+The analysis is outside in. The first definition to be analyzed is the
+definition of \code{g}. If \code{g} is recursive i.e. if \code{g} occurs inside
+\code{gdef} we need either a function annotiation for \code{g} or \code{g}
+occurs in \code{exp} in the form of the above described exception.
+
+Example of a legal where expression with a recursive local definition.
+\begin{alba}
+    induct
+        (F: Natural -> Any)
+        (start: F zero)
+        (step: all i: F i -> F (successor i))
+        : all n: F n
+    :=
+        f where
+            f n :=
+                inspect n case
+                    zero :=
+                        start
+                    successor i :=
+                        step i (f i)
+\end{alba}
+In that case \code{f} gets its type signature from the environment as \code{all
+(n: Natural): F n}.
+
+The following variant is legal as well.
+\begin{alba}
+    induct2
+        (n: Natural)
+        (F: Natural -> Any)
+        (start: F zero)
+        (step: all i: F i -> F (successor i))
+        : F n
+    :=
+        f n where
+            f n :=
+                inspect n case
+                    zero :=
+                        start
+                    successor i :=
+                        step i (f i)
+\end{alba}
+
+
+
+
+
+
+
+
+
+
+
+\begin{enumerate}
+
+\item A bound variable occurring in a function position must have an explicit
+type annotation or its type must be inferrable from
+
+    \begin{enumerate}
+
+    \item the result type in case of a function abstraction (i.e. either the
+    function abstraction has a type annotation or it is used as an argument and
+    has therefore a required type)
+
+    \item the type of the local definition in case of a where expression.
+    \end{enumerate}
+
+A bound variable occurring in a function position without explicit or inferred
+type is reported as an error ({\em Cannot infer function type}).
+
+\item A bound variable of a redex occurring in a function position must have an
+explicit type annotation. Its type cannot be inferred neither from the required
+result type nor from the argument types because of the possibility of implicit
+arguments (for all formal arguments) and dependencies (for all formal arguments
+starting from the second one).
+
+\item At most one pending ambiguity is allowed. If there is already a pending
+ambiguity, all upcoming ambiguities must be resolvable immediately. Otherwise an
+error is issued. As soon as the pending ambiguity is resolved, new pending
+ambiguities are allowed.
+
+\end{enumerate}
+
+
+
+
+
 
 
 
@@ -785,43 +985,6 @@ The expected result type is
 
 
 
-
-
-
-
-
-\vskip 5mm
-\subsection{Rules for Term Building}
-
-\begin{enumerate}
-
-\item A bound variable occurring in a function position must have an explicit
-type annotation or its type must be inferrable from
-
-    \begin{enumerate}
-
-    \item the result type in case of a function abstraction (i.e. either the
-    function abstraction has a type annotation or it is used as an argument and
-    has therefore a required type)
-
-    \item the type of the local definition in case of a where expression.
-    \end{enumerate}
-
-A bound variable occurring in a function position without explicit or inferred
-type is reported as an error ({\em Cannot infer function type}).
-
-\item A bound variable of a redex occurring in a function position must have an
-explicit type annotation. Its type cannot be inferred neither from the required
-result type nor from the argument types because of the possibility of implicit
-arguments (for all formal arguments) and dependencies (for all formal arguments
-starting from the second one).
-
-\item At most one pending ambiguity is allowed. If there is already a pending
-ambiguity, all upcoming ambiguities must be resolvable immediately. Otherwise an
-error is issued. As soon as the pending ambiguity is resolved, new pending
-ambiguities are allowed.
-
-\end{enumerate}
 
 
 
