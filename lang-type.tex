@@ -1667,6 +1667,47 @@ the infinite hierarchy $\Prop \prec \Any_0 \prec \Any_1 \prec \ldots$.
 
 
 
+\subsection{Predicativity and Polymorphic Functions}
+
+Example of some polymorphic functions
+\begin{alba}
+    (=): all (A: Any): A -> A -> Proposition
+
+    reverse: all (A: Any): List A -> List A
+\end{alba}
+
+\noindent Polymorphic functions have the type $\Pi A^{\Any_i}. B$. Let's
+consider the case $B: \Any_i$ i.e. $B$ is not a proposition.
+
+The product rule with the subtype rule combined give us the following rule
+$$
+\rulev
+{
+    \Gamma \vdash \Any_i : \Any_{i + 1}
+    \\
+    \Gamma, A^{\Any_i} \vdash B: \Any_i
+
+}
+{
+    \Gamma \vdash \Pi A^{\Any_i}. B : \Any_{i + 1}
+}
+$$
+If we have a polymorphic function living in the universe $i$
+$$
+    f: \Pi A^{\Any_i}. B
+$$
+then this function cannot be fed into as an argument to a polymorphic function
+of the same universe level. The receiving function must be in a higher level
+universe.
+
+Conclusion: Polymorphic functions are not first class in the absence of
+cumulative universes. In order to pass a polymorphic function around we have to
+provide at least the type arguments.
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Abstract Datatypes}
 \label{sec:abstract-datatypes}
