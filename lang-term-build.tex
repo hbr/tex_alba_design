@@ -153,7 +153,7 @@ reconstructed directly from a proof of \code{isPrime x} for some \code{x}.
 
         poly (A: Any) (x: Eraser A): Int := x
 
-        -- legal call
+        -- illegal call
         poly 1
     \end{alba}
 
@@ -289,7 +289,7 @@ Example of a legal where expression with a recursive local definition.
     induct
         (F: Natural -> Any)
         (start: F zero)
-        (step: all i: F i -> F (successor i))
+        (step: all i: F i -> F (add1 i))
         : all n: F n
     :=
         f where
@@ -297,7 +297,7 @@ Example of a legal where expression with a recursive local definition.
                 inspect n case
                     zero :=
                         start
-                    successor i :=
+                    add1 i :=
                         step i (f i)
 \end{alba}
 In that case \code{f} gets its type signature from the environment as \code{all
@@ -309,7 +309,7 @@ The following variant is legal as well.
         (n: Natural)
         (F: Natural -> Any)
         (start: F zero)
-        (step: all i: F i -> F (successor i))
+        (step: all i: F i -> F (add1 i))
         : F n
     :=
         f n where
@@ -317,7 +317,7 @@ The following variant is legal as well.
                 inspect n case
                     zero :=
                         start
-                    successor i :=
+                    add1 i :=
                         step i (f i)
 \end{alba}
 
