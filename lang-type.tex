@@ -227,7 +227,7 @@ in the case of an infinite type hierachy.
 
     \\
 
-      & \mid & \fix(x^T, t, k)
+      & \mid & \fix(x^T := t, k)
     & \text{fixpoint}
   \end{array}
   $$
@@ -470,22 +470,24 @@ and fixpoints (recursive function) need some explanation.
     }
 
 
-\item[Fixpoint] $\fix(x^T, t, k)$ A Fixpoint encodes a recursive function. It
-  consists of a bound variable $x$ and its type $T$, a term $t$ using this
+\item[Fixpoint] $\fix(f^T := t, k)$ A Fixpoint encodes a recursive function. It
+  consists of a bound variable $f$ and its type $T$, a term $t$ using this
   bound variable an a number $k$ indicating that the $k$-th argument of the
-  function is decreasing. The fixpoint and the bound variable have the same
-  type
+  function is decreasing. The fixpoint, the bound variable and the defining term
+  have the same type
   $$
   \begin{array}{lll}
-    x &:& T
+    \fix(f^T := t, k) &:& T
     \\
-    \fix(x^T, t, k) &:& T
+    f &:& T
+    \\
+    t &:& T
   \end{array}
   $$
-  i.e. $T$ must be a function type $\Pi x^A y^B \ldots . R$ with at least $k$
+  $T$ must be a function type $\Pi x^A y^B \ldots . R$ with at least $k$
   arguments. Because the bound variable and the fixpoint have the same type,
-  it is possible to replace the bound variable $x$ in $t$ with the fixpoint
-  $t[x := \fix(x^T, t, k)]$. In order to avoid infinite recursion, some
+  it is possible to replace the bound variable $f$ in $t$ with the fixpoint
+  $t[f := \fix(f^T, t, k)]$. In order to avoid infinite recursion, some
   argument must be decreased on each substitution (see chapter
   \ref{sec:reduction}~Reduction and \ref{sec:typing-rules}~Typing Rules).
 
