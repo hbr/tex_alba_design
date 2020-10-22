@@ -1975,6 +1975,26 @@ natural numbers.
 \end{alba}
 
 
+There is an alternative way to write \code{discriminate} with an elimination
+function
+
+\begin{alba}
+    discriminate (n: Natural): 0 /= n.successor :=
+        \ (eq: 0 = n.successor) :=
+            inspect
+                n.successor     -- index (optional, can be ommitted)
+                eq              -- inductive object
+            case
+                {\ i p :=
+                    inspect i case
+                        zero := true
+                        successor k := false}
+                identical := trueValid
+\end{alba}
+
+Instead of \code{true} we could use \code{all (A: Proposition):A -> A} and
+prove it by \code{\mybackslash\ A x := x} instead of \code{trueValid}.
+
 
 
 
@@ -2021,6 +2041,33 @@ premise equality.
                     i.successor :=
                         n = i
 \end{alba}
+
+
+We can write \code{invert} as well with an elimination function
+
+\begin{alba}
+    invert (n m: Natural) (eq: n.successor = m.successor): n = m :=
+        inspect
+            m.successor
+            eq
+        case
+            {\ i p :=
+                inspect i case
+                    zero :=
+                        true -- not used
+                    successor m :=
+                        n = m}
+            identical :=
+                identical n
+\end{alba}
+
+Note that for the matching case the elimination function is called with the
+arguments \code{n.successor} and \code{eq} and returns \code{n=n}.  This is
+correctly proved by \code{identical n}.
+
+However for the whole pattern match the elimination function is called with the
+arguments \code{m.successor} and \code{eq} and returns \code{n = m}. I.e. the
+whole inspect expression returns a proof of \code{n = m}.
 
 
 
