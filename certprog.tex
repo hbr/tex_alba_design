@@ -1840,7 +1840,7 @@ We can define an induction law for $\le$.
     induceLe
         (r: Endorelation Natural)
         (ini: all m: r zero m)
-        (stp: all n m: r n m => r n.successor m.successor)
+        (stp: all j k: r j k => r j.successor k.successor)
         (n m: Natural)
         (le: n <= m)
         : r n m
@@ -1848,8 +1848,8 @@ We can define an induction law for $\le$.
         inspect n m le case
             init m :=
                 ini m
-            step n m le :=
-                stp n m (induceLe r ini stp n m le)
+            step j k jk :=
+                stp j k (induceLe r ini stp j k jk)
 \end{alba}
 
 
