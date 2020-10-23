@@ -432,4 +432,36 @@ operators can be filled with a list expression.
 \subsection{Pattern Match}
 %-----------------------------------------
 
-TBD
+\begin{alba}
+    inspect
+        index0          -- indices are optional
+        index1
+        ...
+        match-exp
+    case
+        {elim-function} -- elimination function is optional
+
+        c0 (a: A) (b:B) ... : R := -- types are optional
+            exp
+        ...
+\end{alba}
+
+Equivalent form without \code{inspect} part.
+
+\begin{alba}
+    (case
+        {elim-function} -- elimination function is optional
+
+        c0 (a: A) (b:B) ... : R := -- types are optional
+            exp
+        ...
+    ) index0 index1 ... match-exp
+\end{alba}
+
+Internal form:
+
+$$
+\case(\lambda \ybold^\Abold x^T. R, [f_0, f_1, \ldots])
+:
+\Pi \ybold^\Abold x^T. R
+$$
