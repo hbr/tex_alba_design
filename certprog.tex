@@ -1834,6 +1834,25 @@ Let's do the proofs by hand.
 \end{alba}
 
 
+We can define an induction law for $\le$.
+
+\begin{alba}
+    induceLe
+        (r: Endorelation Natural)
+        (ini: all m: r zero m)
+        (stp: all n m: r n m => r n.successor m.successor)
+        (n m: Natural)
+        (le: n <= m)
+        : r n m
+    :=
+        inspect n m le case
+            init m :=
+                ini m
+            step n m le :=
+                stp n m (induceLe r ini stp n m le)
+\end{alba}
+
+
 \noindent The strict order relation $<$ is defined as
 
 \begin{alba}
