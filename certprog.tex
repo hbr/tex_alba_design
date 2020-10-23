@@ -1741,26 +1741,57 @@ Using this analysis the compiler generates the following propositions
     inversion: all n m: n.successor <= m.successor => n <= m
 \end{alba}
 
-
+Let's do the proofs by hand.
 
 \begin{alba}
-    leZeroIsZero (a: Natural): a <= 0 => a = 0
+    discriminate (n: Natural) (le: n.successor <= 0): false :=
+        inspect
+            n.successor
+            0
+            le
+        case
+            {\j k le :=
+                inspect j case
+                    zero := true -- match for 'init'
+                    n.successor :=
+                        inspect k case
+                            zero := false       -- match for 'inspect'
+                            m.successor := true -- match for 'step'
+            }
+            init k :=
+                trueValid
+            step n m le :=
+                trueValid
+
+    inversion (n m: Natural) (le: n.successor <= m.successor): n <= m
     :=
-        (\ aLe0 := f 0 aLe0 identical)
-        where
-            f b: a <= b => 0 = b => a = 0
-            :=
-                case
-                    init b :=
-                        \ _ := identical
+        inspect
+            n.successor
+            m.successor
+            le
+        case
+            {\ j k le :=
+                inspect j case
+                    zero := true  -- match for 'init'
+                    n.successor :=
+                        inspect k case
+                            zero := true    -- not used
+                            m.successor :=  -- match for 'step' and 'inspect'
+                                n <= m}
+            init k :=
+                trueValid
 
-                    step _ m _ :=
-                        -- b = m.successor
-                        -- goal: 0 = m.successor => a = 0
-                        discriminate m >> exFalso
+            step n m le :=
+                le
+\end{alba}
 
-    -- note: discriminate: all m: 0 = m.successor => false
-    --       exFalso:      all (A:Any): false -> A
+\begin{alba}
+    leZeroIsZero (a: Natural): a <= 0 => a = 0 :=
+        inspect a case
+            zero :=
+                \ le := identical zero
+            n.successor :=
+                discriminate n >> exFalso
 \end{alba}
 
 
@@ -1770,53 +1801,16 @@ Using this analysis the compiler generates the following propositions
 \noindent The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
-    reflexive: all (a:Natural): a <= a :=
-        case
-            0 :=
+    reflexive: (a: Natural): a <= a :=
+        inspect a case
+            zero :=
                 init 0
-
             n.successor :=
                 step n n (reflexive n)
 \end{alba}
 
 
 
-
-\noindent The proof of the implication $ 1 + a \le 1 + b \imp a \le b$ is not
-difficult.
-
-
-\begin{alba}
-    -- INCOMPLETE --
-    leSuccImpliesLe
-        (a b: Natural)
-        : a.successor <= b.successor =>  a <= b
-    :=
-        (\ aSuccLEbSucc :=
-            f a.successor identical b.successor identical aSuccLEbSucc)
-        where
-            f n m: n <= m => n = a.successor => m = b.successor => a <= b
-            :=
-                case
-                    init _ :=
-                        -- n = 0
-                        discriminate a >> exFalso
-
-                    step i j iLEj :=
-                        -- i.successor = n, j.successor = m
-                        -- INCOMPLETE --
-\end{alba}
-
-
-\begin{alba}
-  leSuccImpliesLe (a b: Natural) (p: 1 + a <= 1 + b): a <= b :=
-    inspect p case
-      init (1 + b) :=
-        exFalso      -- 1 + a cannot be 0
-      step n m :=
-        goal where
-          goal: n <= m := _
-\end{alba}
 
 
 \noindent Next we prove the law $a \le b \imp a \le 1 + b$.

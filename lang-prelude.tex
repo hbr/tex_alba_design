@@ -80,7 +80,7 @@ proof. Therefore it is encoded as an inductive type with no constructor.
 \begin{alba}
   class
     false: Proposition
-  create
+  :=
     -- no constructors
 \end{alba}
 
@@ -108,7 +108,7 @@ assumptions. \vskip 2mm
 \begin{alba}
   class
     (or) (a b:Proposition): Proposition
-  create
+  :=
     left:  a => a or b
     right: b => a or b
 \end{alba}
@@ -131,7 +131,7 @@ as well.
 \begin{alba}
   class
     (and) (a b:Proposition): Proposition
-  create
+  :=
     conjunction: a => b => a and b
 \end{alba}
 
@@ -148,9 +148,9 @@ proof of $a$ and a proof of $b$ to a proof of $a \land b$.
 
 \begin{alba}
   class
-    exist (A:Any) (f: Predicate A): Proposition
-  create
-    witness: all (a:A): f a -> exist f
+    exist (A: Any) (f: Predicate A): Proposition
+  :=
+    witness (a: A): f a -> exist f
 \end{alba}
 
 \begin{itemize}
@@ -178,12 +178,12 @@ Example
 
 \begin{alba}
   class
-    (=) (A:Any) (x:A): Predicate A
-  create
-    reflexive: x = x    -- long form: (=) A x x
+    (=) (A: Any) (x:A): Predicate A
+  :=
+    identical: x = x    -- long form: (=) A x x
 \end{alba}
 
-Note that \code{Predicate A} expands to \code{A -> Propositions}, therefore
+Note that \code{Predicate A} expands to \code{A -> Proposition}, therefore
 \code{(=)} has three arguments. The type argument is implicit, therefore a
 binary operator is ok.
 \vskip 2mm
@@ -205,7 +205,7 @@ binary operator is ok.
 \begin{alba}
   class
     List (A:Any): Any
-  create
+  :=
     []: List A
     (^): A -> List A -> List A
 \end{alba}
@@ -231,7 +231,7 @@ binary operator is ok.
 \begin{alba}
   class
     (,) (A B:Any): Any
-  create
+  :=
     (,):    A -> B -> (A,B)
 \end{alba}
 \vskip 2mm
@@ -244,7 +244,7 @@ binary operator is ok.
 \begin{alba}
   class
     Natural: Any
-  create
+  :=
     0: Natural
     successor: Natural -> Natural
 \end{alba}
@@ -259,7 +259,7 @@ straightforward implemenation as an inductive type.
 \begin{alba}
   class
     (<=): Endorelation Natural
-  create
+  :=
     start: all i: 0 <= i
     next:  all i j: i <= j => i.successor <= j.successor
 
@@ -273,7 +273,7 @@ straightforward implemenation as an inductive type.
 \begin{alba}
   class
     String: Any
-  create
+  :=
     "": String
     (^): Character -> String -> String
 \end{alba}
@@ -299,8 +299,8 @@ use to proof more properties.
 %
 \begin{alba}
   class
-    Decision (a b:Proposition): Any
-  create
+    Decision (a b: Proposition): Any
+  :=
     left:  a -> Decision a b
     right: b -> Decision a b
 \end{alba}
