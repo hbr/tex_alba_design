@@ -3,8 +3,11 @@
 We have a base $B$ and digits $0 \le d < B$ i.e. the greatest digit is $B-1$.
 \begin{itemize}
 
-\item The digit sequence $(d_0d_1d_2 \ldots d_{n-1})_B$ is interpreted as the number
-  $(\ldots((d_0 B + d_1)B + d_2) + \ldots) + d_{n-1} $
+\item The digit sequence $(d_0 d_1 d_2 \ldots d_{n-1})_B$ is interpreted as the number
+  $(\ldots((d_0 B + d_1)B + d_2) + \ldots) + d_{n-1}$ i.e.
+
+    $$ d_0 B^{n-1} + d_1 B^{n-2} + \ldots + d_{n-2} B + d_{n-1} $$
+
 
 \item The result of adding two digits is at most $2B-2$.
 
@@ -38,7 +41,127 @@ Primitive operations
 
 
 
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "main_alba_design"
-%%% End:
+
+\subsection{Division}
+
+
+
+\subsubsection{Basics}
+
+In order to define the division algorithm we have to define integer division and
+prove some properties of integer division.
+
+\begin{definition}
+
+    We write the integer division of the nonegative number $a$
+    divided by the positive number {b} as
+
+    $$\intdiv{a}{b}$$
+
+    \noindent $\intdiv{a}{b}$ is the number $n$ satisfying the specification
+
+    $$
+    nb \le a \le (n+1) b - 1
+    $$
+
+    Note that the specification defines the number $n$ uniquely.
+\end{definition}
+
+\begin{theorem}\label{intdiv-theorem}
+    Any number $n$ satisfying the specification
+    %
+    $$n b \le a \le (n+1) b - 1$$
+    %
+    for $0 \le a$ and $0 < b$ satisfies the condition
+    %
+    $$ n b f \le a f + i \le (n+1) b f - 1 $$
+    %
+    for all $0 \le i < f$. I.e.
+    %
+    $$
+    \intdiv{a}{b} = \intdiv{af}{bf} = \intdiv{af + i}{bf}
+    $$
+    is valid.
+
+    \begin{proof}
+        We prove this claim by the following chain of order preserving
+        transformations.
+        %
+        $$
+        \begin{array}{lllll}
+            n b &\le& a &\le& (n+1) b - 1
+            \\
+            nbf &\le& af &\le& (n+1) b f - f
+            \\
+            nbf + i &\le& af + i &\le& (n+1) b f - (f - i)
+            \\
+            nbf     &\le& af + i &\le& (n+1) b f - 1
+        \end{array}
+        $$
+        %
+        The last step is valid because of $0 \le i < f$. The first condition is
+        equivalent to
+        $$ n = \intdiv{a}{b}$$
+        The last condition is equivalent to
+        $$ n = \intdiv{af + i}{bf}.$$
+    \end{proof}
+\end{theorem}
+
+
+\subsubsection{Basic Division}
+
+In this subsection let $u = (u_0 u_1 \ldots u_n)_B$ and $v = (v_1 v_2 \ldots
+v_n)_B$ and $u / v < B$.
+%
+We want to find $q := \floor{u / v}$.
+
+We start with the initial guess
+$$
+\hat{q} := \text{min}( \intdiv{u_0 B + u_1}{v_1}, B - 1)
+$$
+
+
+\begin{theorem}
+    The initial guess is an upper bound for the correct value i.e. $q \le
+    \hat{q}$.
+
+    \begin{proof}
+        Since $q < B$ because of $u/v < B$ the claim is evident for $\hat{q} = B
+        - 1$. Therefore we treat the case $\hat{q} < B - 1$.
+
+        We always have
+        $$
+            (u_2 \ldots u_n)_B < B^{n-1}
+        $$
+        by definition of positional numbers. If we use the theorem about integer
+        divisions~\ref{intdiv-theorem} with $f := B^{n-1}$ and $i := (u_2 \ldots
+        u_n)_B$ we get
+        $$
+        \begin{array}{lll}
+            \hat{q}
+            &:=&
+            \intdiv{u_0 B + u_1}{v_1}
+            \\
+            \\
+            &=&
+            \intdiv{(u_0 B + u_1) B^{n-1}}{v_1 B^{n-1}}
+            \\
+            \\
+            &=&
+            \intdiv{(u_0 B + u_1) B^{n-1} + (u_2 \ldots u_n)_B}{v_1 B^{n-1}}
+            \\
+            \\
+            &=&
+            \intdiv{u}{v_1 B^{n-1}}
+        \end{array}
+        $$
+
+        In general we have $\floor (u / w_1) \le \floor(u / w_2)$ if $w_2 \le
+        w_1$ because dividing by a bigger value leads to a smaller result. Since
+        $v_1 B^{n-1} \le v$ we get
+        $$
+            \intdiv{u}{v} \le \intdiv{u}{v_1 B^{n-1}}
+        $$
+        which proves the claim $q \le \hat{q}$.
+    \end{proof}
+\end{theorem}
