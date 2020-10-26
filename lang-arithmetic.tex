@@ -108,6 +108,36 @@ prove some properties of integer division.
 \end{theorem}
 
 
+\begin{theorem}\label{intdiv-theorem2}
+    For all $0 \le a$ and $0 < b$ we have
+    $$
+        \frac{a}{b} - 1 < \intdiv{a}{b}
+    $$
+
+    \begin{proof}
+        Let $n := \floor{a/b}$. This implies that $n$ satisfies
+        $$
+            nb \le a \le (n + 1) b - 1
+        $$
+        %
+        We use the right inequality and derive
+        $$
+        \begin{array}{lll}
+            a &\le& (n + 1) b - 1
+            \\
+            a/b  &\le&   n + 1 - 1/b
+            \\
+            a/b  &<&   n + 1
+            \\
+            a/b - 1  &<&   n
+            \\
+            a/b - 1 &<&   \intdiv{a}{b}
+        \end{array}
+        $$
+    \end{proof}
+\end{theorem}
+
+
 \subsubsection{Basic Division}
 
 In this subsection let $u = (u_0 u_1 \ldots u_n)_B$ and $v = (v_1 v_2 \ldots
