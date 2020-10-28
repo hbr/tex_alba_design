@@ -151,7 +151,8 @@ $$
 $$
 
 
-\begin{theorem}
+\begin{theorem}[Initial guess is upper bound]
+    \label{initial-guess-upper-bound}
     The initial guess is an upper bound for the correct value i.e. $q \le
     \hat{q}$.
 
@@ -193,5 +194,129 @@ $$
             \intdiv{u}{v} \le \intdiv{u}{v_1 B^{n-1}}
         $$
         which proves the claim $q \le \hat{q}$.
+    \end{proof}
+\end{theorem}
+
+
+\begin{theorem}[Initial guess maximal error is 2]
+    The initial guess $\hat q$ and the correct value $q$ are at most 2 apart
+    i.e. $\hat q - q \le 2$ as long as $\floor {B/2} \le v_1$ is valid.
+
+    \begin{proof}
+
+        Instead of proving $\floor{B/2} \le v_1 \imp \hat q - q \le 2$
+        we prove the contrapositive $3 \le \hat q - q \imp v_1 < \floor{B/2}$.
+        So let's assume $q + 3 \le \hat q$ and prove the following subclaims.
+
+        \begin{enumerate}
+            \item $v_1 \le v / B^{n-1}$:
+
+                By definition of positional numbers we have $v_1 B^{n-1} + (v_2
+                \ldots v_n)_B = v$ which implies $v_1 B^{n-1} \le v$. Dividing
+                both sides by $B^{n-1}$ proves the subclaim.
+
+            \item $B^{n-1} < v$:
+
+                From the previous subclaim we conclude $v_1 B^{n-1} \le v$ and
+                since $v_1$ is different from zero we get $B^{n-1} \le v$.
+
+                Now assume by way of contradiction $B^{n-1} = v$. In that case
+                $\floor{u / v}$ and $\floor{u_0 B + u_1 / v_1}$ are the same and
+                therefore $\hat q$ and $q$ must be the same (note that
+                $\floor{u/v} < B$). This contradicts our assumption that $\hat
+                q$ and $q$ are $3$ apart.
+
+            \item $u/v - 1 < q$:
+
+                This is an immediate consequence of the definition of $q$ and
+                the theorem~\ref{intdiv-theorem2}.
+
+            \item $\hat q \le u /(v - B^{n-1})$:
+
+                Since $\hat q := \text{min}(\floor{u_0 B + u_1 / v_1})$ and
+                $\floor{u_0 B + u_1 / v_1} = \floor {u / v_1 B^{n-1}}$ (see
+                reasoning in theorem~\ref{initial-guess-upper-bound}) we get
+                $\hat q \le \floor{u /(v_1 B^{n-1}})$ which implies
+                $\hat q \le u / (v_1 B^{n-1}) $. Together with $v < v_1 B^{n-1}
+                + B^{n-1}$ we get the subclaim.
+
+            \item $2 (v_1 - 1) \le B - 4$:
+
+                We prove this by the following chain:
+                $$
+                \begin{array}{llll}
+                    q + 3 &\le& \hat q      &\text{assumption}
+
+                    \\ \\
+
+                    u/v - 1 + 3 &<& u / (v - B^{n-1})
+                    &\text{subclaim 3 and 4}
+
+                    \\
+                    \\
+
+                    2 &<& \frac{u}{v - B^{n-1}} - u/v
+
+                    \\
+                    \\
+
+                    2 &<& \frac{u v - u (v - B^{n-1})}{v (v - B^{n-1})}
+
+                    \\
+                    \\
+
+                    2 &<& \frac{u}{v} \frac{v}{v - B^{n-1}}
+
+                    \\ \\
+
+                    2 (v/B^{n-1} - 1) &<& u/v
+
+                    \\ \\
+
+                    2 (v_1 - 1) &<& u/v  &\text{subclaim 1}
+
+                    \\ \\
+
+                    2 (v_1 - 1) &\le& \intdiv{u}{v}
+                    &\text{left hand side is an integer}
+
+                    \\ \\
+
+                    2 (v_1 - 1) &\le& q &\text{definition of $q$}
+
+                    \\ \\
+
+                    2 (v_1 - 1) &\le& \hat q - 3 &\text{assumption}
+
+                    \\ \\
+
+                    2 (v_1 - 1) &\le&  B - 4
+                    &\text{definition of $\hat q$}
+                \end{array}
+                $$
+
+            \item $v_1 < \intdiv{B}{2}$:
+
+                $$
+                \begin{array}{llll}
+                    2 (v_1 - 1) &\le&  B - 4
+                    &\text{subclaim 5}
+
+                    \\ \\
+
+                    v_1 &\le& \frac{B}{2} - 1
+
+                    \\ \\
+
+                    v_1 &<& \intdiv{B}{2}
+                    &\text{theorem~\ref{intdiv-theorem2}}
+                \end{array}
+                $$
+
+        \end{enumerate}
+
+
+        This concludes the proof of the contrapositive. Therefore the stated
+        theorem is valid.
     \end{proof}
 \end{theorem}
