@@ -320,3 +320,12 @@ $$
         theorem is valid.
     \end{proof}
 \end{theorem}
+
+Remark: The proof of this theorem is correct but somehow unsatisfactory. It does
+not give any insight because it is a collection of complex transformations. The
+principal cause of complexity are nonlinear functions. The floor function
+$\floor{x}$ is inherently nonlinear and the definition of $\hat q$ is nonlinear
+(because it uses the nonlinear function \emph{min}). It might be possible to
+gain more insight to concentrate on the difference between $\intdiv{u}{v}$ and
+$\intdiv{u}{v_1 B^{n-1}}$ which is in the denominator. And then take advantage
+of the fact $v_1 B^{n-1} \le v < v_1 B^n$.
