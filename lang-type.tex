@@ -1071,6 +1071,75 @@ term generation.
 \label{sec:advanced-inductive-types}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+In the previous sections only simple inductive types have been described.
+However the general case are mutually inductive types.
+
+A set of mutually inductive types have a common set of parameters $\Gamma =
+[p_0^{P_0}, p_1^{P_1}, \ldots]$.
+
+Then there is a list of mutually types where each type has a name, a kind (a term
+which reduces to a syntactical kind) and a list of constructors.
+
+The kind of an inductive type is valid in a context with all parameters. A kind
+reduces to a syntactic kind of the form $\Pi y_0^{A_0} y_1^{A_1} \ldots. s$
+where $y_0, y_1, \ldots$ are the indices of the type and $s$ is its sort.
+
+A constructor has a name (not needed in the mathematical description) and a
+type. The constructor type is valid in a context with all parameters and all
+types.
+
+A constructor type has the form $\Pi z_0^{B_0} z_1^{B_1} \ldots . I a_0 a_1
+\ldots$ where $z_0, z_1, \ldots$ are the arguments of the constructor and $B_0,
+B_1, \ldots$ the corresponding argument types, $I$ is the name of the inductive
+type for which an object is constructed and $a_0, a_1, \ldots$ are the indices
+which usually depend on the constructor arguments $z_0, z_1, \ldots$.
+
+The argument types $B_i$ of a constructor either do not contain any of the
+inductive types or contain them only positively. I.e. $B_i$ can have the form
+$\Pi \ldots J c_0 c_1 \ldots$ where $J$ is any of mutually inductive types.
+
+A positive parameter $p$ of an inductive type is a parameter whose type is a
+sort (i.e. it is a type variable) and which either does not appear in
+constructor argument types and occurs only positively in constructor argument
+types.
+
+We can use the definition of a positive parameter to allow for nested inductive
+types. Now we can allow that inductive types $J$ can occur in an argument type
+$B_i$ of any constructor of the mutually inductive types nested positively i.e.
+they occur in the form $T \ldots (J c_0 c_1 \ldots) \ldots$ where $T$ is an
+inductive type which is not mutually defined and the term $J c_0 c_1 \ldots$
+occurs in the position of a positive parameter of the inductive type $T$.
+
+Note that $I a_0 a_1 \ldots$ do not contain the parameters, only the indices. In
+the software text the parameters do appear.
+
+
+\begin{alba}
+    class List (A: Any): Any :=
+        []: List A
+        (::): A -> List A -> List A
+\end{alba}
+
+In the mathematical formula corresponding to this type $I$ is \code{List}, the
+parameters are $\Gamma = [A^\Any]$, the kind is $K = \Any$ and the constructor
+types are $I$ and $A \to I \to I$ as opposed to \code{List A} and \code{A ->
+List A -> List A} in the software text.
+
+In mathematical notation we write the list type as
+$$
+    \ind([A^\Any], [(I^\Any, [I, A \to I \to I]]) : \Any \to \Any
+$$
+
+The type of natural numbers looks like
+$$
+    \ind([], [I^\Any, [I, I \to I]]) : \Any
+$$
+
+
+
+
+
+
 
 
 \subsubsection{Mutually Inductive Types}
@@ -1418,9 +1487,9 @@ and a corresponding simple recursive function
         \forall i\;.\;
             \Gamma
             \vdash
-            f_i: \Pi \zbold^{\Bbold_i}. 
-                F\, 
-                \abold_i\, 
+            f_i: \Pi \zbold^{\Bbold_i}.
+                F\,
+                \abold_i\,
                 (\Constructor^i_U \qbold\zbold)
     }
     {
