@@ -813,6 +813,19 @@ must construct an object of type \code{f a}.
 \subsection{Argument Equality}
 
 \begin{alba}
+    apply
+        (A B: Any) {a b: A}
+        (f: A -> B)
+        (eq: a = b)
+        : f a = f b
+    :=
+        inspect eq case
+            {\ x eq := f a = f x}
+            identical := identical (f a)
+\end{alba}
+
+
+\begin{alba}
     inject
         A (F: A -> Any)
         (a b: A)
@@ -1477,15 +1490,15 @@ of the runtime.
 The type of natural numbers is defined in the prelude inductively.
 
 \begin{alba}
-  class Natural create
-    0: Natural
+  class Natural :=
+    zero: Natural
     successor: Natural -> Natural
 \end{alba}
 
 The number $1$ is the constant
 
 \begin{alba}
-  1: Natural := 0.successor
+  one: Natural := zero.successor
 \end{alba}
 
 The compiler \emph{knows} of this type and implements it as an efficient
@@ -1496,8 +1509,62 @@ as the following functions defined recursively on the inductive type above.
 
 
 
+\subsection{Iterators, Recursors and Induction}
+
+\begin{alba}
+    iterate (A: Any) (start: A) (step: A -> A): Natural -> A :=
+        \ n :=
+            inspect n case
+                {\ n := A}
+                zero        := start
+                successor i := step (iterate start step i)
+
+    recurse (A: Any) (start: A) (step: Natural -> A -> A): Natural -> A :=
+        \ n :=
+            inspect n case
+                {\ n := A}
+                zero        := start
+                successor i := step i (recurse start step i)
+
+    induce
+        (F: Natural -> Any)
+        (start: F zero)
+        (step: all i: F i -> F (successor i)) :
+        all n: F n
+    :=
+        \ n :=
+            inspect n case
+                {F}
+                zero        := start
+                successor i := step i (induce start step i)
+\end{alba}
 
 
+Note that only \code{induce} is necessary. We can use \code{induce} to define
+the other two functions.
+
+\begin{alba}
+    iterate (A: Any) (start: A) (step: A -> A): Natural -> A :=
+        induce {\ n := A} start (\ i := step)
+
+    recurse (A: Any) (start: A) (step: Natural -> A -> A): Natural -> A :=
+        induce {\ n := A} start step
+
+    -- note:
+        (\ n := A) zero ~>  A
+
+        (all i: (\ n := A) i -> (\ n := A) (successor i))
+        ~>  all i: A -> A
+        =   Natural -> A -> A
+\end{alba}
+
+
+
+
+
+
+
+\vskip 5mm
 \subsection{Arithmetic}
 
 
@@ -1519,20 +1586,18 @@ Addition is associative
 %
 \begin{alba}
     plusAssociative (a b c: Natural): a + b + c = a + (b + c) :=
-        inspect a case
-            zero :=
-                identical (b + c)
+        induce
+            {\ a := a + b + c = a + (b + c)}
 
-            successor n :=
-                -- goal:
-                --      n.successor + b + c = n.successor + (b + c)
-                -- reduces to
-                --      successor (n + b + c) = successor (n + (b + c))
-                inject _ _
-                    (plusAssociative n b c: n + b + c = n + (b + c))
-                    successor
+            (identical (b + c))
+
+            (\ n (assoc: n + b + c = n + (b + c)) :=
+                apply successor assoc)
+            a
+
+    -- Note:
+    -- apply (A B: Any) (f: A -> B) {a b: A} (eq: a = b): f a = f b :=
 \end{alba}
-
 
 
 Now we prove that addition is commutative. In order to prove commutativity of
@@ -1540,15 +1605,14 @@ addition we need two lemmas.
 
 \begin{alba}
     zeroRightNeutral (a: Natural): a + zero = a :=
-        inspect a case
-            zero :=
-                identical zero
+        induce
+            {\a := a + zero = a}
 
-            successor i :=
-                -- goal: successor i + zero = successor i
-                inject _ _
-                    (zeroRightNeutral i: i + zero = i)
-                    successor
+            (identical zero)
+
+            (\ n (neutral: n + zero = n :=
+                apply successor neutral)
+            a
 \end{alba}
 
 
@@ -1859,47 +1923,6 @@ We can define an induction law for $\le$.
   (<) (a b: Natural): Proposition :=
     1 + a <= b
 \end{alba}
-
-
-
-\subsection{Iterators, Recursors and Induction}
-
-\begin{alba}
-    iterate A (start: A) (step: A -> A): Natural -> A :=
-        iter where
-            iter :=
-                case
-                    zero :=
-                        start
-                    successor i :=
-                        step (iter i)
-
-    recurse A (start: A) (step: Natural -> A -> A): Natural -> A :=
-        rec where
-            rec :=
-                case
-                    zero :=
-                        start
-                    successor i :=
-                        step i (rec i)
-
-    induce
-        (F: Natural -> Any)
-        (start: F zero)
-        (step: all i: F i -> F (successor i)) :
-        all n: F n
-    :=
-        ind where
-            ind :=
-                case
-                    zero :=
-                        start
-                    successor i :=
-                        step i (ind i)
-\end{alba}
-
-
-
 
 
 
