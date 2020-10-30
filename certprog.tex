@@ -1808,7 +1808,7 @@ Using this analysis the compiler generates the following propositions
 Let's do the proofs by hand.
 
 \begin{alba}
-    discriminate (n: Natural) (le: n.successor <= 0): false :=
+    discriminate {n: Natural} (le: n.successor <= 0): false :=
         inspect
             n.successor
             0
@@ -1827,7 +1827,7 @@ Let's do the proofs by hand.
             step n m le :=
                 trueValid
 
-    inversion (n m: Natural) (le: n.successor <= m.successor): n <= m
+    invert {n m: Natural} (le: n.successor <= m.successor): n <= m
     :=
         inspect
             n.successor
@@ -1855,7 +1855,7 @@ Let's do the proofs by hand.
             zero :=
                 \ le := identical zero
             n.successor :=
-                discriminate n >> exFalso
+                discriminate {n} >> exFalso
 \end{alba}
 
 
@@ -1924,6 +1924,77 @@ We can define an induction law for $\le$.
     1 + a <= b
 \end{alba}
 
+
+
+
+
+
+\vskip 5mm
+\section{Decision Procedure for the Order Relation}
+
+A decision between two alternatives is an inductive type.
+
+\begin{alba}
+    class Decision2 (a b: Proposition): Any :=
+        left: a  -> Decision2 a b
+        right: b -> Decision2 a b
+
+    Decision (a: Proposition): Any :=
+        Decision2 a (not a)
+\end{alba}
+
+
+
+\begin{alba}
+    (<=): all (a b: Natural): Decision (a <= b) :=
+        \ a :=
+            inspect a case
+                zero :=
+                    left << init
+                successor i :=
+                    \ b :=
+                        inspect b case
+                            {\ b := Decision (successor i <= b)}
+                            zero :=
+                                right discriminate
+                            successor k :=
+                                mapDecision (i <= k)
+        where
+            mapDecision
+                {i j} (d: Decision (i <= j))
+                : Decision (successor i <= successor j)
+            :=
+                inspect d case
+                    left le0 :=
+                        left (step le0)
+                    right nle0 :=
+                        right (nle0 << invert)
+\end{alba}
+
+
+
+
+
+%   \vskip 5mm
+%   \section{Search}
+%
+%   \begin{alba}
+%       Decider (A: Any) (f: Predicate A): Any :=
+%           all x: Decision (f x)
+%
+%       searchBounded
+%           (f: Predicate Natural)
+%           (d: Decider f)
+%           (bound: Natural)
+%           : StrongMaybe (\ i := f i and i < bound)
+%       :=
+%           search bound where
+%               search i: p i :=
+%
+%               p i := all j: j < i =>
+%
+%
+%   \end{alba}
 
 
 
