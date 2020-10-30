@@ -1781,6 +1781,23 @@ We define the order relation on natural numbers inductively.
             n <= m
             => n.successor <= m.successor
 \end{alba}
+%
+Note that in \code{init n} the argument \code{n} is implicit and in \code{step n
+m ...} the arguments \code{n m} are implicit.
+
+We can generate an induction law.
+\begin{alba}
+    leInduction
+        (r: Endorelation Natural)
+        (ini: all i: r 0 i)
+        (stp: all i j: r i j => r i.successor j.successor)
+        : all i j: i <= j => r i j
+    :=
+        \ i j le :=
+            inspect le case
+                init: ini
+                step le0 := stp (leInduction ini stp le0)
+\end{alba}
 
 The inductive type has no parameters and two index arguments. The index
 arguments are of type \code{Natural}. Therefore the compiler can do some analysis
@@ -1808,6 +1825,18 @@ Using this analysis the compiler generates the following propositions
 Let's do the proofs by hand.
 
 \begin{alba}
+    discriminate (n: Natural): n.successor <= 0 => false :=
+        leInduction
+            {\ n m :=
+                inspect n case
+                    zero := true
+                    i.successsor :=
+                        inspect m case
+                            zero := false
+                            j.successor := true}
+            (\ m := trueValid)
+            (\ n m le := trueValid)
+
     discriminate {n: Natural} (le: n.successor <= 0): false :=
         inspect
             n.successor
@@ -1874,6 +1903,19 @@ Let's do the proofs by hand.
 \end{alba}
 
 
+\begin{alba}
+    -- other proof of reflexivity
+    reflexive (a: Natural): a <= a :=
+        natInduction init step a
+
+    -- Induction predicate
+    -- f a := a <= a
+
+    -- 'init' proves 'f zero' i.e. 'zero <= zero'
+    -- 'step' proves 'all i: f i -> f i.successor'
+    --     i.e. 'i <= i => i.successor <= i.successor
+    --     with implicit argument 'i'
+\end{alba}
 
 
 
@@ -1921,7 +1963,23 @@ We can define an induction law for $\le$.
 
 \begin{alba}
   (<) (a b: Natural): Proposition :=
-    1 + a <= b
+    successor a <= b
+\end{alba}
+
+Properties:
+
+\begin{alba}
+    leToLt: (a b: Natural) (le: a <= b): a /= b => a < b :=
+        inspect le case
+            init b: 0 /= b => 0 < b :=
+                inspect b case
+                    zero: \ ne := identical zero |> ne |> exFalso
+                    successor i: 0 /= successor i => 0 < successor i :=
+                        \ ne := step (init i)
+            step i j ij
+            : successor i /= successor j => successor i < successor j :=
+                \ ne :=
+                    step (leToLt ij (ne << apply successor))
 \end{alba}
 
 
@@ -1975,28 +2033,81 @@ A decision between two alternatives is an inductive type.
 
 
 
-%   \vskip 5mm
-%   \section{Search}
-%
-%   \begin{alba}
-%       Decider (A: Any) (f: Predicate A): Any :=
-%           all x: Decision (f x)
-%
-%       searchBounded
-%           (f: Predicate Natural)
-%           (d: Decider f)
-%           (bound: Natural)
-%           : StrongMaybe (\ i := f i and i < bound)
-%       :=
-%           search bound where
-%               search i: p i :=
-%
-%               p i := all j: j < i =>
-%
-%
-%   \end{alba}
+\vskip 5mm
+\section{Search}
+
+\begin{alba}
+    Decider (A: Any) (f: Predicate A): Any :=
+        all x: Decision (f x)
+
+    class StrongMaybe (A: Any) (f: Predicate A) (a: Proposition): Any :=
+        just x: f x -> StrongMaybe f a
+        nothing: a -> StrongMaybe f a
+
+    lowerBound (f: Predicate Natural) (n: Natural): Proposition :=
+            -- 'n' is a lower bound for all numbers which satisfy 'f'.
+        all i: f i => n <= i
+
+    least (f: Predicate Natural) (n: Natural): Proposition :=
+            -- 'n' is the least number which satisfies 'f'
+        lowerBound f n and f n
+
+    nextLowerBound
+        (f: Predicate Natural) (n: Natural)
+        (lb: lowerBound f n) (nfn: not (f n))
+        : lowerBound f (successor n)
+    :=
+        \ i fi: successor n <= i :=
+            inspect n = i case
+                left eq :=
+                    fi |> leibniz eq nfn
+                right neq :=
+                    leToLt lb neq
+
+    findBelow
+        (f: Predicate Natural)
+        (d: Decider f)
+        (bound: Natural)
+        : StrongMaybe (least f) (lowerBound f bound)
+    :=
+        search 0 bound (identical bound) (\ i e := init i)
+        where
+            search
+                i k
+                (inv1: bound = i + k)
+                (inv2: lowerBound f i)
+                : StrongMaybe f (lowerBound f i)
+            :=
+                inspect k case
+                    zero :=
+                        nothing inv2
+                    successor j :=
+                        inspect d i case
+                            left sat :=
+                                just i (inv2,sat)
+                            right notsat :=
+                                search
+                                    i.successor
+                                    j
+                                    (leibniz
+                                        {(=) bound}
+                                        inv1
+                                        (pushSuccessor {i} {j} |> flip)
+                                    (nextLowerBound inv2 notsat)
+\end{alba}
 
 
+
+
+\begin{alba}
+    find
+        (f: Predicate Natural)
+        (d: Decider f)
+        (e: exist f)        -- There is some number satisfying 'f'
+        : Refined (least f)
+    :=
+        MISSING
+\end{alba}
 
 
 
