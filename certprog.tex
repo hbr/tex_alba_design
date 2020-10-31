@@ -2097,15 +2097,72 @@ A decision between two alternatives is an inductive type.
 \end{alba}
 
 
+Now we want to implement a search for the least number which satisfies a
+certain predicate under the assumption that such a number exists.
+
+Since we have no search bound, we cannot use a recursive function which reduces
+one of its arguments on each recursive call. On the contrary, as long as we have
+not yet found the number we have to increase the number by one and call the
+recursive function with the increased argument. I.e. we need some other
+inductive object which we can decrease on each recursive call.
+
+\begin{alba}
+    class terminating (A: Any) (r: Endorelation A) (x: A): Proposition :=
+        terminate: (all y: r x y -> terminating r y) -> terminating r x
+
+    nextTerminating
+        (A: Any)
+        (r: Endorelation A)
+        (x y: A)
+        (tx: terminating r x)
+        (rxy: r x y)
+        : terminating r y
+    :=
+        inspect t case
+            terminate f := f xy
+\end{alba}
 
 
 \begin{alba}
+    searchRelation (f: Predicate Natural): Endorelation Natural :=
+        \ x y := x < y and lowerBound f y
+
+    -- important properties
+    searchRelation f x y => lowerBound f x
+
+    terminatingIsLowerBound: terminating (searchRelation f) x => lowerBound f x
+\end{alba}
+
+
+\begin{alba}
+    findHelper
+        (f: Predicate Natural)
+        (d: Decider f)
+        (start: Natural)
+        (term: terminating (searchRelation f) start)
+        : Refined (least f)
+    :=
+        inspect d start case
+            left startOk :=
+                (start, (startLb, startOk))
+            right notStartOk :=
+                findHelper
+                    d
+                    start.successor
+                    (inspect term case
+                        terminate g :=
+                            g (reflexive, nextLowerBound f startLb notStartOk))
+        where
+            startLb := terminatingIsLowerBound term
+
+
     find
         (f: Predicate Natural)
         (d: Decider f)
         (e: exist f)        -- There is some number satisfying 'f'
         : Refined (least f)
     :=
+        search zero ???
         MISSING
 \end{alba}
 
