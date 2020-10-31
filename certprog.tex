@@ -1894,18 +1894,7 @@ Let's do the proofs by hand.
 \noindent The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
-    reflexive: (a: Natural): a <= a :=
-        inspect a case
-            zero :=
-                init 0
-            n.successor :=
-                step n n (reflexive n)
-\end{alba}
-
-
-\begin{alba}
-    -- other proof of reflexivity
-    reflexive (a: Natural): a <= a :=
+    leReflexive (a: Natural): a <= a :=
         natInduction init step a
 
     -- Induction predicate
@@ -1940,24 +1929,84 @@ Let's do the proofs by hand.
 \end{alba}
 
 
-We can define an induction law for $\le$.
+
+
+
+
+
+\subsection{Above Relation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{alba}
-    induceLe
-        (r: Endorelation Natural)
-        (ini: all m: r zero m)
-        (stp: all j k: r j k => r j.successor k.successor)
-        (n m: Natural)
-        (le: n <= m)
-        : r n m
+    class
+        above (a: Natural): Predicate Natural
+            {- 'above a' is a predicate which is valid for all numbers
+                above the number 'a' -}
     :=
-        inspect n m le case
-            init m :=
-                ini m
-            step j k jk :=
-                stp j k (induceLe r ini stp j k jk)
+        init: above a a
+        up b: above a b -> above a b.successor
+
+    aboveInduction
+        (r: Endorelation Natural)
+        (i: all a: r a a)
+        (u: all b: r a b -> r a b.successor)
+        : all a b: above a b -> r a b
+    :=
+        \ a b abv :=
+            inspect abv case
+                init := i
+                up ab :=
+                    u (aboveInduction i u ab)
+
+    aboveToLe: all (a b: Natural): above a b -> a <= b :=
+        aboveInduction leReflexive leImpliesLeSucc
+
+    aboveZeroN (n: Natural): above zero n :=
+        naturalInduction init up
+
+    aboveSucc (n m: Natural): above n m -> above n.successor m.successor :=
+        MISSING
+
+
+    leToAbove (a b: Natural): a <= b -> above a b :=
+        MISSING
 \end{alba}
 
+
+
+
+
+
+
+\subsection{Below Relation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{alba}
+    class
+        below (a: Natural): Predicate Natural
+            {- 'below a' is a predicate which is valid for all numbers
+                below the number 'a' -}
+    :=
+        init: below a a
+        down b: below a b.successor -> below a b
+
+    belowToLe: all (a b: Natural): below a b -> b <= a :=
+        MISSING
+
+    leToBelow: all (a b: Natural): a <= b -> below b a :=
+        MISSING
+\end{alba}
+
+
+
+
+
+
+
+
+
+\subsection{Strict Order}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \noindent The strict order relation $<$ is defined as
 
@@ -1969,7 +2018,7 @@ We can define an induction law for $\le$.
 Properties:
 
 \begin{alba}
-    leToLt: (a b: Natural) (le: a <= b): a /= b => a < b :=
+    leToLt (a b: Natural) (le: a <= b): a /= b => a < b :=
         inspect le case
             init b: 0 /= b => 0 < b :=
                 inspect b case
@@ -1983,12 +2032,260 @@ Properties:
 \end{alba}
 
 
+\begin{alba}
+    leToNotlt (a b: Natural): a <= b => not b < a :=
+        leInduction
+            {\ a b := not b < a}
+            (\ b := discriminate)
+            (\ a b nlt (lt1: b.successor < a.successor) :=
+                inversion lt1 |> nlt)
+            a
+            b
+
+    ltToNotLe (a b: Natural): a < b => not b <= a :=
+        \ lt le :=
+            lt |> leToNotLt le
+\end{alba}
+
+
+
+
+
+
+
+
+
+
+\vskip 5mm
+\subsection{More Order Properties}
+
+\subsubsection{Lower Bounds}
+
+\begin{alba}
+    lowerBound (p: Predicate Natural) (a: Natural): Proposition :=
+            -- 'a' is a lower bound for all numbers satisfying 'p'
+        all x: p x => a <= x
+
+    least (p: Predicate Natural) (a: Natural): Proposition :=
+            -- 'a' is the smallest number satisfying 'p'
+        lowerBound p a and p a
+
+
+    nextLowerBound
+        (p: Predicate Natural)
+        (n: Natural)
+        (lb: lowerBound f n)
+        (nfn: not (f n))
+        : lowerBound f (successor n)
+    :=
+        {- Theorem: If 'n' is a lower bound for the predicate 'p' and 'n'
+           does not satisfy 'p', then the successor of 'n' is a lower bound
+           for the predicate 'p' as well. -}
+        \ i pi: successor n <= i :=
+            inspect n = i case
+                left eq :=
+                    pi |> leibniz eq nfn
+                right neq :=
+                    leToLt lb neq
+
+    lowerBoundTransitive
+        (p: Predicate Natural)
+        (x y: Natural)
+        : x <= y => lowerBound y p => lowerBound x p
+    :=
+        \ leXY lbY z pZ :=
+            leTransitive leXY (lbY pZ)
+\end{alba}
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Unbounded Search}
+
+In the following we need some common assumptions and definitions which we
+bundle within a section.
+
+\begin{alba}
+    section
+        p: Predicate Natural
+        d: Decider p
+        e: exist p
+        r: Endorelation Natural :=
+            \ x y := x < y and lowerBound p y
+    :=
+        ...  -- see below
+\end{alba}
+
+It is easy to define a function \code{findHelper} which is started with a number
+which is guaranteed to be a lower bound of the predicate \code{p}. It checks, if
+the start value satisfies the predicate. If yes, it returns the value. If no, it
+just increments the start value and continues the search.
+%
+\begin{alba}
+    -- Draft: Termination not guaranteed!!
+    findHelper (start: Natural) (lb: lowerBound p start) : Refined (least p) :=
+        inspect d start case
+            left startOk :=
+                (start, lb, startOk)
+            right startNotOk :=
+                findHelper  -- illegal recursive call!!
+                    start.successor
+                    (nextLowerBound lb startNotOk)
+\end{alba}
+%
+Unfortunately this function does not pass the type checker, because none of its
+arguments is decreasing at each recursive call. However, if it terminates, it
+returns the number with a proof that it is the least number satisfying the
+predicate \code{p}.
+
+In order to make the recursive calls structurally decreasing we use the
+definition
+%
+\begin{alba}
+    class terminating (A: Any) (r: Endorelation A) (x: A): Proposition :=
+        terminate: (all y: r x y -> terminating r y) -> terminating r x
+
+    terminal (A: Any) (r: Endorelation A) (x: A): Proposition :=
+        -- The element 'x' is a terminal element of the relation 'r',
+        -- i.e. it has no successors
+        all y: not (r x y)
+
+    terminalToTerminating
+        (A: Any) (r: Endorelation A)
+        : all x: terminal r x => terminating r x
+    :=
+        -- Theorem: All terminal elements are terminating.
+        \ x tx := terminate (\ y rxy := tx rxy)
+\end{alba}
+%
+where \code{terminating r x} says that all successors of \code{x} in the
+relation \code{r} finally lead to an element which is terminal i.e. which does
+not have any successor in \code{r}. The basic idea is to provide the function
+\code{findHelper} with an extra argument which is a proof of \code{terminating r
+start} which we can deconstruct at each recursive call.
+
+
+
+First we note that all numbers satisfying the predicate \code{p} do not have any
+successors in the relation \code{r}.
+
+\begin{alba}
+    satToTerminal x: p x -> terminal r x
+        {- All numbers satisfying the predicate 'p' do not have a successor
+           in the relation 'r'. -}
+        \ px y rxy :=
+            inspect rxy case
+                (xLtY, lbY) :=
+                    leToNotLt (lbY px) xLtY
+\end{alba}
+
+
+
+Next we can prove that being terminal in the relation \code{r} transfers to all
+greater numbers.
+%
+\begin{alba}
+    terminalToGreater
+        (x y: Natural)
+        : x <= y -> terminal r x -> terminal r y
+    :=
+        \ leXY tx z rYZ :=
+            inspect rYZ case
+                (ltYZ, lbZ) :=
+                    tx (leTransitive (step leXY) ltYZ, lbZ)
+
+\end{alba}
+%
+So we have a prove that all numbers satisfying the predicate \code{p} are
+terminal numbers in the relation \code{r} and all numbers above terminal numbers
+are terminal numbers. Since all terminal numbers are trivially terminating we
+can conclude that all numbers starting from the least number satisfying the
+predicate are terminal numbers and therefore terminating.
+
+Now we are going to prove that all numbers below a terminating number are
+terminating as well.
+%
+\begin{alba}
+    terminatingToPredecessor:
+        all (x: Natural): terminating r x.successor -> terminating r x
+    :=
+        \ x tXSucc :=
+            inspect tXSucc case
+                terminate f :=
+                    terminate
+                        (\ y :=
+                            inspect f y case
+                                (ltXSuccY, lbPY) :=
+                                    (leTransitive
+                                        (leReflexive x.successor
+                                            |> leImpliesSucc)
+                                        ltXSuccY,
+                                     lbPY)
+                        )
+
+    terminatingToZero: all (n: Natural): terminating r x -> terminating r zero
+    :=
+        naturalInduction
+            identitiy
+            (\ i f := f <| terminatingToPredecessor i)
+\end{alba}
+
+Now it is easy to define the function for unbounded search.
+
+\begin{alba}
+    findHelper
+        (start: Natural)
+        (lb: lowerBound p start)
+        (tStart: terminating r start)
+        : Refined (least p)
+    :=
+        inspect d start case
+            left startOk :=
+                (start, lb, startOk)
+            right startNotOk :=
+                findHelper
+                    start.successor
+                    nLb
+                    (inspect tStart case
+                        terminate g :=
+                            g (reflexive, nLb))
+                where
+                    nLb := nextLowerBound lb startNotOk
+
+    find: Refined (least p) :=
+        findHelper
+            zero
+            (\ i pI := init)
+            (inspect e case
+                (n, pN) :=
+                    terminatingToZero
+                        (satToTerminal pN |> terminalToTerminating))
+\end{alba}
+
+Note that we are in a section. All functions defined in this section use the
+assumptions of the section as additional arguments. Therefore the function
+\code{find} has the complete signature
+%
+\begin{alba}
+    find
+        (p: Predicate Natural) (d: Decider p) (e: exist p)
+        : Refined (least p)
+\end{alba}
+
+
+
 
 
 
 
 \vskip 5mm
 \section{Decision Procedure for the Order Relation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 A decision between two alternatives is an inductive type.
 
@@ -2109,28 +2406,12 @@ inductive object which we can decrease on each recursive call.
 \begin{alba}
     class terminating (A: Any) (r: Endorelation A) (x: A): Proposition :=
         terminate: (all y: r x y -> terminating r y) -> terminating r x
-
-    nextTerminating
-        (A: Any)
-        (r: Endorelation A)
-        (x y: A)
-        (tx: terminating r x)
-        (rxy: r x y)
-        : terminating r y
-    :=
-        inspect t case
-            terminate f := f xy
 \end{alba}
 
 
 \begin{alba}
-    searchRelation (f: Predicate Natural): Endorelation Natural :=
-        \ x y := x < y and lowerBound f y
-
-    -- important properties
-    searchRelation f x y => lowerBound f x
-
-    terminatingIsLowerBound: terminating (searchRelation f) x => lowerBound f x
+    searchRelation (p: Predicate Natural): Endorelation Natural :=
+        \ x y := x < y and lowerBound p y
 \end{alba}
 
 
@@ -2139,21 +2420,20 @@ inductive object which we can decrease on each recursive call.
         (f: Predicate Natural)
         (d: Decider f)
         (start: Natural)
+        (lb: lowerBound f start)
         (term: terminating (searchRelation f) start)
         : Refined (least f)
     :=
         inspect d start case
             left startOk :=
-                (start, (startLb, startOk))
+                (start, (lb, startOk))
             right notStartOk :=
                 findHelper
                     d
                     start.successor
                     (inspect term case
                         terminate g :=
-                            g (reflexive, nextLowerBound f startLb notStartOk))
-        where
-            startLb := terminatingIsLowerBound term
+                            g (reflexive, nextLowerBound f lb notStartOk))
 
 
     find
