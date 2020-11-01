@@ -2110,11 +2110,11 @@ bundle within a section.
 
 \begin{alba}
     section
-        p: Predicate Natural
-        d: Decider p
-        e: exist p
-        r: Endorelation Natural :=
-            \ x y := x < y and lowerBound p y
+        P: Predicate Natural
+        d: Decider P
+        e: Exist P
+        R: Endorelation Natural :=
+            \ x y := x < y and LowerBound P y
     :=
         ...  -- see below
 \end{alba}
@@ -2126,7 +2126,7 @@ just increments the start value and continues the search.
 %
 \begin{alba}
     -- Draft: Termination not guaranteed!!
-    findHelper (start: Natural) (lb: lowerBound p start) : Refined (least p) :=
+    findHelper (start: Natural) (lb: LowerBound P start) : Refined (Least P) :=
         inspect d start case
             left startOk :=
                 (start, lb, startOk)
@@ -2145,88 +2145,63 @@ In order to make the recursive calls structurally decreasing we use the
 definition
 %
 \begin{alba}
-    class terminating (A: Any) (r: Endorelation A) (x: A): Proposition :=
-        terminate: (all y: r x y -> terminating r y) -> terminating r x
-
-    terminal (A: Any) (r: Endorelation A) (x: A): Proposition :=
-        -- The element 'x' is a terminal element of the relation 'r',
-        -- i.e. it has no successors
-        all y: not (r x y)
-
-    terminalToTerminating
-        (A: Any) (r: Endorelation A)
-        : all x: terminal r x => terminating r x
-    :=
-        -- Theorem: All terminal elements are terminating.
-        \ x tx := terminate (\ y rxy := tx rxy)
+    class Terminating (A: Any) (R: Endorelation A) (x: A): Proposition :=
+        terminate: (all y: r x y -> Terminating r y) -> Terminating r x
 \end{alba}
 %
-where \code{terminating r x} says that all successors of \code{x} in the
-relation \code{r} finally lead to an element which is terminal i.e. which does
-not have any successor in \code{r}. The basic idea is to provide the function
-\code{findHelper} with an extra argument which is a proof of \code{terminating r
+where \code{Terminating R x} says that all successors of \code{x} in the
+relation \code{R} finally lead to an element which is terminal i.e. which does
+not have any successor in \code{R}. The basic idea is to provide the function
+\code{findHelper} with an extra argument which is a proof of \code{Terminating R
 start} which we can deconstruct at each recursive call.
 
 
 
-First we note that all numbers satisfying the predicate \code{p} do not have any
-successors in the relation \code{r}.
+First we note that all numbers satisfying the predicate \code{P} are terminating
+because they do not have any successors in the relation \code{R}.
 
 \begin{alba}
-    satToTerminal x: p x -> terminal r x
-        {- All numbers satisfying the predicate 'p' do not have a successor
-           in the relation 'r'. -}
-        \ px y rxy :=
-            inspect rxy case
-                (xLtY, lbY) :=
-                    leToNotLt (lbY px) xLtY
-\end{alba}
-
-
-
-Next we can prove that being terminal in the relation \code{r} transfers to all
-greater numbers.
-%
-\begin{alba}
-    terminalToGreater
-        (x y: Natural)
-        : x <= y -> terminal r x -> terminal r y
+    satToTerminating (x: Natural) (pX: P x): Terminating R x
+    {- Theorem: All numbers 'x' which satisfy the predicate 'P' are
+       terminating. -}
     :=
-        \ leXY tx z rYZ :=
-            inspect rYZ case
-                (ltYZ, lbZ) :=
-                    tx (leTransitive (step leXY) ltYZ, lbZ)
-
+        terminate
+            (\ y rXY :=
+                inspect rXY case
+                    xLtY * lbY :=
+                        {- If 'y' is a lower bound and 'x' satisfies the
+                           predicate, then 'y <= x' must be valid. This
+                           contradicts 'x < y'. -}
+                        leToNotLt (lbY pX) xLtY |> exFalso)
 \end{alba}
-%
-So we have a prove that all numbers satisfying the predicate \code{p} are
-terminal numbers in the relation \code{r} and all numbers above terminal numbers
-are terminal numbers. Since all terminal numbers are trivially terminating we
-can conclude that all numbers starting from the least number satisfying the
-predicate are terminal numbers and therefore terminating.
+
+
 
 Now we are going to prove that all numbers below a terminating number are
 terminating as well.
 %
 \begin{alba}
-    terminatingToPredecessor:
-        all (x: Natural): terminating r x.successor -> terminating r x
+    terminatingToPredecessor
+        (x: Natural)
+        (tXSucc: Terminating R x.successor)
+        : Terminating R x
+    {- Theorem: The predecessor of a terminating number is terminating. -}
     :=
-        \ x tXSucc :=
-            inspect tXSucc case
-                terminate f :=
-                    terminate
-                        (\ y :=
-                            inspect f y case
-                                (ltXSuccY, lbPY) :=
-                                    (leTransitive
-                                        (leReflexive x.successor
-                                            |> leImpliesSucc)
-                                        ltXSuccY,
-                                     lbPY)
-                        )
+        inspect tXSucc case
+            terminate f :=
+                terminate (g f)
+        where
+            g f y rXY: Terminating R y :=
+                inspect rXY case
+                    ltXY * lbY :=
+                        inspect x.successor = y case
+                            left xSuccEqY :=
+                                leibniz xSuccEqY tXSucc
+                            right xSuccNeqY :=
+                                f (leToLt ltXY xSuccNeqY * lbY)
 
-    terminatingToZero: all (n: Natural): terminating r x -> terminating r zero
+    terminatingToZero
+        : all (n: Natural): Terminating R x -> Terminating R zero
     :=
         naturalInduction
             identitiy
@@ -2238,9 +2213,9 @@ Now it is easy to define the function for unbounded search.
 \begin{alba}
     findHelper
         (start: Natural)
-        (lb: lowerBound p start)
-        (tStart: terminating r start)
-        : Refined (least p)
+        (lb: LowerBound P start)
+        (tStart: Terminating R start)
+        : Refined (Least P)
     :=
         inspect d start case
             left startOk :=
@@ -2255,14 +2230,13 @@ Now it is easy to define the function for unbounded search.
                 where
                     nLb := nextLowerBound lb startNotOk
 
-    find: Refined (least p) :=
+    find: Refined (Least P) :=
         findHelper
             zero
             (\ i pI := init)
             (inspect e case
                 (n, pN) :=
-                    terminatingToZero
-                        (satToTerminal pN |> terminalToTerminating))
+                    terminatingToZero (satToTerminating pN))
 \end{alba}
 
 Note that we are in a section. All functions defined in this section use the
@@ -2271,8 +2245,8 @@ assumptions of the section as additional arguments. Therefore the function
 %
 \begin{alba}
     find
-        (p: Predicate Natural) (d: Decider p) (e: exist p)
-        : Refined (least p)
+        (P: Predicate Natural) (d: Decider P) (e: Exist P)
+        : Refined (Least P)
 \end{alba}
 
 
@@ -2290,12 +2264,12 @@ assumptions of the section as additional arguments. Therefore the function
 A decision between two alternatives is an inductive type.
 
 \begin{alba}
-    class Decision2 (a b: Proposition): Any :=
-        left: a  -> Decision2 a b
-        right: b -> Decision2 a b
+    class Decision2 (A B: Proposition): Any :=
+        left: A  -> Decision2 A B
+        right: B -> Decision2 A B
 
-    Decision (a: Proposition): Any :=
-        Decision2 a (not a)
+    Decision (A: Proposition): Any :=
+        Decision2 A (not A)
 \end{alba}
 
 
