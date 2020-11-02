@@ -1772,14 +1772,14 @@ We define the order relation on natural numbers inductively.
 
 \begin{alba}
     class
-        (<=): Endorelation Natural
+        LessEqual: Endorelation Natural
     :=
-        init n:
+        init {n}:
             0 <= n
 
-        step n m:
+        step {n m}:
             n <= m
-            => n.successor <= m.successor
+            -> LessEqual n.successor m.successor
 \end{alba}
 %
 Note that in \code{init n} the argument \code{n} is implicit and in \code{step n
@@ -1788,15 +1788,15 @@ m ...} the arguments \code{n m} are implicit.
 We can generate an induction law.
 \begin{alba}
     leInduction
-        (r: Endorelation Natural)
-        (ini: all i: r 0 i)
-        (stp: all i j: r i j => r i.successor j.successor)
-        : all i j: i <= j => r i j
+        (R: Endorelation Natural)
+        (ini: all i: R 0 i)
+        (stp: all i j: i <= j -> R i j -> r i.successor j.successor)
+        : all {i j}: i <= j => R i j
     :=
         \ i j le :=
             inspect le case
                 init: ini
-                step le0 := stp (leInduction ini stp le0)
+                step le0 := stp le0 (leInduction ini stp le0)
 \end{alba}
 
 The inductive type has no parameters and two index arguments. The index
@@ -1825,7 +1825,7 @@ Using this analysis the compiler generates the following propositions
 Let's do the proofs by hand.
 
 \begin{alba}
-    discriminate (n: Natural): n.successor <= 0 => false :=
+    discriminate (n: Natural): n.successor <= 0 -> false :=
         leInduction
             {\ n m :=
                 inspect n case
@@ -1835,7 +1835,24 @@ Let's do the proofs by hand.
                             zero := false
                             j.successor := true}
             (\ m := trueValid)
-            (\ n m le := trueValid)
+            (\ n m le r := trueValid)
+
+
+    invert {n m: Natural}
+        : LessEqual n.successor m.successor -> LessEqual n m
+    :=
+        leInduction
+            {\ n m :=
+                inspect n case
+                    zero := true
+                    i.successor :=
+                        inspect m case
+                            zero := true
+                            j.successor :=
+                                LessEqual i j}
+            (\ m := trueValid)
+            (\ n m le r := le)
+
 
     discriminate {n: Natural} (le: n.successor <= 0): false :=
         inspect
@@ -1874,7 +1891,7 @@ Let's do the proofs by hand.
             init k :=
                 trueValid
 
-            step n m le :=
+            step le :=
                 le
 \end{alba}
 
