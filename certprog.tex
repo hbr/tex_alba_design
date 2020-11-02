@@ -1527,7 +1527,7 @@ as the following functions defined recursively on the inductive type above.
                 successor i := step i (recurse start step i)
 
     induce
-        (F: Natural -> Any)
+        {F: Natural -> Any}
         (start: F zero)
         (step: all i: F i -> F (successor i)) :
         all n: F n
@@ -1537,6 +1537,17 @@ as the following functions defined recursively on the inductive type above.
                 {F}
                 zero        := start
                 successor i := step i (induce start step i)
+
+    naturalInduction
+        {P: Predicate Natural}
+        (start: P zero)
+        (step: all {i}: P i -> P i.successor)
+        {n: Natural}
+        : P n
+    :=
+        inspect n case
+            zero := start
+            i.successor := step (naturalInduction start step {i})
 \end{alba}
 
 
@@ -1596,7 +1607,7 @@ Addition is associative
             a
 
     -- Note:
-    -- apply (A B: Any) (f: A -> B) {a b: A} (eq: a = b): f a = f b :=
+    -- apply {A B: Any} {a b: A} (f: A -> B): Equal a b -> Equal (f a) (f b)
 \end{alba}
 
 
@@ -1618,6 +1629,12 @@ addition we need two lemmas.
 
 
 \begin{alba}
+    pushSuccessor {a b: Natural}: Equal (a + b).successor  (a + successor b) :=
+        naturalInduction
+            identical
+            (\ {i} eq := apply successor eq)
+            {a}         -- Do induction on 'a'!
+
     pushSuccessor (a b: Natural): successor (a + b) = a + successor b :=
         inspect a case
             zero :=
@@ -1766,6 +1783,9 @@ Commutativity of multiplication can be proved by using distributivity.
 
 
 
+
+
+
 \subsection{Order Relation}
 
 We define the order relation on natural numbers inductively.
@@ -1825,6 +1845,7 @@ Using this analysis the compiler generates the following propositions
 Let's do the proofs by hand.
 
 \begin{alba}
+    -- discriminate and invert via induction law
     discriminate (n: Natural): n.successor <= 0 -> false :=
         leInduction
             {\ n m :=
@@ -1854,49 +1875,22 @@ Let's do the proofs by hand.
             (\ n m le r := le)
 
 
+    -- discriminate and invert via pattern match
     discriminate {n: Natural} (le: n.successor <= 0): false :=
-        inspect
-            n.successor
-            0
-            le
-        case
-            {\j k le :=
-                inspect j case
-                    zero := true -- match for 'init'
-                    n.successor :=
-                        inspect k case
-                            zero := false       -- match for 'inspect'
-                            m.successor := true -- match for 'step'
-            }
-            init k :=
-                trueValid
-            step n m le :=
-                trueValid
+        inspect le case
+            -- No case matches.
 
-    invert {n m: Natural} (le: n.successor <= m.successor): n <= m
+    invert {n m: Natural} (le: LessEqual n.successor m.successor): LessEqual n m
     :=
-        inspect
-            n.successor
-            m.successor
-            le
-        case
-            {\ j k le :=
-                inspect j case
-                    zero := true  -- match for 'init'
-                    n.successor :=
-                        inspect k case
-                            zero := true    -- not used
-                            m.successor :=  -- match for 'step' and 'inspect'
-                                n <= m}
-            init k :=
-                trueValid
-
-            step le :=
-                le
+        inspect le case
+            -- Init case does not match
+            step le := le
 \end{alba}
 
+
+
 \begin{alba}
-    leZeroIsZero (a: Natural): a <= 0 => a = 0 :=
+    lessEqualZeroIsZero (a: Natural): a <= 0 => a = 0 :=
         inspect a case
             zero :=
                 \ le := identical zero
@@ -1911,7 +1905,7 @@ Let's do the proofs by hand.
 \noindent The order relation is reflexive i.e. $a \le a$.
 
 \begin{alba}
-    leReflexive (a: Natural): a <= a :=
+    lessEqualReflexive {a: Natural}: a <= a :=
         natInduction init step a
 
     -- Induction predicate
@@ -1946,73 +1940,6 @@ Let's do the proofs by hand.
 \end{alba}
 
 
-
-
-
-
-
-\subsection{Above Relation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{alba}
-    class
-        above (a: Natural): Predicate Natural
-            {- 'above a' is a predicate which is valid for all numbers
-                above the number 'a' -}
-    :=
-        init: above a a
-        up b: above a b -> above a b.successor
-
-    aboveInduction
-        (r: Endorelation Natural)
-        (i: all a: r a a)
-        (u: all b: r a b -> r a b.successor)
-        : all a b: above a b -> r a b
-    :=
-        \ a b abv :=
-            inspect abv case
-                init := i
-                up ab :=
-                    u (aboveInduction i u ab)
-
-    aboveToLe: all (a b: Natural): above a b -> a <= b :=
-        aboveInduction leReflexive leImpliesLeSucc
-
-    aboveZeroN (n: Natural): above zero n :=
-        naturalInduction init up
-
-    aboveSucc (n m: Natural): above n m -> above n.successor m.successor :=
-        MISSING
-
-
-    leToAbove (a b: Natural): a <= b -> above a b :=
-        MISSING
-\end{alba}
-
-
-
-
-
-
-
-\subsection{Below Relation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{alba}
-    class
-        below (a: Natural): Predicate Natural
-            {- 'below a' is a predicate which is valid for all numbers
-                below the number 'a' -}
-    :=
-        init: below a a
-        down b: below a b.successor -> below a b
-
-    belowToLe: all (a b: Natural): below a b -> b <= a :=
-        MISSING
-
-    leToBelow: all (a b: Natural): a <= b -> below b a :=
-        MISSING
-\end{alba}
 
 
 
