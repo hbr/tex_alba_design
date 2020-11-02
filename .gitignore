@@ -7,6 +7,10 @@
 *.rel
 *.pdf
 *.swp
+*.glob
+*.vo
+*.vos
+*.vok
 *~
 _region_*
 gh-pages/
