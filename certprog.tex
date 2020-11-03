@@ -2845,6 +2845,7 @@ properties.
 
 
 \section{Vectors}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 FOR DISCUSSION!!
@@ -2862,50 +2863,56 @@ types. A vector in Alba can be defined as
         cons: all n: A -> Vector A n -> Vector A n.successor
 \end{alba}
 
-Due to the current conventions such a type is a little bit clumsy in Alba,
-because \code{n} is not an implicit argument, i.e. one cannot construct a vector
-with
-%
-\begin{alba}
-    cons 'A' <| cons 'B' <| nil  -- Invalid!!
-\end{alba}
-%
-%
-Instead we have to write
+A companion type for indices into a vector is the following type
 
 \begin{alba}
-    cons 1 'A' <| cons 0 'B' <| nil: Vector Character 2
+    class
+        Below: Natural -> Any
+    :=
+        belowStart {k} -> Below (add1 k)
+        belowNext {k}: Below k -> Below (add1 k)
 \end{alba}
 
+
+We can savely retrieve the $i$-th element of a vector
+
+\begin{alba}
+    getElement {A: Any} {n: Natural} (i: Below n) (v: Vector A n): A :=
+        inspect
+            i, v
+        case
+            belowStart, cons x v :=
+                x
+            belowNext j, cons x v :=
+                getElement j v
+        -- Note: Other cases are not possible!!
+\end{alba}
 
 We can append two vectors.
 
 \begin{alba}
     append
-        (A: Any) (n m: Natural):
+        {A: Any} {n m: Natural}:
         Vector A n -> Vector A m -> Vector A (n + m)
     :=
         case
             nil :=
                 identity
 
-            cons k e v :=
-                \w :=
-                    cons (k + m) e <| append k m v w
+            cons x a :=
+                \b :=
+                    cons x <| append a b
+                -- or in pointless notation
+                cons x << append a
 \end{alba}
 
 
 \begin{alba}
-    reverse (A: Any) (n: Natural): Vector A n -> Vector A n
+    reverse {A: Any} {n: Natural} (v: Vector A n): Vector A n
     :=
-        case
-            nil :=
-                nil
-
-            cons k e v :=
-                append
-                    (reverse k v)
-                    (cons 0 e nil)
+        inspect v case
+            nil := nil
+            cons x w := append (reverse w) (cons x nil)
 
     -- Note: This function does not typecheck. The append function returns
     --       an object of type 'Vector A (k + 0.successor)' while it
@@ -2914,26 +2921,13 @@ We can append two vectors.
 \end{alba}
 
 
-This example shows that dependent types like \code{Vector} are not very usable
-in practice. Usually computational objects should not have a dependent type. If
-we want to specify that a type has a certain property, a good option is to use
-\code{Specified} which allows to extract the object and the proof and tread them
-separately.
-
-\noindent E.g. we could use
-\begin{alba}
-    Specified (\ (l: List A) := length l = n)
-\end{alba}
-%
-to specify a list with a certain length. The \code{value} and \code{proof}
-functions allow the extraction of the list and the proof of the property.
-
 
 
 
 
 
 \section{Red Black Trees}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Ideas from Stephanie Weyrich's Haskell implementation:
 
