@@ -650,6 +650,13 @@ previous chapter are identical in the runtime.
 
 
 
+
+
+
+
+
+
+
 %-----------------------------------
 \section{Equality}
 %-----------------------------------
@@ -661,11 +668,11 @@ previous chapter are identical in the runtime.
 Equality is defined in Alba as an inductive type.
 \begin{alba}
     class
-        (=) (A: Any) (a: A): Predicate A
+        Equal {A: Any} (a: A): Predicate A
             -- Note: 'Predicate A' expands to
             --       'A -> Proposition'
     :=
-        identical: a = a
+        identical: Equal a a
 \end{alba}
 
 Note that the type \code{A} and the object \code{a} are parameters of the
@@ -673,171 +680,99 @@ inductive type. The expression \code{(=) a} is a predicate i.e. a function
 \code{\textbackslash\ x := a = x} mapping each object \code{x} into the
 proposition \code{a = x}.
 
-In the proposition \code{a = b} the character of the left argument \code{a} and
-the right argument \code{b} is different. The first argument is a parameter and
-the second argument is an index.
+In the proposition \code{Equal a b} the character of the first argument \code{a}
+and the second argument \code{b} is different. The first argument is a parameter
+and the second argument is an index.
 
-A pattern match on an equality of the form \code{a = b} needs two arguments. The
-first argument is an expression for \code{b} and a proof of \code{a = b}. A
-pattern match has a dependent type.
-
-\begin{alba}
-    (case identical a := ...)
-    : all b: a = b => goal
-
-    -- 'b' usually occurs in 'goal'
-\end{alba}
-
-An inspect expression needs the two arguments as well
+In general all parameters of an inductive type are implicit arguments of all
+constructors. Therefore the type of the constructor \code{identical} is
 %
 \begin{alba}
-    inspect
-        b; aEQb
-    case
-        identical a := ...
+    identical {A: Any} {a: A}: Equal a a
 \end{alba}
 %
-which the compiler desugars to
-\begin{alba}
-    (case
-        identical a := ...
-    )
-        b aEQb
-\end{alba}
+The parameters can be inferred from the type \code{Equal a a} which in long form
+is \code{Equal A a a}.
 
 
+The most important property of equality is that it is leibniz equality. This
+means that it is not possible to distinguish two equal objects. I.e. for any
+type constructor \code{F: A -> Any} we can map any object of type \code{F a} to
+an object of type \code{F b}, if \code{a} and \code{b} are equal.
 
-It is easy to prove the symmetry of equality by using a pattern match.
-\begin{alba}
-    symmetric
-        (A: Any) (a: A)
-        : all b: a = b => b = a
-    :=
-        -- Elimination function
-        -- \ b (p: a = b) := b = a
-        case
-            identical a :=
-                    -- goal: a = a
-                identical a
-\end{alba}
-
-In the same manner the transitivity of equality can be proved.
-\begin{alba}
-    transitive
-        (A: Any) (a b c: A)
-        : a = b => b = c => a = c
-    :=
-        \ aEQb :=
-            inspect
-                b aEQb
-            case
-                -- Elimination function
-                -- \ b (p: a = b) := b = c => a = c
-                identical a :=
-                        -- goal a = c => a = c
-                    identity
-\end{alba}
-%
-Note that the compiler needs the index argument as a variable in order to see
-how the goal depends on that variable. In the pattern match it substitutes the
-index variable \code{b} in the goal by the parameter \code{a}.
-
-\noindent The desugared form with explicit result type looks like
-\begin{alba}
-    transitive
-        (A: Any) (a b c: A)
-        : a = b => b = c => a = c
-    :=
-        \ aEQb :=
-            (
-                case
-                    identical a := identity
-                : all b: a = b => b = c => a = c
-            )
-                b
-                aEQb
-\end{alba}
-
-
-
-\subsection{Leibniz Equality}
-
-Equality defined with the above inductive type is a rather strong
-property. This kind of equality is also known as \emph{Leibniz equality} which
-means that two equal objects satisfy the same properties.
-%
-\begin{alba}
-    leibniz
-        (A: Any)
-        (f: Predicate A)
-        (a b: A)
-        : a = b => f a => f b
-    :=
-        ...
-\end{alba}
-
-
-We can prove this theorem by a pattern match on the proof of the equality.
+This is interesting if \code{F} is a predicate i.e. \code{F: A -> Proposition}.
+Then leibniz equality means that equal objects satisfy the same predicates for
+all possible predicates.
 
 \begin{alba}
     leibniz
-        (A: Any)
-        (f: Predicate A)
-        (a: A)
-        : all b: a = b => f a => f b
+        {A} {a b: A}
+        (eq: Equal a b)
+        (F: A -> Any)
+        : F a -> F b
     :=
-        case
-            -- Elimination function
-            -- \ b (p: a = b) := f a => f b
-            identical a:=
-                -- goal f a => f a
-                identity
+        {- If the two objects 'a' and 'b' are equal then we can map any
+           object of type 'F a' to an object of type 'F b' for any type
+           constructor 'F'  -}
+        inspect eq case
+            identical := identity
 \end{alba}
 
-
-In order to see why the proof is correct we have added the elimination function
-into the pattern match expression. The arguments of an elimination function are
-the indices of the inductive type and an object of the inductive type. The index
-of \code{a = b} is \code{b} and the object of the inductive type is \code{eq}.
-
-If we apply the elimination function to the two arguments \code{b} and
-\code{eq}, we get the required result type \code{f a => f b} of the pattern
-match expression. This shows that the elimination function is correct.
-
-Note that the only constructor \code{identical} constructs \code{a = a}, i.e.
-the index is \code{a}. Therefore the expression on the right side of the case
-must construct an object of type \code{f a}.
-
-
-
-\subsection{Argument Equality}
-
+The compiler can generate the elimination function automatically for the above
+pattern match. The inferred elimination function is
+%
 \begin{alba}
-    apply
-        (A B: Any) {a b: A}
-        (f: A -> B)
-        (eq: a = b)
-        : f a = f b
+    \ (b: A) (eq: Equal a b) :=
+            -- 'b' is the index, 'eq' is an object of the inductive type.
+        F a -> F b
+\end{alba}
+%
+In the match case \code{identical} the index is forced to be identical with the
+parameter. Therefore the goal in the match case is \code{F a -> F a} which is
+satisfied trivially by the indentity function.
+
+
+
+
+Next we define some more useful functions on equality.
+%
+\begin{alba}
+    applyOnEquals
+        {A B: Any} {a b: A}
+        (f: A -> B) (eq: Equal a b)
+        : Equal (f a) (f b)
     :=
         inspect eq case
-            {\ x eq := f a = f x}
-            identical := identical (f a)
-\end{alba}
+            identical := identical
 
-
-\begin{alba}
-    inject
-        A (F: A -> Any)
-        (a b: A)
-        (aEQb: a = b)
-        (f: all x: F x):
-        f a = f b
+    equalSymmetric
+        {A: Any} {a b: A}
+        (eq: Equal a b): Equal b a
     :=
-        inspect aEQb case
-            identical x := identical (f x)
+        inspect eq case
+            identical := identical
+
+    equalTransitive
+        {A: Any} {a b c: A}
+        (eq: Equal a b)
+        : Equal b c -> Equal a c
+    :=
+        inspect eq case
+            identical := identity
 \end{alba}
 
 
+In all cases the compiler is able to generate the elimination function. For the
+last definition the compiler generates
+%
+\begin{alba}
+    \ (b: A) (eq: Equal a b) :=
+        Equal b c -> Equal a c
+\end{alba}
+%
+In the match case the index \code{b} is forced to be the same as the parameter
+\code{a}. Therefore the goal is \code{Equal a c -> Equal a c} which is trivially
+satisfied by the identity function.
 
 
 
