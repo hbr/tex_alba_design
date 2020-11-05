@@ -1450,13 +1450,13 @@ The type of natural numbers is defined in the prelude inductively.
 \begin{alba}
   class Natural :=
     zero: Natural
-    successor: Natural -> Natural
+    add1: Natural -> Natural
 \end{alba}
 
 The number $1$ is the constant
 
 \begin{alba}
-  one: Natural := zero.successor
+  one: Natural := zero.add1
 \end{alba}
 
 The compiler \emph{knows} of this type and implements it as an efficient
@@ -1475,37 +1475,37 @@ as the following functions defined recursively on the inductive type above.
             inspect n case
                 {\ n := A}
                 zero        := start
-                successor i := step (iterate start step i)
+                add1 i := step (iterate start step i)
 
     recurse (A: Any) (start: A) (step: Natural -> A -> A): Natural -> A :=
         \ n :=
             inspect n case
                 {\ n := A}
                 zero        := start
-                successor i := step i (recurse start step i)
+                add1 i := step i (recurse start step i)
 
     induce
         {F: Natural -> Any}
         (start: F zero)
-        (step: all i: F i -> F (successor i)) :
+        (step: all i: F i -> F (add1 i)) :
         all n: F n
     :=
         \ n :=
             inspect n case
                 {F}
                 zero        := start
-                successor i := step i (induce start step i)
+                add1 i := step i (induce start step i)
 
     naturalInduction
         {P: Predicate Natural}
         (start: P zero)
-        (step: all {i}: P i -> P i.successor)
+        (step: all {i}: P i -> P i.add1)
         {n: Natural}
         : P n
     :=
         inspect n case
             zero := start
-            i.successor := step (naturalInduction start step {i})
+            i.add1 := step (naturalInduction start step {i})
 \end{alba}
 
 
@@ -1522,7 +1522,7 @@ the other two functions.
     -- note:
         (\ n := A) zero ~>  A
 
-        (all i: (\ n := A) i -> (\ n := A) (successor i))
+        (all i: (\ n := A) i -> (\ n := A) (add1 i))
         ~>  all i: A -> A
         =   Natural -> A -> A
 \end{alba}
@@ -1546,8 +1546,8 @@ First we need addition
     inspect a case
       0 :=
         b
-      n.successor :=
-        (n + b).successor
+      n.add1 :=
+        (n + b).add1
 \end{alba}
 
 
@@ -1561,7 +1561,7 @@ Addition is associative
             (identical (b + c))
 
             (\ n (assoc: n + b + c = n + (b + c)) :=
-                apply successor assoc)
+                apply add1 assoc)
             a
 
     -- Note:
@@ -1580,33 +1580,33 @@ addition we need two lemmas.
             (identical zero)
 
             (\ n (neutral: n + zero = n :=
-                apply successor neutral)
+                apply add1 neutral)
             a
 \end{alba}
 
 
 
 \begin{alba}
-    pushSuccessor {a b: Natural}: Equal (a + b).successor  (a + successor b) :=
+    pushSuccessor {a b: Natural}: Equal (a + b).add1  (a + add1 b) :=
         naturalInduction
             identical
-            (\ {i} eq := apply successor eq)
+            (\ {i} eq := apply add1 eq)
             {a}         -- Do induction on 'a'!
 
-    pushSuccessor (a b: Natural): successor (a + b) = a + successor b :=
+    pushSuccessor (a b: Natural): add1 (a + b) = a + add1 b :=
         inspect a case
             zero :=
-                identical (successor b)
+                identical (add1 b)
 
-            successor i :=
+            add1 i :=
                 -- goal:
-                --   successor (successor i + b) = successor i + successor b
+                --   add1 (add1 i + b) = add1 i + add1 b
                 -- ~>
-                --   successor (successor (i + b))
-                --   = successor (i + successor b)
+                --   add1 (add1 (i + b))
+                --   = add1 (i + add1 b)
                 inject _ _
                     (pushSuccessor i b)
-                    successor
+                    add1
 \end{alba}
 
 
@@ -1619,15 +1619,15 @@ addition we need two lemmas.
                 -- reduces to: b = b + zero
                 zeroRightNeutral b
 
-            successor i :=
-                -- goal: successor i + b = b + successor i
-                -- ~>    successor (i + b) = b + successor i
+            add1 i :=
+                -- goal: add1 i + b = b + add1 i
+                -- ~>    add1 (i + b) = b + add1 i
                 eqTransitive
                     _ _ _
-                    (inject _ _ (plusCommutes i b) successor:
-                        successor (i + b) = successor (b + i))
+                    (inject _ _ (plusCommutes i b) add1:
+                        add1 (i + b) = add1 (b + i))
                     (pushSuccessor b i:
-                        successor (b + i) =  b + successor i)
+                        add1 (b + i) =  b + add1 i)
 \end{alba}
 
 
@@ -1647,7 +1647,7 @@ Multiplication can be defined as a recursive function as well.
     inspect a case
         0 :=
             0
-        successor i :=
+        add1 i :=
             b + i * b
 \end{alba}
 
@@ -1657,8 +1657,8 @@ Multiplication can be defined as a recursive function as well.
             zero :=
                 identical zero
 
-            successor i :=
-                -- goal: successor i * zero = zero
+            add1 i :=
+                -- goal: add1 i * zero = zero
                 -- ~>    zero + i * zero = zero
                 -- ~>    i * zero = zero
                 zeroRightAbsorber i
@@ -1674,13 +1674,13 @@ needs a proof.
             zero :=
                 identical zero
 
-            successor i :=
-                -- goal:  successor i * one = successor i
-                -- ~>     one + i * one = successor i
-                -- ~>     successor (i * one) = successor i
+            add1 i :=
+                -- goal:  add1 i * one = add1 i
+                -- ~>     one + i * one = add1 i
+                -- ~>     add1 (i * one) = add1 i
                 inject _ _
                     (oneRightNeutral i)
-                    successor
+                    add1
 \end{alba}
 
 
@@ -1692,9 +1692,9 @@ The distributivity of multiplication over addition is proved by induction.
             zero :=
                 identical zero
 
-            successor n :=
-                -- goal:  successor n * (b + c)
-                --        = successor n * b + successor n * c
+            add1 n :=
+                -- goal:  add1 n * (b + c)
+                --        = add1 n * b + add1 n * c
 
                 -- ~>     (b + c) + n * (b + c)
                 --        = (b + n * b) + (c + n * c)
@@ -1757,7 +1757,7 @@ We define the order relation on natural numbers inductively.
 
         step {n m}:
             n <= m
-            -> LessEqual n.successor m.successor
+            -> LessEqual n.add1 m.add1
 \end{alba}
 %
 Note that in \code{init n} the argument \code{n} is implicit and in \code{step n
@@ -1768,7 +1768,7 @@ We can generate an induction law.
     leInduction
         (R: Endorelation Natural)
         (ini: all i: R 0 i)
-        (stp: all i j: i <= j -> R i j -> r i.successor j.successor)
+        (stp: all i j: i <= j -> R i j -> r i.add1 j.add1)
         : all {i j}: i <= j => R i j
     :=
         \ i j le :=
@@ -1786,25 +1786,25 @@ on the pattern which can constitute the proposition \code{n <= m}
 
         0               0                   init 0
 
-        0               j.successor         init j.successor
+        0               j.add1         init j.add1
 
-        i.successor     0                   impossible
+        i.add1     0                   impossible
 
-        i.successor     j.successor         step i j iLEj
+        i.add1     j.add1         step i j iLEj
 \end{alba}
 %
 Using this analysis the compiler generates the following propositions
 \begin{alba}
-    discriminate: all n: not n.successor <= 0
+    discriminate: all n: not n.add1 <= 0
 
-    inversion: all n m: n.successor <= m.successor => n <= m
+    inversion: all n m: n.add1 <= m.add1 => n <= m
 \end{alba}
 
 Let's do the proofs by hand.
 
 \begin{alba}
     -- discriminate and invert via induction law
-    discriminate (n: Natural): n.successor <= 0 -> false :=
+    discriminate (n: Natural): n.add1 <= 0 -> false :=
         leInduction
             {\ n m :=
                 inspect n case
@@ -1812,33 +1812,33 @@ Let's do the proofs by hand.
                     i.successsor :=
                         inspect m case
                             zero := false
-                            j.successor := true}
+                            j.add1 := true}
             (\ m := trueValid)
             (\ n m le r := trueValid)
 
 
     invert {n m: Natural}
-        : LessEqual n.successor m.successor -> LessEqual n m
+        : LessEqual n.add1 m.add1 -> LessEqual n m
     :=
         leInduction
             {\ n m :=
                 inspect n case
                     zero := true
-                    i.successor :=
+                    i.add1 :=
                         inspect m case
                             zero := true
-                            j.successor :=
+                            j.add1 :=
                                 LessEqual i j}
             (\ m := trueValid)
             (\ n m le r := le)
 
 
     -- discriminate and invert via pattern match
-    discriminate {n: Natural} (le: n.successor <= 0): false :=
+    discriminate {n: Natural} (le: n.add1 <= 0): false :=
         inspect le case
             -- No case matches.
 
-    invert {n m: Natural} (le: LessEqual n.successor m.successor): LessEqual n m
+    invert {n m: Natural} (le: LessEqual n.add1 m.add1): LessEqual n m
     :=
         inspect le case
             -- Init case does not match
@@ -1852,7 +1852,7 @@ Let's do the proofs by hand.
         inspect a case
             zero :=
                 \ le := identical zero
-            n.successor :=
+            n.add1 :=
                 discriminate {n} >> exFalso
 \end{alba}
 
@@ -1870,8 +1870,8 @@ Let's do the proofs by hand.
     -- f a := a <= a
 
     -- 'init' proves 'f zero' i.e. 'zero <= zero'
-    -- 'step' proves 'all i: f i -> f i.successor'
-    --     i.e. 'i <= i => i.successor <= i.successor
+    -- 'step' proves 'all i: f i -> f i.add1'
+    --     i.e. 'i <= i => i.add1 <= i.add1
     --     with implicit argument 'i'
 \end{alba}
 
@@ -1882,18 +1882,18 @@ Let's do the proofs by hand.
 \begin{alba}
     leImpliesLeSucc
         (a b: Natural)
-        :  a <= b  =>  a <= b.successor
+        :  a <= b  =>  a <= b.add1
     :=
         case
             init b :=
-                init b.successor
+                init b.add1
 
             step n m lenm :=
-                -- a = n.successor, b = m.successor
-                -- goal: n.successor <= m.successor.successor
+                -- a = n.add1, b = m.add1
+                -- goal: n.add1 <= m.add1.add1
                 step
                     n
-                    m.successor
+                    m.add1
                     (leImpliesLeSucc n m lenm)
 \end{alba}
 
@@ -1914,7 +1914,7 @@ Let's do the proofs by hand.
 
 \begin{alba}
   (<) (a b: Natural): Proposition :=
-    successor a <= b
+    add1 a <= b
 \end{alba}
 
 Properties:
@@ -1925,12 +1925,12 @@ Properties:
             init b: 0 /= b => 0 < b :=
                 inspect b case
                     zero: \ ne := identical zero |> ne |> exFalso
-                    successor i: 0 /= successor i => 0 < successor i :=
+                    add1 i: 0 /= add1 i => 0 < add1 i :=
                         \ ne := step (init i)
             step i j ij
-            : successor i /= successor j => successor i < successor j :=
+            : add1 i /= add1 j => add1 i < add1 j :=
                 \ ne :=
-                    step (leToLt ij (ne << apply successor))
+                    step (leToLt ij (ne << apply add1))
 \end{alba}
 
 
@@ -1939,7 +1939,7 @@ Properties:
         leInduction
             {\ a b := not b < a}
             (\ b := discriminate)
-            (\ a b nlt (lt1: b.successor < a.successor) :=
+            (\ a b nlt (lt1: b.add1 < a.add1) :=
                 inversion lt1 |> nlt)
             a
             b
@@ -1978,12 +1978,12 @@ Properties:
         {n: Natural}
         (lb: lowerBound P n)
         (nfn: not (P n))
-        : lowerBound P (successor n)
+        : lowerBound P (add1 n)
     :=
         {- Theorem: If 'n' is a lower bound for the predicate 'P' and 'n'
-           does not satisfy 'P', then the successor of 'n' is a lower bound
+           does not satisfy 'P', then the add1 of 'n' is a lower bound
            for the predicate 'P' as well. -}
-        \ i pi: LessEqual (successor n) i :=
+        \ i pi: LessEqual (add1 n) i :=
             inspect n = i case
                 left eq :=
                     nfn (leibniz eq P pi)
@@ -2034,7 +2034,7 @@ just increments the start value and continues the search.
                 (start, lb, startOk)
             right startNotOk :=
                 findHelper  -- illegal recursive call!!
-                    start.successor
+                    start.add1
                     (nextLowerBound lb startNotOk)
 \end{alba}
 %
@@ -2051,16 +2051,16 @@ definition
         terminate: (all y: r x y -> Terminating r y) -> Terminating r x
 \end{alba}
 %
-where \code{Terminating R x} says that all successors of \code{x} in the
+where \code{Terminating R x} says that all add1s of \code{x} in the
 relation \code{R} finally lead to an element which is terminal i.e. which does
-not have any successor in \code{R}. The basic idea is to provide the function
+not have any add1 in \code{R}. The basic idea is to provide the function
 \code{findHelper} with an extra argument which is a proof of \code{Terminating R
 start} which we can deconstruct at each recursive call.
 
 
 
 First we note that all numbers satisfying the predicate \code{P} are terminating
-because they do not have any successors in the relation \code{R}.
+because they do not have any add1s in the relation \code{R}.
 
 \begin{alba}
     satToTerminating (x: Natural) (pX: P x): Terminating R x
@@ -2085,7 +2085,7 @@ terminating as well.
 \begin{alba}
     terminatingToPredecessor
         (x: Natural)
-        (tXSucc: Terminating R x.successor)
+        (tXSucc: Terminating R x.add1)
         : Terminating R x
     {- Theorem: The predecessor of a terminating number is terminating. -}
     :=
@@ -2096,7 +2096,7 @@ terminating as well.
             g f y rXY: Terminating R y :=
                 inspect rXY case
                     ltXY * lbY :=
-                        inspect x.successor = y case
+                        inspect x.add1 = y case
                             left xSuccEqY :=
                                 leibniz xSuccEqY tXSucc
                             right xSuccNeqY :=
@@ -2124,7 +2124,7 @@ Now it is easy to define the function for unbounded search.
                 (start, lb, startOk)
             right startNotOk :=
                 findHelper
-                    start.successor
+                    start.add1
                     nLb
                     (inspect tStart case
                         terminate g :=
@@ -2249,9 +2249,9 @@ With advanced pattern match we could write the function more compactly.
     nextLowerBound
         (f: Predicate Natural) (n: Natural)
         (lb: lowerBound f n) (nfn: not (f n))
-        : lowerBound f (successor n)
+        : lowerBound f (add1 n)
     :=
-        \ i fi: successor n <= i :=
+        \ i fi: add1 n <= i :=
             inspect n = i case
                 left eq :=
                     fi |> leibniz eq nfn
@@ -2275,13 +2275,13 @@ With advanced pattern match we could write the function more compactly.
                 inspect k case
                     zero :=
                         nothing inv2
-                    successor j :=
+                    add1 j :=
                         inspect d i case
                             left sat :=
                                 just i (inv2,sat)
                             right notsat :=
                                 search
-                                    i.successor
+                                    i.add1
                                     j
                                     (leibniz
                                         {(=) bound}
@@ -2327,7 +2327,7 @@ inductive object which we can decrease on each recursive call.
             right notStartOk :=
                 findHelper
                     d
-                    start.successor
+                    start.add1
                     (inspect term case
                         terminate g :=
                             g (reflexive, nextLowerBound f lb notStartOk))
@@ -2374,18 +2374,18 @@ In order to prove the uniqueness of the constructors of natural numbers we have
 to prove the proposition
 
 \begin{alba}
-    all (n: Natural): 0 /= n.successor
+    all (n: Natural): 0 /= n.add1
 \end{alba}
 
-Remember that \code{0 /= n.successor} is equivalent to \code{0 = n.successor =>
+Remember that \code{0 /= n.add1} is equivalent to \code{0 = n.add1 =>
 false}. In order to prove the property we have to find a function which
-maps any natural number \code{n} and a proof of \code{0 = n.successor} into a
+maps any natural number \code{n} and a proof of \code{0 = n.add1} into a
 proof of \code{false}.
 
-Since we can assume \code{0 = n.successor} we can use the leibniz property that
-\code{0} and \code{n.successor} satisfy the same predicates. If we find a
+Since we can assume \code{0 = n.add1} we can use the leibniz property that
+\code{0} and \code{n.add1} satisfy the same predicates. If we find a
 predicate over natural numbers which we can prove for \code{0} we can use the
-leibniz rule to prove that \code{n.successor} satisfies the same predicate.
+leibniz rule to prove that \code{n.add1} satisfies the same predicate.
 
 We use the predicate
 \begin{alba}
@@ -2393,12 +2393,12 @@ We use the predicate
         case
             0 :=
                 true
-            k.successor :=
+            k.add1 :=
                 false
 \end{alba}
 
 Evidently \code{f 0} and \code{true} are equivalent propositions and \code{f
-n.successor} and \code{false} are equivalent propositions.
+n.add1} and \code{false} are equivalent propositions.
 
 A proof of \code{f 0} i.e. \code{true} is trivial, because the proposition
 \code{true} is an inductive type with one constructor.
@@ -2413,9 +2413,9 @@ natural numbers.
 
 
 \begin{alba}
-    discriminate (n: Natural): 0 /= n.successor
+    discriminate (n: Natural): 0 /= n.add1
     :=
-        (\ (eq: 0 = n.successor): false := g n.successor eq)
+        (\ (eq: 0 = n.add1): false := g n.add1 eq)
         where
             g: all k: 0 = k => f k :=
                 case
@@ -2423,7 +2423,7 @@ natural numbers.
                         -- goal: f 0
                         trueValid
             f :=
-                case 0 := true; k.successor := false
+                case 0 := true; k.add1 := false
 \end{alba}
 
 
@@ -2431,16 +2431,16 @@ There is an alternative way to write \code{discriminate} with an elimination
 function
 
 \begin{alba}
-    discriminate (n: Natural): 0 /= n.successor :=
-        \ (eq: 0 = n.successor) :=
+    discriminate (n: Natural): 0 /= n.add1 :=
+        \ (eq: 0 = n.add1) :=
             inspect
-                n.successor     -- index (optional, can be ommitted)
+                n.add1     -- index (optional, can be ommitted)
                 eq              -- inductive object
             case
                 {\ i p :=
                     inspect i case
                         zero := true
-                        successor k := false}
+                        add1 k := false}
                 identical := trueValid
 \end{alba}
 
@@ -2452,24 +2452,24 @@ prove it by \code{\mybackslash\ A x := x} instead of \code{trueValid}.
 
 \subsection{Injectivity of Constructors}
 
-The injectivity of the successor function of natural numbers can be expressed
+The injectivity of the add1 function of natural numbers can be expressed
 by the property
 
 \begin{alba}
-    all (n m: Natural): n.successor = m.successor  =>  n = m
+    all (n m: Natural): n.add1 = m.add1  =>  n = m
 \end{alba}
 
 In order to prove this property we need only a little trick. We have to
 express the goal \code{n = m} as a function of variable representing the right
 hand side of the premise equality which returns the required goal, when
-instantiated with \code{m.successor}. It might not be trivial to find such a
+instantiated with \code{m.add1}. It might not be trivial to find such a
 function, but it is easy to see that the following function does the job.
 
 \begin{alba}
     f: Natural -> Proposition :=
         case 0 :=
                 true
-             i.successor :=
+             i.add1 :=
                 n = i
 \end{alba}
 %
@@ -2478,19 +2478,19 @@ premise equality.
 
 
 \begin{alba}
-    invert (n m: Natural) (eq: n.successor = m.successor): n = m
+    invert (n m: Natural) (eq: n.add1 = m.add1): n = m
     :=
-        g m.successor eq
+        g m.add1 eq
         where
-            g: all k: n.successor = k => f k :=
+            g: all k: n.add1 = k => f k :=
                 case identical :=
-                    -- goal f n.successor
+                    -- goal f n.add1
                     identical
             f :=
                 case
                     0 :=
                         true -- never used
-                    i.successor :=
+                    i.add1 :=
                         n = i
 \end{alba}
 
@@ -2498,27 +2498,27 @@ premise equality.
 We can write \code{invert} as well with an elimination function
 
 \begin{alba}
-    invert (n m: Natural) (eq: n.successor = m.successor): n = m :=
+    invert (n m: Natural) (eq: n.add1 = m.add1): n = m :=
         inspect
-            m.successor
+            m.add1
             eq
         case
             {\ i p :=
                 inspect i case
                     zero :=
                         true -- not used
-                    successor m :=
+                    add1 m :=
                         n = m}
             identical :=
                 identical n
 \end{alba}
 
 Note that for the matching case the elimination function is called with the
-arguments \code{n.successor} and \code{eq} and returns \code{n=n}.  This is
+arguments \code{n.add1} and \code{eq} and returns \code{n=n}.  This is
 correctly proved by \code{identical n}.
 
 However for the whole pattern match the elimination function is called with the
-arguments \code{m.successor} and \code{eq} and returns \code{n = m}. I.e. the
+arguments \code{m.add1} and \code{eq} and returns \code{n = m}. I.e. the
 whole inspect expression returns a proof of \code{n = m}.
 
 
@@ -2536,30 +2536,30 @@ Consider the inductive predicate
         isEven: Predicate Natural
     :=
         zero: isEven 0
-        next: all n: isEven n => isEven n.successor.successor
+        next: all n: isEven n => isEven n.add1.add1
 \end{alba}
 
 The proposition \code{isEven 0} can be constructed only with the first
-constructor. The proposition \code{isEven k.successor.successor} can be
+constructor. The proposition \code{isEven k.add1.add1} can be
 constructed only with the second constructor. We can make a further case split
-on \code{k}.  \code{isEven 0.successor} is impossible to construct and
-\code{isEven n.successor.successor} implies \code{isEven n}.
+on \code{k}.  \code{isEven 0.add1} is impossible to construct and
+\code{isEven n.add1.add1} implies \code{isEven n}.
 
 I.e. we should be able to prove the following propositions:
 
 \begin{alba}
-    discriminate: not 0.successor.isEven
+    discriminate: not 0.add1.isEven
 
-    invert: all n: isEven n.successor.successor => isEven n
+    invert: all n: isEven n.add1.add1 => isEven n
 \end{alba}
 
 
 \noindent First we prove \code{discriminate}
 %
 \begin{alba}
-    discriminate: not 0.successor.isEven
+    discriminate: not 0.add1.isEven
     :=
-        g 0.successor
+        g 0.add1
         where
             g: all k: k.isEven => f k :=
                 case
@@ -2567,17 +2567,17 @@ I.e. we should be able to prove the following propositions:
                         -- goal: f 0
                         trueValid
                     next n evN :=
-                        -- goal: f n.successor.successor
+                        -- goal: f n.add1.add1
                         trueValid
             f: Predicate Natural :=
                 case
                     0 :=
                         true
-                    m.successor :=
+                    m.add1 :=
                         inspect m case
                             0 :=
                                 false
-                            _.successor :=
+                            _.add1 :=
                                 true
 \end{alba}
 
@@ -2587,9 +2587,9 @@ I.e. we should be able to prove the following propositions:
 \noindent Now we prove \code{invert}
 %
 \begin{alba}
-    invert (n: Natural): n.successor.successor.isEven => n.isEven
+    invert (n: Natural): n.add1.add1.isEven => n.isEven
     :=
-        g n.sucessor.successor
+        g n.sucessor.add1
         where
             g: all k: k.isEven => f k :=
                 case
@@ -2597,17 +2597,17 @@ I.e. we should be able to prove the following propositions:
                         -- goal: f 0
                         trueValid
                     next m evM :=
-                        -- goal: f m.successor.successor
+                        -- goal: f m.add1.add1
                         evM
             f: Predicate Natural :=
                 case
                     0 :=
                         true
-                    k.successor :=
+                    k.add1 :=
                         inspect k case
                             0 :=
                                 true -- never used
-                            m.successor :=
+                            m.add1 :=
                                 m.isEven
 \end{alba}
 
@@ -2621,23 +2621,23 @@ to them in a simpler manner.
 
 First let's look at the proof of
 \begin{alba}
-    discriminate: isEven 0.successor => false :=
+    discriminate: isEven 0.add1 => false :=
         case ...
 \end{alba}
-The pattern matches a proof of \code{isEven 0.successor} against the two
+The pattern matches a proof of \code{isEven 0.add1} against the two
 possible constructors
 \begin{alba}
     zero: isEven 0
-    next n: isEven n => isEven n.successor.successor
+    next n: isEven n => isEven n.add1.add1
 \end{alba}
 First the compiler tries to the premise with the final types of the
 constructors.
 \begin{alba}
     -- Needed unifications
-    isEven 0.successor              isEven 0
-    isEven 0.successor              isEven n.successor.successor
+    isEven 0.add1              isEven 0
+    isEven 0.add1              isEven n.add1.add1
 \end{alba}
-Both unifications fail. I.e. a proof of \code{isEven 0.successor} cannot be
+Both unifications fail. I.e. a proof of \code{isEven 0.add1} cannot be
 generated by none of the two constructors. Note that a failure of the
 unification always comes from a failure to unify the indices. \code{isEven} is
 an indexed type, indexed by a natural number. The failure to unify comes from
@@ -2656,7 +2656,7 @@ array of indices and $x$ is a bound variable representing the expression to be
 pattern matched on.
 
 In our case the argument $x$ is irrelevant. The elimination function has to
-return the goal \code{false} for the index argument \code{0.successor} and
+return the goal \code{false} for the index argument \code{0.add1} and
 something with a trivial proof for all the other cases (e.g. \code{goal -> goal}
 which is provable by the identity function. As long as primitive values of an
 inductive type are involved, such a elimination function can be generated by the
@@ -2668,7 +2668,7 @@ appropriate type for the branch and the overall goal is satisfied as well.
 A complete pedantic proof with an explicitely entered elimnation function looks
 like
 \begin{alba}
-    discriminate isEven 0.successor => false :=
+    discriminate isEven 0.add1 => false :=
         \ ev := g 0 ev where
             g k ev :=
                 inspect
@@ -2687,7 +2687,7 @@ like
 \end{alba}
 But the shorter one should do its job as well.
 \begin{alba}
-    discriminate isEven 0.successor => false :=
+    discriminate isEven 0.add1 => false :=
         case --  <--- no valid cases to analyze
 \end{alba}
 
@@ -2695,12 +2695,12 @@ But the shorter one should do its job as well.
 Now let's look at the proof of
 
 \begin{alba}
-    inversion k: isEven k.successor.successor => isEven k :=
+    inversion k: isEven k.add1.add1 => isEven k :=
         case ...
 
     -- needed unifications
-    isEven k.successor.successor        isEven 0
-    isEven k.successor.successor        isEven n.successor.successor
+    isEven k.add1.add1        isEven 0
+    isEven k.add1.add1        isEven n.add1.add1
 \end{alba}
 The first one fails and the second one unifies $k$ with $n$.
 
@@ -2718,12 +2718,12 @@ defined as a mutual type family.
         :=
             zero: isEven 0
 
-            fromOdd n: n.isOdd => n.successor.isEven
+            fromOdd n: n.isOdd => n.add1.isEven
 
         class
             isOdd: Natural -> Proposition
         :=
-            fromEven n: n.isEven => n.successor.isOdd
+            fromEven n: n.isEven => n.add1.isOdd
 \end{alba}
 %
 Looking at the possible ways to construct the even or the odd property we should
@@ -2732,9 +2732,9 @@ be able to proof the following theorems.
 \begin{alba}
     discriminate: not 0.isOdd
 
-    invertEven n: n.successor.isEven => n.isOdd
+    invertEven n: n.add1.isEven => n.isOdd
 
-    invertOdd  n: n.successor.isOdd  => n.isEven
+    invertOdd  n: n.add1.isOdd  => n.isEven
 \end{alba}
 
 
@@ -2748,36 +2748,36 @@ be able to proof the following theorems.
         :=
             case
                 fromEven k _ :=
-                    -- goal: 0 = k.successor => false
+                    -- goal: 0 = k.add1 => false
                     discriminate
 
-    invertEven n: n.successor.isEven => n.isOdd
+    invertEven n: n.add1.isEven => n.isOdd
     :=
-        (\ ev := f n.successor ev identical)
+        (\ ev := f n.add1 ev identical)
         where
-        f k: k.isEven => k = n.successor => n.isOdd
+        f k: k.isEven => k = n.add1 => n.isOdd
         :=
             case
                 zero :=
-                    -- goal 0 = n.successor => false
+                    -- goal 0 = n.add1 => false
                     discriminate n
 
                 fromOdd m mOdd :=
-                    -- goal: m.successor = n.successor => n.isOdd
+                    -- goal: m.add1 = n.add1 => n.isOdd
                     invert m n -- produces m = n
                     >>
                     case
                         identical := mOdd
 
-    invertOdd n: n.successor.isOdd => n.isEven
+    invertOdd n: n.add1.isOdd => n.isEven
     :=
-        (\ odd := f n.successor odd identical)
+        (\ odd := f n.add1 odd identical)
         where
-        f k: k.isOdd => k = n.successor => n.isEven
+        f k: k.isOdd => k = n.add1 => n.isEven
         :=
             case
                 fromEven m mEven :=
-                    -- goal: m.successor = n.successor => n.isEven
+                    -- goal: m.add1 = n.add1 => n.isEven
                     invert m n -- produces m = n
                     >>
                     case
@@ -2786,9 +2786,9 @@ be able to proof the following theorems.
 
 The trick to prove these kind of properties is always the same. Whenever we have
 a goal or a premise of a special form like \code{0.isOdd} or
-\code{m.successor.isOdd} we replace the special term by a variable to get
+\code{m.add1.isOdd} we replace the special term by a variable to get
 \code{n.isOdd} and introduce an equality like \code{0 = n} or \code{n =
-m.successor} to have an equivalent formulation.
+m.add1} to have an equivalent formulation.
 
 With the variable we can do a pattern match and use a further pattern match on
 the corresponding equality or a discrimination to prove the goal.
@@ -2805,14 +2805,14 @@ properties.
 
 
 \begin{alba}
-    reject (n: Natural): 0 = n.successor => false
+    reject (n: Natural): 0 = n.add1 => false
     :=
         (\ k :=
             (case identical := trueValid)
             : 0 = k
               =>
-              (case 0 := true; _.successor := false) k)
-          n.successor
+              (case 0 := true; _.add1 := false) k)
+          n.add1
 \end{alba}
 
 
@@ -2839,7 +2839,7 @@ types. A vector in Alba can be defined as
     :=
         nil: Vector A 0
 
-        cons: all n: A -> Vector A n -> Vector A n.successor
+        cons: all n: A -> Vector A n -> Vector A n.add1
 \end{alba}
 
 A companion type for indices into a vector is the following type
@@ -2894,8 +2894,8 @@ We can append two vectors.
             cons x w := append (reverse w) (cons x nil)
 
     -- Note: This function does not typecheck. The append function returns
-    --       an object of type 'Vector A (k + 0.successor)' while it
-    --       should return an object of type 'Vector A (0.successor + k)'
+    --       an object of type 'Vector A (k + add1 0)' while it
+    --       should return an object of type 'Vector A (add1 0 + k)'
     -- A proof would be necessary to show that both types are identical.
 \end{alba}
 
