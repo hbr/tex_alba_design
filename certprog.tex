@@ -2006,29 +2006,29 @@ Properties:
 \subsubsection{Lower Bounds}
 
 \begin{alba}
-    lowerBound (p: Predicate Natural) (a: Natural): Proposition :=
-            -- 'a' is a lower bound for all numbers satisfying 'p'
-        all x: p x => a <= x
+    lowerBound (P: Predicate Natural) (a: Natural): Proposition :=
+            -- 'a' is a lower bound for all numbers satisfying 'P'
+        all x: P x -> LessEqual a x
 
-    least (p: Predicate Natural) (a: Natural): Proposition :=
+    least (P: Predicate Natural) (a: Natural): Proposition :=
             -- 'a' is the smallest number satisfying 'p'
-        lowerBound p a and p a
+        lowerBound P a and P a
 
 
     nextLowerBound
-        (p: Predicate Natural)
-        (n: Natural)
-        (lb: lowerBound f n)
-        (nfn: not (f n))
-        : lowerBound f (successor n)
+        {P: Predicate Natural}
+        {n: Natural}
+        (lb: lowerBound P n)
+        (nfn: not (P n))
+        : lowerBound P (successor n)
     :=
-        {- Theorem: If 'n' is a lower bound for the predicate 'p' and 'n'
-           does not satisfy 'p', then the successor of 'n' is a lower bound
-           for the predicate 'p' as well. -}
-        \ i pi: successor n <= i :=
+        {- Theorem: If 'n' is a lower bound for the predicate 'P' and 'n'
+           does not satisfy 'P', then the successor of 'n' is a lower bound
+           for the predicate 'P' as well. -}
+        \ i pi: LessEqual (successor n) i :=
             inspect n = i case
                 left eq :=
-                    pi |> leibniz eq nfn
+                    nfn (leibniz eq P pi)
                 right neq :=
                     leToLt lb neq
 
@@ -2219,23 +2219,23 @@ A decision between two alternatives is an inductive type.
 
 
 \begin{alba}
-    (<=): all (a b: Natural): Decision (a <= b) :=
+    (<=): all (a b: Natural): Decision (LessEqual a b) :=
         \ a :=
             inspect a case
                 zero :=
                     left << init
-                successor i :=
+                add1 i :=
                     \ b :=
                         inspect b case
-                            {\ b := Decision (successor i <= b)}
+                            {\ b := Decision (LessEqual (add1 i) b)}
                             zero :=
                                 right discriminate
-                            successor k :=
+                            add1 k :=
                                 mapDecision (i <= k)
         where
             mapDecision
-                {i j} (d: Decision (i <= j))
-                : Decision (successor i <= successor j)
+                {i j} (d: Decision (LessEqual i j))
+                : Decision (LessEqual (add1 i) (add1 j))
             :=
                 inspect d case
                     left le0 :=
@@ -2244,12 +2244,33 @@ A decision between two alternatives is an inductive type.
                         right (nle0 << invert)
 \end{alba}
 
+With advanced pattern match we could write the function more compactly.
+
+\begin{alba}
+    (<=) (a b: Natural): Decision (LessEqual a b) :=
+        inspect
+            a, b
+        case
+            zero, _ :=
+                left << init
+            add1 i, zero :=
+                right discriminate
+            add1 i, add1 j :=
+                mapDecision (i <= j)
+        where
+            mapDecision {i j} (d: Decision (LessEqual i j))
+                : Decision (add1 i) (add1 j)
+            :=
+                ... -- see above
+\end{alba}
+
 
 
 
 
 \vskip 5mm
 \section{Search}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{alba}
     Decider (A: Any) (f: Predicate A): Any :=
