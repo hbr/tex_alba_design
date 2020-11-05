@@ -1465,67 +1465,57 @@ arithmetic functions like addition, multiplication and relational operators
 are implemented as efficient functions. But all these builtin functions behave
 as the following functions defined recursively on the inductive type above.
 
+Since \code{Natural} is a recursive inductive type, we can write an induction
+law for it.
+
+\begin{alba}
+    naturalInduction
+        {P: Predicate Natural}
+        (start: P zero)
+        (next: all {i}: P i -> P (add1 i))
+        {n: Natural}
+        : P n
+    :=
+        inspect n case
+            {\ (i: Natural): Proposition := P i}
+            zero: P zero :=
+                start
+            add1 i: P (add1 i) :=
+                next
+                    {i}
+                    (naturalInduction start next {i}: P i)
+\end{alba}
+
+We added the optional elimination function, some type annotations and written
+some implicit arguments explicitly to understand the details.
+
+
+
 
 
 \subsection{Iterators, Recursors and Induction}
 
 \begin{alba}
-    iterate (A: Any) (start: A) (step: A -> A): Natural -> A :=
-        \ n :=
-            inspect n case
-                {\ n := A}
-                zero        := start
-                add1 i := step (iterate start step i)
+    recurse {A: Any} (n: Natural) (f: Natural -> A -> A) (start: A): A :=
+        naturalInduction
+            {\ i := A}
+            start
+            f
+            {n}
 
-    recurse (A: Any) (start: A) (step: Natural -> A -> A): Natural -> A :=
-        \ n :=
-            inspect n case
-                {\ n := A}
-                zero        := start
-                add1 i := step i (recurse start step i)
-
-    induce
-        {F: Natural -> Any}
-        (start: F zero)
-        (step: all i: F i -> F (add1 i)) :
-        all n: F n
-    :=
-        \ n :=
-            inspect n case
-                {F}
-                zero        := start
-                add1 i := step i (induce start step i)
-
-    naturalInduction
-        {P: Predicate Natural}
-        (start: P zero)
-        (step: all {i}: P i -> P i.add1)
-        {n: Natural}
-        : P n
-    :=
+    iterate {A: Any} (n: Natural) (f: A -> A) (start: A): A :=
+        {- Iterate 'n' times the function 'f' on the start value 'start'.
+           Note: The function is tail recursive. -}
         inspect n case
-            zero := start
-            i.add1 := step (naturalInduction start step {i})
+            {\ n := A}
+            zero :=
+                start
+            add1 i :=
+                iterate i f (f start)
 \end{alba}
 
 
-Note that only \code{induce} is necessary. We can use \code{induce} to define
-the other two functions.
 
-\begin{alba}
-    iterate (A: Any) (start: A) (step: A -> A): Natural -> A :=
-        induce {\ n := A} start (\ i := step)
-
-    recurse (A: Any) (start: A) (step: Natural -> A -> A): Natural -> A :=
-        induce {\ n := A} start step
-
-    -- note:
-        (\ n := A) zero ~>  A
-
-        (all i: (\ n := A) i -> (\ n := A) (add1 i))
-        ~>  all i: A -> A
-        =   Natural -> A -> A
-\end{alba}
 
 
 
@@ -1535,7 +1525,7 @@ the other two functions.
 
 \vskip 5mm
 \subsection{Arithmetic}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{Addition}
 
@@ -1550,23 +1540,32 @@ First we need addition
         (n + b).add1
 \end{alba}
 
+With the iterator we can define addition in another way.
+
+\begin{alba}
+    (+) (a b: Natural): Natural :=
+        iterate a add1 b
+\end{alba}
+
 
 Addition is associative
 %
 \begin{alba}
-    plusAssociative (a b c: Natural): a + b + c = a + (b + c) :=
-        induce
-            {\ a := a + b + c = a + (b + c)}
-
-            (identical (b + c))
-
-            (\ n (assoc: n + b + c = n + (b + c)) :=
-                apply add1 assoc)
-            a
+    plusAssociative {a b c: Natural}: Equal (a + b + c) (a + (b + c)) :=
+        naturalInduction
+            {\ a := Equal (a + b + c) (a + (b + c))}
+            identical
+            (\ {n} eq := applyOnEquals add1 eq)
+            {a}
 
     -- Note:
-    -- apply {A B: Any} {a b: A} (f: A -> B): Equal a b -> Equal (f a) (f b)
+    -- applyOnEquals
+    --      {A B: Any} {a b: A} (f: A -> B)
+    --      : Equal a b -> Equal (f a) (f b)
 \end{alba}
+
+In this prove it is necessary to provide the induction predicate explicitly. The
+compiler has no idea on which variable we want to do the induction.
 
 
 Now we prove that addition is commutative. In order to prove commutativity of
