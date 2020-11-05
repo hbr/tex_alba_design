@@ -796,22 +796,66 @@ domains are the same. For endorelations we can define what it means to be
 reflexive, transitive and symmetric.
 
 \begin{alba}
-  is_reflexive (A:Any) (r: Endorelation A): Proposition :=
-    all a: r a a
+    Reflexive {A:Any} (R: Endorelation A): Proposition :=
+        all {a}: R a a
 
-  is_transitive (A:Any) (r: Endorelation A): Proposition :=
-    all a b c: r a b => r b c => r a c
+    Symmetric {A:Any} (R: Endorelation A): Proposition :=
+        all {a b}: R a b -> R b a
 
-  is_symmetric (A:Any) (r: Endorelation A): Proposition :=
-    all a b: r a b => r b a
+    Transitive {A:Any} (R: Endorelation A): Proposition :=
+        all {a b c}: R a b -> R b c -> R a c
+
+    Antisymmetric {A:Any} (R: Endorelation A): Proposition :=
+        all {a b}: R a b -> R b a -> Equal a b
+
+    Connex {A:Any} (R: Endorelation A): Proposition :=
+        all {a b}: R a b or R b a
+
+    class
+        Preorder {A:Any} (R: Endorelation A): Proposition
+    :=
+        preorder:
+            Reflexive R -> Transitive R -> Equivalence R
+
+    class
+        PartialOrder {A:Any} (R: Endorelation A): Proposition
+    :=
+        partialOrder:
+            Reflexive R -> Transitive R -> Antisymmetric R
+
+    class
+        Equivalence {A:Any} (R: Endorelation A): Proposition
+    :=
+        equivalence:
+            Reflexive R -> Transitive R -> Symmetric R -> Equivalence R
 \end{alba}
 
+
+A clique is a relation where all elements are related. Trivially a clique is
+reflexive, symmetric and transitive.
+
+\begin{alba}
+    Clique {A: Any}: Endorelation A :=
+        \ a b := True
+
+    cliqueReflexive {A: Any}: Reflexive {A} Clique :=
+        -- Theorem: A clique is reflexive.
+        \ {a} := trueValid
+
+    cliqueSymmetric {A: Any}: Symmetric {A} Clique :=
+        -- Theorem: A clique is symmetric.
+        \ {a b} cAB := trueValid
+
+    cliqueTransitive {A: Any}: Transitive {A} Clique :=
+        -- Theorem: A clique is transitive.
+        \ {a b c} cAB cBC := trueValid
+\end{alba}
 
 
 \subsubsection{Transitive Closure}
 
-Next we define the transitive closure $r^+$ of a relation $r$. Graphically the
-construction of $r^+$ from $r$ looks like.
+Next we define the transitive closure $R^+$ of a relation $R$. Graphically the
+construction of $R^+$ from $R$ looks like.
 
 \begin{tikzpicture}
   \node (a0) at (0,0) {$a$};
@@ -821,15 +865,15 @@ construction of $r^+$ from $r$ looks like.
   \node (b) at (4,0) {$b$};
   \node (c) at (5,0) {$c$};
 
-  \draw [->,blue] (a0) edge node[above]{$r$} (b0);
+  \draw [->,blue] (a0) edge node[above]{$R$} (b0);
   \draw [->,red]
      (a0)
      .. controls (0.25,1) and (0.75,1)
-     .. node[above] {$r^+$} (b0);
+     .. node[above] {$R^+$} (b0);
 
-  \path[->,blue] (a) edge node[above] {$r$} (b);
-  \path[->,blue] (b) edge node[above] {$r^+$}    (c);
-  \draw[->,red]  (a) .. controls (3.5,1) and (4.5,1) ..  node[above] {$r^+$}  (c);
+  \path[->,blue] (a) edge node[above] {$R$} (b);
+  \path[->,blue] (b) edge node[above] {$R^+$}    (c);
+  \draw[->,red]  (a) .. controls (3.5,1) and (4.5,1) ..  node[above] {$R^+$}  (c);
 \end{tikzpicture}
 
 
@@ -837,72 +881,51 @@ In Alba we write
 
 \begin{alba}
     class
-        plus (A:Any) (r: Endorelation A): Endorelation A
-            -- 'r.plus' is the transitive closure of 'r'
+        Plus {A:Any} (R: Endorelation A): Endorelation A
+            -- 'Plus R' is the transitive closure of 'R'
     :=
-        init a b:
-            r a b
-            => r.plus a b
-        step a b c:
-            r a b
-            => r.plus b c
-            => r.plus a c
+        plusInit {a b}:
+            R a b -> Plus R a b
+        plusStep {a b c}:
+            R a b -> Plus R b c -> Plus R a c
 \end{alba}
 
 The definition uses an inductive type. It has two constructors. The
-\code{init} constructor allows us to conclude $r^+ a b$ from $r a b$.  The
-\code{step} constructor allows us to conclude $r^+ a c$ from $r a b$ and $r^+
+\code{init} constructor allows us to conclude $R^+ a b$ from $R a b$.  The
+\code{step} constructor allows us to conclude $R^+ a c$ from $R a b$ and $R^+
 b c$.
 
-By intuition we see that the relation $r^+$ is transitive. But in
+By intuition we see that the relation $R^+$ is transitive. But in
 order to be sure we need a proof. In order to proof transitivity we have to
 prove
 %
 $$
- r^+ a b \imp r^+ b c \imp r^+ a c
+ R^+ a b \imp R^+ b c \imp R^+ a c
 $$
 %
 for all $a$, $b$ and $c$
 i.e. we need a function which looks like
 %
 \begin{alba}
-  f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
-    ...
+    \ {a b c} (plusAB: Plus R a b) (plusBC: Plus R b c): Plus R a c
+    := ...
 \end{alba}
 %
-We can do an induction proof on \code{pab: r.plus a b} which generates two
+We can do an induction proof on \code{plusAB: Plus R a b} which generates two
 cases.
-
-One case is that \code{r.plus a b} has been constructed
-by \code{init a b rab}. In that case we can use the step constructor with
-\code{ab: r a b} and \code{pbc: r.plus b c} to construct \code{r.plus a c}.
-
-The second case is that  \code{r.plus a b} has been constructed by \code{step
-  a x b (ax: r a x) (pxb: r.plus x b)}. Now we can use the induction
-hypothesis to construct from \code{pxb} and \code{pbc} a proof of \code{r.plus
-  x c} and then the step constructor to generate a proof of \code{r.plus a c}.
 
 
 \begin{alba}
-    plus_transitive
-        (A: Any) (r: Endorelation A)
-        : r.plus.is_transitive
+    plusTransitive
+        {A: Any} (R: Endorelation A)
+        : Transitive (Plus R)
     :=
-        f a b c (pab: r.plus a b) (pbc: r.plus b c): r.plus a c :=
-            inspect
-                a; b; pab
-            case
-                init a b rab :=
-                    -- a -> b +> c
-                    step a b c rab pbc
-
-                step a x b rax pxb :=
-                    {: goal: a -> x +> b +> c
-                       by a recursive call to f we prove x +> c
-                       and then use the step constructor to prove a +> c :}
-                    step a x c rax pxc
-                    where
-                        pxc: r.plus x c := f x b c pxb pbc
+        \ {a b c} plusAB plusBC :=
+            inspect plusAB case
+                plusInit rAB :=
+                    plusStep rAB plusBC
+                plusStep rAX plusXB :=
+                    plusStep rAX (plusTransitive R plusXB plusBC)
 \end{alba}
 
 
