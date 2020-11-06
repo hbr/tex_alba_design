@@ -1940,8 +1940,40 @@ section part the name is used as if it were the type of the type constructor.
 
 
 
+\subsubsection{Example: Sortable}
 
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: "main_alba_design"
-%%% End:
+
+An abstract class is a record i.e. an inductive type with one constructor. The
+constructor arguments are the attributes of the class. We write an abstract
+class as
+
+\begin{alba}
+    abstract class
+        Sortable (A: Any): Any
+    :=
+        Related: Endorelation A
+        order: StrictOrder Related
+        compare {a b: A}: Decision3 (Related a b) (Equal a b) (Related b a)
+\end{alba}
+
+This is equivalent to the inductive type and corresponding attribute functions
+
+\begin{alba}
+    class
+        Sortable (A: Any): Any
+    :=
+        sortable
+            (Related: Endorelation A)
+            (order: StrictOrder Related)
+            (compare:
+                all {a b: A}
+                : Decision3 (Related a b) (Equal a b) (Related b a))
+            : Sortable A
+
+    Related {A: Any} (s: Sortable): Endorelation A :=
+        inspect s case
+            sortable R o c := R
+
+    ...
+\end{alba}
+

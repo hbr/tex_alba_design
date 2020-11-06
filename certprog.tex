@@ -799,6 +799,9 @@ reflexive, transitive and symmetric.
     Reflexive {A:Any} (R: Endorelation A): Proposition :=
         all {a}: R a a
 
+    Irreflexive {A:Any} (R: Endorelation A): Proposition :=
+        all {a}: R a a -> False
+
     Symmetric {A:Any} (R: Endorelation A): Proposition :=
         all {a b}: R a b -> R b a
 
@@ -818,9 +821,9 @@ reflexive, transitive and symmetric.
             Reflexive R -> Transitive R -> Equivalence R
 
     class
-        PartialOrder {A:Any} (R: Endorelation A): Proposition
+        Order {A:Any} (R: Endorelation A): Proposition
     :=
-        partialOrder:
+        order:
             Reflexive R -> Transitive R -> Antisymmetric R
 
     class
@@ -828,6 +831,12 @@ reflexive, transitive and symmetric.
     :=
         equivalence:
             Reflexive R -> Transitive R -> Symmetric R -> Equivalence R
+
+    class
+        StrictOrder {A: Any} (R: Endorelation A): Proposition
+    :=
+        strictOrder:
+            Irreflexive R -> Transitive R -> StrictOrder R
 \end{alba}
 
 
