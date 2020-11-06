@@ -1553,7 +1553,7 @@ Addition is associative
 \begin{alba}
     plusAssociative {a b c: Natural}: Equal (a + b + c) (a + (b + c)) :=
         naturalInduction
-            {\ a := Equal (a + b + c) (a + (b + c))}
+            {\ n := Equal (n + b + c) (n + (b + c))}
             identical
             (\ {n} eq := applyOnEquals add1 eq)
             {a}
@@ -1566,6 +1566,22 @@ Addition is associative
 
 In this prove it is necessary to provide the induction predicate explicitly. The
 compiler has no idea on which variable we want to do the induction.
+
+We can avoid to provide the induction predicate explicitly by annotating the
+induction hypothesis.
+
+\begin{alba}
+    plusAssociative {a b c: Natural}: Equal (a + b + c) (a + (b + c)) :=
+        naturalInduction
+            identical
+            (\ {n} (eq: Equal (n + b + c) (n + (b + c))) :=
+                applyOnEquals add1 eq)
+            {a}
+\end{alba}
+%
+This shows the induction variable explicitly. It is a matter of taste which
+variant you prefer. I find the explicit provision of the induction predicate
+more readable.
 
 
 Now we prove that addition is commutative. In order to prove commutativity of
