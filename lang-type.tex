@@ -1782,166 +1782,47 @@ polymorphic function must live in a higher universe.
 
 
 
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Abstract Datatypes}
 \label{sec:abstract-datatypes}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\noindent Status: Draft
 
-An abstract datatype is a type with certain properties. In order to define the
-type we need a context of parameters, a bound variable as a representant of
-the type and a context describing postulated properties of that type
-$$
-\Abstract_{\Gamma, T:K, \Delta}
-$$
-where $\Gamma = [p_0:P_0, p_1:P_1, \ldots]$ is a context of parameters, $K$ is a
-kind (i.e. $T$ can represent a type constructor needing arguments),
-$\Delta = [d_0:D_0, d_1: D_1, \ldots]$ and the bound variable $T$ occurs in
-each $D_i$.
+An abstract datatype is a record i.e. an inductive datatype with one
+constructor. The arguments of the constructor are the attributes of the record.
+We use the following syntax
 
-An abstract datatype can be instantiated by applying it to a specific datatype
-with the required properties $d_0, d_1, \ldots$. I.e. its type is a function.
-
-$$
-\Abstract_{\Gamma,T^K,\Delta}
-:
-\Pi \Gamma T^K \Delta. \Any
-$$
-
-\subsubsection{Example: Group}
-A group has no parameters. The type of the bound variable $T$ of a group is
-$\Any$ i.e. it represents a type which is the type of a group element. The
-context $\Delta$ is defined as
-$$
-\begin{array}{llll}
-  \Delta =
-  &[
-  & 0: T
-  & \text{neutral element}
-  \\
-  &
-  & (+): T \to T \to T
-  & \text{binary function}
-  \\
-  &
-  & (-): T \to T
-  & \text{inversion}
-  \\
-  &
-  & a: \Pi x^T y^T z^T. x + y + z = x + (y + z)
-  & \text{associativity}
-  \\
-  &
-  & n: \Pi x^T. x + 0 = x
-  & 0 \text{ is neutral with respect to } +
-  \\
-  &
-  & i: \Pi x^T. x + (-x) = 0
-  & -x \text{ is the inverse element of } x
-  \\
-  &]
-\end{array}
-$$
-
-
-
-
-
-
-\subsubsection{Example: Sortable}
-
-A sortable has no parameters. The type of the bound variable $T$ of a sortable
-is $\Any$ i.e. it represents a type which is the type of sortable
-elements. The context $\Delta$ is defined as
-$$
-\begin{array}{llll}
-  \Delta =
-  &[
-  & (\le): T \to T \to \Prop,
-  & \text{order relation}
-  \\
-  &
-  & (\le_d): \Pi x^T y^T . \Decision\,(x \le y)\, (\lnot\, x \le y)
-  & \text{decision function}
-  \\
-  &
-  & r: \Pi x^T y^T. x \le y
-  & \text{reflexivity}
-  \\
-  &
-  & t: \Pi x^T y^T z^T. x \le y \to y \le z \to x \to z
-  & \text{transitivity}
-  \\
-  &]
-\end{array}
-$$
-
-
-\subsubsection{Example: Monad}
-
-A monad has no parameters. The type of the bound variable $T$ is $\Pi
-A^\Any. \Any$, i.e. $T$ is a type constructor needing one type argument like
-e.g. list.  The context $\Delta$ is defined as
-$$
-\begin{array}{llll}
-  \Delta =
-  &[
-  & r: \Pi A^\Any x^A. T A,
-  & \text{return}
-  \\
-  &
-  & b: \Pi A^\Any B^\Any m^{T A} f^{A\to T B}. T B
-  & \text{bind}
-  \\
-  &
-  & u: \Pi A^\Any B^\Any x^A f^{A\to T B}. b A B (r A x) f = f x
-  & \text{unit}
-  \\
-  &
-  & a: \Pi \ldots . b B C (b A B m f) g = b A C m (\lambda x^A. b B C (f x) g)
-  & \text{associativity}
-  \\
-  &]
-\end{array}
-$$
-Associativity is not spelled out completely in detail here, because the
-expression becomes too long. The many needed type arguments obscure a little
-bit the essence of the axioms. By being sloppy and leaving out the type
-arguments the associativity condition becomes
-$$
-  b (b m f) g = b m (\lambda x. (f x) g)
-$$
-which says that doing the bind step by step and first combining the two
-functions and then doing the bind must be the same.
-
-In program text we define a monad by
 \begin{alba}
-   abstract class
-     Monad: Any -> Any
-   section (A B C: Any) (M: Monad) :=
-     return: A -> M A
+    abstract class
+        Adt (p1: P1) ... : Any   -- Must be 'Any', 'Proposition' not allowed!
+    :=
+        attribute1: Type1
+        attribute2: Type2
+        ...
 
-     (|>): M A -> (A -> M B) -> M B
+    -- which is equivalent to
+    class
+        Adt (p1: P1) ... : Any
+    :=
+        adt (attribute1: Type1) (attribute2: Type2) ... : Adt p1 p2 ...
 
-     unit (a: A)
-          (f: A -> M B)
-          : (return a |> f) = f a
-
-     assoc (m: M A)
-           (f: A -> M B)
-           (g: B -> M B)
-           : m |> f |> g  =  m |> (\a := f a |> g)
+    -- and the functions
+    attribute1 (a: Adt p1 ...): Type1 :=
+        inspect a case
+            adt a1 a2 ... := a1
+    ...
 \end{alba}
 
-Remark: This is not yet very clean and needs some rework. In the class header
-the name \code{Monad} is used as if it were the type constructor. In the
-section part the name is used as if it were the type of the type constructor.
+
+
 
 
 
 \subsubsection{Example: Sortable}
-
 
 An abstract class is a record i.e. an inductive type with one constructor. The
 constructor arguments are the attributes of the class. We write an abstract
@@ -1977,3 +1858,39 @@ This is equivalent to the inductive type and corresponding attribute functions
     ...
 \end{alba}
 
+
+
+
+\subsubsection{Example: Monad}
+
+\begin{alba}
+    abstract class
+        Monad (M: Any -> Any): Any
+    :=
+        return {A: Any}: A -> M A
+        bind
+            {A B: Any}: M A -> (A -> M B) -> M B
+\end{alba}
+
+
+\begin{alba}
+    MaybeMonad: Monad Maybe :=
+        monad
+            just
+            (\ {A B} m f :=
+                inspect m case
+                    just v  := f v
+                    nothing := nothing)
+
+    ListMonad: Monad List :=
+        monad
+            (\ a := [a])
+            (\ {A B} lst f :=
+                flatten (map f lst))
+
+    -- with the following signatures
+    map:
+        all {A B: Any}: (A -> B) -> List A -> List B
+    flatten:
+        all {A: Any}: List (List A) -> List A
+\end{alba}
