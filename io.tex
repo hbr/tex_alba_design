@@ -92,7 +92,49 @@ descriptor and a proof that the corresponding file descriptor is open.
 
 
 
-\subsection {State Monad}
+
+
+
+\subsection{State Monad II}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\noindent DRAFT: Thoughts for a state monad.
+
+NOT YET SOUND, NEEDS REWORK
+
+
+\begin{alba}
+    Transition (S A: Any): Any :=
+        S -> A -> S -> Proposition
+
+
+    abstract class
+        StrongMonad
+            {S: Any}
+            (M: all {A: Any}: Transition S A -> Any)
+            : Any
+    :=
+        return:
+            all
+                {A: Any}
+                {a: A}
+                : M A (\ s0 x s1 := Equal s0 s1 and Equal a x)
+
+        bind:
+            all {A B R}:
+                M A (Transition S A)
+                -> (A -> (Transition S A) -> M B (Transition S B))
+                -> M B (Transition S B)
+\end{alba}
+
+
+
+
+
+
+
+\subsection {State Monad I}
 
 A state monad has a state (let's call its type \code{State}). A specification of
 a state affecting operation is a relation of the prestate, an element of some
