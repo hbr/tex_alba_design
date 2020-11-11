@@ -1,6 +1,6 @@
-
 \chapter{Certified Programming}
 \label{chap:certprog}
+
 
 The Alba programming languages makes certain guarantees.
 \begin{enumerate}
@@ -396,7 +396,11 @@ no possibility to make such a decision by looking only at \code{not (a and
 
 
 
+
+
 \subsection{Existential Quantification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 The existence of an object with a certain property is expressed in Alba by the
 inductive type
@@ -1223,16 +1227,50 @@ can be inferred by the type checker are implicit.
 In the following we use the definition of the list type from the prelude.
 
 \begin{alba}
-  class
-    List (A:Any): Any
-  create
-    [] : List A
-    (^): A -> List A -> List A
+    class
+        List (A:Any): Any
+    create
+        [] : List A
+        (::): A -> List A -> List A
 \end{alba}
-%
-Note that the operator $\caret$ is right associative and has the
-highest precedence of all arithmetic operators.
 
+
+\begin{alba}
+    listRecursion
+        {A: Any}
+        {P: List A -> Any}
+        (start: P [])
+        (next: all {a lst}: P lst -> P (a :: lst))
+        {lst: List A}
+        : P lst
+    :=
+        inspect lst case
+            [] :=
+                start
+            _ :: _ :=
+                next (listInduction start next)
+
+    listInduction
+        {A: Any}
+        {P: Predicate (List A)}
+        (start: P [])
+        (next: all {a lst}: P lst -> P (a :: lst))
+        {lst: List A}
+        : P lst
+    :=
+        inspect lst case
+            [] :=
+                start
+            head :: tail :=
+                next (listInduction start next {tail})
+
+    foldLeft {A B: Any} (f: A -> B -> B) (b: B) (lst: List A): B :=
+        inspect lst case
+            [] :=
+                b
+            head :: tail :=
+                foldLeft f (f head b) tail
+\end{alba}
 
 
 \subsection{Concatenation}
