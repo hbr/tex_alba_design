@@ -1822,6 +1822,32 @@ We use the following syntax
 
 
 
+
+
+\subsubsection{Example: Monoid}
+
+A monoid has a carrier type, a neutral element, a binary operation, an
+associativity law and laws for the neutrality of the neutral element.
+
+\begin{alba}
+    abstract class
+        Monoid (A: Any): Any
+    :=
+        one:
+            A
+        op:
+            A -> A -> A
+        assoc {x y z}:
+            Equal (op (op x y) z) (op x (op y z))
+        leftUnit {x}:
+            Equal (op one x) x
+        rightUnit {x}:
+            Equal (op x one) x
+\end{alba}
+
+
+
+
 \subsubsection{Example: Sortable}
 
 An abstract class is a record i.e. an inductive type with one constructor. The
