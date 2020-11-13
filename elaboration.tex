@@ -340,13 +340,23 @@ which the pattern match is done.
 
 
 
-
 \subsection{Resolve Ambiguities}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+During the elaboration of a term, the possible ambiguities have to be resolved.
+There are only two sources for ambiguity:
+%
+\begin{enumerate}
 
+\item Overloaded global symbols like $+$ and \code{length}
 
+\item Literal numbers (they can have type \code{Int}, \code{Float},
+\code{Natural}, etc.).
+
+\end{enumerate}
 
 
 
 
 \section{Metavariables and Unification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
