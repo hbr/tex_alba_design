@@ -1824,6 +1824,39 @@ We use the following syntax
 
 
 
+\subsubsection{Example: Number}
+
+\begin{alba}
+    abstract class
+        Number (A: Any): Any
+    :=
+        zero: A
+        one:  A
+        add:   A -> A -> A
+        times: A -> A -> A
+
+    (+) {A: Any} {N: Number A} (a b: N): N :=
+        add N a b
+
+    (*) {A: Any} {N: Number A} (a b: N): N :=
+        times N a b
+
+    _: Number Int :=
+        number natZero natOne natAdd natTimes
+
+    _: Number Float :=
+        number floatZero floatOne floatAdd floatTimes
+\end{alba}
+
+
+
+
+
+
+
+
+
+
 \subsubsection{Example: Monoid}
 
 A monoid has a carrier type, a neutral element, a binary operation, an
