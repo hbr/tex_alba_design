@@ -179,13 +179,14 @@ Global names can be applied to arguments. We can form
 
     List Int
 
-    Equal U U
-\end{alba}
+    Equal U U \end{alba}
 %
-The includes relation extexts to applications in a natural manner. \code{List U}
-includes \code{List Int} and \code{List String}.
+The \emph{includes} relation extends to applications in a natural manner.
+\code{List U} includes \code{List Int} and \code{List String}.
 
-We use these elements to describe signatures
+We use these elements to describe signatures. The operator $+$ has the
+signatures
+%
 \begin{alba}
     (+): Int -> Int -> Int
 
@@ -195,18 +196,58 @@ We use these elements to describe signatures
     (+): String -> String -> String
 
         [String, String, String]
+\end{alba}
+%
+The last type in a signature is always the final result type and the first types
+are the signatures of the argument types.
 
 
+Highly polymorphic functions have highly general signatures.
+%
+\begin{alba}
     (|>): all {A: Any} {B: A -> Any} (a: A) (f: all {x}: B x): B x
 
-        [U, [U,U], U]
+        [U, [U, U], U]
+\end{alba}
+%
+Note that the description of the result type in this signature is unknown. It
+can be anything even a function being able to take more arguments. Therefore the
+number of actual explicit arguments of an application of a symbol of this
+signature can be more than two.
 
+The second explicit argument of this signature is a function type whose return
+type is generic. If the function returns a function, it can be applied to more
+arguments.
 
-    Equal: all {A: Any}: A -> A -> Proposition
+The most general type (i.e. the most inclusive type) is $\Pi A^\Any. A$ whose
+signature is
+\begin{alba}
+    [U]
+\end{alba}
+%
+This signature includes all other signatures. Therefore a symbol of type $\Pi
+A^\Any. A$ does not allow any ambiguities. Fortunately a symbol of that type in
+the global context would imply that the context is inconsistent, because
+anything can be proved and generated having a symbol of this type.
 
-        [U, U, Sort]
+But there are other signatures which are rather general. E.g. the signature of
+the polymorphic identity function
+%
+\begin{alba}
+    identity: all {A: Any}: A -> A
 
+        [U, U]
+\end{alba}
+%
+includes the signature of any other function with an arbitrary number of
+arguments. Therefore it is practically impossible to overload the symbol
+\code{identity}. Only local names can be \code{identity} because local names
+shadow all other names introduced before.
 
+All other functions which act like attributes can be easily overloaded. Let's
+look into the example of the \code{length} function.
+
+\begin{alba}
     length: all {A: Any}: List A -> Int
 
         [List U, Int]
@@ -215,6 +256,26 @@ We use these elements to describe signatures
     length: all {A: Any}: Array A -> Int
 
         [Array U, Int]
+\end{alba}
+%
+However the introduction of a specific \code{length} function would cause an
+illegal overloading
+\begin{alba}
+    length: all {A: Any}: List String -> Int
+
+        [List String, Int]
+\end{alba}
+because the signature of the more general \code{length} function on lists above
+includes this signature.
+
+
+More example of signatures.
+%
+\begin{alba}
+
+    Equal: all {A: Any}: A -> A -> Proposition
+
+        [U, U, Sort]
 
 
     Plus: {A: Any} (R: Endorelation A): Endorelation A
@@ -256,12 +317,10 @@ type.
     (inspect n case
         zero := True
         add1 i := False)
-    : Proposition
 
     (inspect n case
         zero := Int
         add1 i := List Int)
-    : Any
 \end{alba}
 %
 In computed types each branch of the pattern match can return a different type.
