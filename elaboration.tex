@@ -1,0 +1,293 @@
+\chapter{Elaboration}
+
+The problem of elaboration is to read an Alba source code file and build terms
+and definitions in the intermediate language. In order to do this, overloaded
+symbols have to be resolved and implicit arguments have to derived.
+
+During the development of Alba I initially have completely underestimated the
+complexity of the task. In other dependently type languages like
+Idris~\cite{brady2013}, Agda~\cite{norell2007} and Lean~\cite{demoura2015} papers
+have been written to describe the complex procedure.
+
+In Alba we have the additional complexity that Alba shall be language for
+beginners and experts. The beginners should not be bothered with the complexity
+of dependent types. Alba shall \emph{feel} like a simple functional programming
+language. However the most powerful features of dependent types shall be
+available in the language and the user should be able to grasp the power step by
+step. I.e. the learning curve shall be flat and not steep.
+
+
+
+\section{Implicit Arguments}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+\section{Overloading}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Overloading means that the same name can be used for different
+functions/constants. E.g. the operator $+$ can be addition for different type of
+numbers like \code{Int} or \code{Float} or e.g. string concatenation. The
+function \code{length} can be applied to a list, an array or a string argument.
+
+Ambiguities shall be resolved in the context where the functions/constants are
+used.
+
+We have two different problems to solve:
+\begin{enumerate}
+
+\item Filter global ambiguous symbols before entering the context:
+Functions/constants in the context with the same name shall be different either
+for some explicit argument types or at the result type.
+
+We shall not allow ambiguities in the global context which cannot be
+distinguished by some explicit argument type or the result type.
+
+
+\item Resolve ambiguities at usage: At the actual usage overloaded symbols shall
+be resolvable.
+
+\end{enumerate}
+
+A type in normal form is either
+\begin{enumerate}
+
+\item a sort i.e. $\Prop$ or $\Any$.
+
+\item a product $\Pi x^A. B$
+
+\item a variable application $v a_0 a_1 \ldots$
+
+\item a pattern match application
+    $\case(\lambda \vec{y}^\vec{B} x^T. R) a_0 a_1 \ldots$
+\end{enumerate}
+%
+Due to the typing rules neither lambda abstractions nor fixpoints can be types
+(why not fixpoints???).
+
+
+
+
+
+\subsection{Filter Overloaded Symbols}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{First Try with Equivalence Relation}
+
+In order to filter overloaded symbols we could try to find some equivalence
+relation on types. Whenever two types are equivalent, there cannot be a name for
+these two types. The equivalence relation shall satisfy the following
+requirements:
+
+\begin{itemize}
+
+\item If two types are not equivalent, then both types must be distinguishable
+by their explicit argument types and the result type.
+
+\item The equivalence relation must not be too coarse to allow for useful
+overloadings.
+
+\end{itemize}
+
+The optimal equivalence relation would be
+
+\begin{quote}
+    Two types are equivalent if they have the same number of explicit arguments
+    and they cannot be distinguished by their argument types and the result
+    type.
+\end{quote}
+
+The finest possible equivalence relation would be beta-equivalence i.e. two
+types are considered equivalent if they have the same normal form. But this
+equivalence relation is too fine. Consider the two types
+%
+\begin{alba}
+    all {A: Any}: A -> A -> A
+
+    Int -> Int -> Int
+\end{alba}
+%
+which are not equivalent according to this equivalence relation.
+
+However we cannot distinguish these two types by argument types and the result
+type.
+
+Given two arguments of type \code{Int} and a required result type of \code{Int},
+both types are valid and an ambiguity cannot be resolved. Therefore we need a
+more coarse equivalence relation which puts both types into the same equivalence
+class.
+
+A very coarse relation would be to consider two types equivalent which describe
+a function with the same number of explicit arguments. But this relation is too
+coarse, because it puts the following three types into the same equivalence class
+%
+\begin{alba}
+    all {A: Any}: List A -> Natural
+
+    all {A: Any}: Array A -> Natural
+
+    String -> Natural
+\end{alba}
+%
+With that equivalence relation we could not have a function named \code{length}
+which works on lists, arrays and string.
+
+
+
+\subsubsection{Preorder and Signatures}
+
+If we look more into the details of the following types
+%
+\begin{alba}
+    all {A: Any}: A -> A -> A
+
+    Int -> Int -> Int
+
+    String -> String -> String
+\end{alba}
+%
+we see that an equivalence relation is not the appropriate tool. Certainly the
+second and the third are not equivalent and could therefore be named with the
+same symbol. The problem here: The first type is more general than the second
+and the third. Therefore its to possible to have a symbol which has all three
+types.
+
+What we really need is some preorder on types. Let's call this preorder
+\emph{includes}. Certainly \code{Int -> Int -> Int} includes itself. The types
+\code{Int -> Int -> Int} and \code{String -> String -> String} do not figure in
+the relation and \code{all \{A:Any\}: A -> A -> A} includes \code{Int -> Int ->
+Int} and the corresponding string type as well.
+
+The rule: We do not allow a symbol which has two possible types where one
+includes the other.
+
+In the following we transform a type into a signature and define a
+\emph{includes} relation on the signatures. The \emph{includes} relation on
+signatures is a partial order. Therefore the corresponding relation on types is
+a preorder.
+
+The primitive elements are global names (like \code{Int}, \code{List}), unknowns
+\code{U} representing implicit arguments and \code{Sort}. Global names and sorts
+do include only themselves. The unknowns include all other primitive elements.
+
+Global names can be applied to arguments. We can form
+\begin{alba}
+    List U
+
+    List Int
+
+    Equal U U
+\end{alba}
+%
+The includes relation extexts to applications in a natural manner. \code{List U}
+includes \code{List Int} and \code{List String}.
+
+We use these elements to describe signatures
+\begin{alba}
+    (+): Int -> Int -> Int
+
+        [Int, Int, Int]
+
+
+    (+): String -> String -> String
+
+        [String, String, String]
+
+
+    (|>): all {A: Any} {B: A -> Any} (a: A) (f: all {x}: B x): B x
+
+        [U, [U,U], U]
+
+
+    Equal: all {A: Any}: A -> A -> Proposition
+
+        [U, U, Sort]
+
+
+    length: all {A: Any}: List A -> Int
+
+        [List U, Int]
+
+
+    length: all {A: Any}: Array A -> Int
+
+        [Array U, Int]
+
+
+    Plus: {A: Any} (R: Endorelation A): Endorelation A
+
+        [[U,U,Sort], U, U, Sort]
+
+
+    naturalInduction {P: Predicate Natural}
+        (zero: P zero) (step: all {i}: P i -> P (add1 i))
+        {n}: P n
+
+        [U, [U,U], U]
+
+
+    listInduction {A: Any} {P: Predicate (List A)}
+        : P [] -> (all {a l}: P l -> P (a :: l)) -> {l} -> P l
+
+        [U, [U,U], U]
+
+
+    lessEqualInduction {R: Endorelation Natural}
+        :   (all {n}: R zero n)
+            -> (all {n m}: LessEqual n m -> R n m -> R (add1 n) (add1 m))
+            -> all {n m}: LessEqual n m -> R n m
+
+        [U, [LessEqual U U, U, U], LessEqual U U, U]
+
+\end{alba}
+
+
+
+
+\subsubsection{Computed Types}
+
+In Alba types can be computed as well. Two examples to demonstrate a computed
+type.
+%
+\begin{alba}
+    (inspect n case
+        zero := True
+        add1 i := False)
+    : Proposition
+
+    (inspect n case
+        zero := Int
+        add1 i := List Int)
+    : Any
+\end{alba}
+%
+In computed types each branch of the pattern match can return a different type.
+Therefore we have to allow set of types in signatures. The above two types have
+the signatures
+%
+\begin{alba}
+    {True, False}
+
+    {Int, List Int}
+\end{alba}
+
+Note that computed types are always dependent. They depend on some object on
+which the pattern match is done.
+
+
+
+
+
+
+\subsection{Resolve Ambiguities}
+
+
+
+
+
+
+
+\section{Metavariables and Unification}
