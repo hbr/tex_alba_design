@@ -342,6 +342,35 @@ which the pattern match is done.
 
 
 
+
+
+\subsubsection{General Relation}
+
+Looking more into corner cases reveals that the \emph{includes} relation is not
+yet the correct form of the relation. Look at the two signatures.
+%
+\begin{alba}
+    [Int, U]
+
+    [U, String]
+\end{alba}
+
+Both would be satisfied by an argument type \code{Int} and a result type
+\code{String}. Therefore we have to consider both as \emph{related}.
+
+As general rule we allow symbol overloading only if any pairs of types have
+signatures which are unrelated. In other words: No two signatures of the types
+of an overloaded symbol can be related.
+
+
+
+
+
+
+
+
+
+
 \subsection{Resolve Ambiguities}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
