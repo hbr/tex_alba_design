@@ -654,6 +654,23 @@ previous chapter are identical in the runtime.
 
 
 
+\section{Ghost Types}
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+A ghost type is a computational type downgraded to a proposition.
+
+\begin{alba}
+    class
+        Ghost (A: Any): Proposition
+    :=
+        ghost: A -> Ghost A
+\end{alba}
+
+Because it is a proposition, its value cannot be used to compute runtime values.
+It can be used only to prove other propositions.
+
+Its usefulness has to be checked and discussed.
+
 
 
 
