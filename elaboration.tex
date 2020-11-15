@@ -82,118 +82,54 @@ Due to the typing rules lambda abstractions cannot be types.
 \subsection{Filter Overloaded Symbols}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsubsection{First Try with Equivalence Relation}
 
-In order to filter overloaded symbols we could try to find some equivalence
-relation on types. Whenever two types are equivalent, there cannot be a name for
-these two types. The equivalence relation shall satisfy the following
-requirements:
+\subsubsection{Comparing Types by Signatures}
 
-\begin{itemize}
+We want to filter definitions before they enter the global context such that
+only \emph{useful} overloadings are possible. The question: What is
+\emph{useful}?
 
-\item If two types are not equivalent, then both types must be distinguishable
-by their explicit argument types and the result type.
+It is clearly useless to allow a symbol to be overloaded if both definitions
+have the same type in normal form. This would create an ambiguity which can
+never be resolved neither by type annotations, nor by actual argument types nor
+by the required result type.
 
-\item The equivalence relation must not be too coarse to allow for useful
-overloadings.
+We allow overloadings only if the corresponding types differ significantly on
+explicit arguments and the result type.
 
-\end{itemize}
+In order to compare types we convert them into a signatures. The atomic elements
+of a signature are global names (e.g. \code{List}, \code{Int}, ...), sorts
+represented by \code{Sort}, implicits
+(represented by \code{I}) and unknowns (represented by \code{U}).
 
-The optimal equivalence relation would be
-
-\begin{quote}
-    Two types are equivalent if they have the same number of explicit arguments
-    and they cannot be distinguished by their argument types and the result
-    type.
-\end{quote}
-
-The finest possible equivalence relation would be beta-equivalence i.e. two
-types are considered equivalent if they have the same normal form. But this
-equivalence relation is too fine. Consider the two types
-%
+An element of a signature is either an atomic or an application.
 \begin{alba}
-    all {A: Any}: A -> A -> A
-
-    Int -> Int -> Int
-\end{alba}
-%
-which are not equivalent according to this equivalence relation.
-
-However we cannot distinguish these two types by argument types and the result
-type.
-
-Given two arguments of type \code{Int} and a required result type of \code{Int},
-both types are valid and an ambiguity cannot be resolved. Therefore we need a
-more coarse equivalence relation which puts both types into the same equivalence
-class.
-
-A very coarse relation would be to consider two types equivalent which describe
-a function with the same number of explicit arguments. But this relation is too
-coarse, because it puts the following three types into the same equivalence class
-%
-\begin{alba}
-    all {A: Any}: List A -> Natural
-
-    all {A: Any}: Array A -> Natural
-
-    String -> Natural
-\end{alba}
-%
-With that equivalence relation we could not have a function named \code{length}
-which works on lists, arrays and string.
-
-
-
-\subsubsection{Preorder and Signatures}
-
-If we look more into the details of the following types
-%
-\begin{alba}
-    all {A: Any}: A -> A -> A
-
-    Int -> Int -> Int
-
-    String -> String -> String
-\end{alba}
-%
-we see that an equivalence relation is not the appropriate tool. Certainly the
-second and the third are not equivalent and could therefore be named with the
-same symbol. The problem here: The first type is more general than the second
-and the third. Therefore its to possible to have a symbol which has all three
-types.
-
-What we really need is some preorder on types. Let's call this preorder
-\emph{includes}. Certainly \code{Int -> Int -> Int} includes itself. The types
-\code{Int -> Int -> Int} and \code{String -> String -> String} do not figure in
-the relation and \code{all \{A:Any\}: A -> A -> A} includes \code{Int -> Int ->
-Int} and the corresponding string type as well.
-
-The rule: We do not allow a symbol which has two possible types where one
-includes the other.
-
-In the following we transform a type into a signature and define a
-\emph{includes} relation on the signatures. The \emph{includes} relation on
-signatures is a partial order. Therefore the corresponding relation on types is
-a preorder.
-
-The primitive elements are global names (like \code{Int}, \code{List}), unknowns
-\code{U} representing implicit arguments and \code{Sort}. Global names and sorts
-do include only themselves. The unknowns include all other primitive elements.
-
-Global names can be applied to arguments. We can form
-\begin{alba}
+    I
+    U
+    Int
     List U
+    Array Nat
+    Equal U U
+    U U
+\end{alba}
 
-    List Int
+A signature is a list of elements or signatures where the last element is an
+element. A signature has at least one entry representing the result type. The
+optional entries before the last one represent the arguments. Examples
+\begin{alba}
+    [Int, Int, Int]
+    [Float, Float, Float]
+    [I, U, U, U]
+    [I, U, List U, List U]
+    [I, I, U, [U, U], U]
+\end{alba}
 
-    Equal U U \end{alba}
-%
-The \emph{includes} relation extends to applications in a natural manner.
-\code{List U} includes \code{List Int} and \code{List String}.
+When comparing signatures we do a structural comparison ignoring all implicit
+argument positions. An unknown is not different from any other entry at the same
+position. An unknown at the end is not different from any signature which has
+more arguments.
 
-We use these elements to describe signatures. The operator $+$ has the
-signatures
-%
+Some examples of signatures
 \begin{alba}
     (+): Int -> Int -> Int
 
@@ -203,53 +139,41 @@ signatures
     (+): String -> String -> String
 
         [String, String, String]
-\end{alba}
-%
-The last type in a signature is always the final result type and the first types
-are the signatures of the argument types.
 
 
-Highly polymorphic functions have highly general signatures.
-%
-\begin{alba}
-    (|>): all {A: Any} {B: A -> Any} (a: A) (f: all {x}: B x): B x
-
-        [U, [U, U], U]
-\end{alba}
-%
-Note that the description of the result type in this signature is unknown. It
-can be anything even a function being able to take more arguments. Therefore the
-number of actual explicit arguments of an application of a symbol of this
-signature can be more than two.
-
-The second explicit argument of this signature is a function type whose return
-type is generic. If the function returns a function, it can be applied to more
-arguments.
-
-The most general type (i.e. the most inclusive type) is $\Pi A^\Any. A$ whose
-signature is
-\begin{alba}
-    [U]
-\end{alba}
-%
-This signature includes all other signatures. Therefore a symbol of type $\Pi
-A^\Any. A$ does not allow any overloading. Fortunately a symbol of that type in
-the global context would imply that the context is inconsistent, because
-anything can be proved and generated having a symbol of this type.
-
-But there are other signatures which are rather general. E.g. the signature of
-the polymorphic identity function
-%
-\begin{alba}
     identity: all {A: Any}: A -> A
 
-        [U, U]
+        [I, U, U]
 \end{alba}
-%
-includes the signature of any other function with an arbitrary number of
-arguments. Therefore it is practically impossible to overload the symbol
-\code{identity}. Only local names can be \code{identity} because local names
-shadow all other names introduced before.
+
+Clearly the first two signatures are different. However the third is not
+different from the first two. The significant part of the third signature is
+\code{[U, U]} where the first unknown is neither different from \code{Int} nor
+\code{String} and the second unknown is not different from the rest of both
+other signatures because the second unknown is at the end.
+
+The pipeline operator \code{|>} and the application operator \code{<|} have some
+very general signatures.
+\begin{alba}
+    (|>): all {A: Any} {B: A -> Any} (a: A) (f: all x: B x): B a
+
+        [I, I, U, [U, U], U]
+
+
+    (<|): all {A: Any} {B: A -> Any} (f: all x: B x) (a: A): B a
+
+        [I, I, [U, U], U, U]
+\end{alba}
+
+The type $\Pi A^\Any. A$ is the most general type and has the most general
+signature.
+\begin{alba}
+    all {A: Any}: A
+
+        [U]
+\end{alba}
+
+
 
 All other functions which act like attributes can be easily overloaded. Let's
 look into the example of the \code{length} function.
@@ -257,24 +181,13 @@ look into the example of the \code{length} function.
 \begin{alba}
     length: all {A: Any}: List A -> Int
 
-        [List U, Int]
+        [I, List U, Int]
 
 
     length: all {A: Any}: Array A -> Int
 
-        [Array U, Int]
+        [I, Array U, Int]
 \end{alba}
-%
-However the introduction of a specific \code{length} function would cause an
-illegal overloading
-\begin{alba}
-    length: all {A: Any}: List String -> Int
-
-        [List String, Int]
-\end{alba}
-because the signature of the more general \code{length} function on lists above
-includes this signature.
-
 
 More example of signatures.
 %
@@ -282,12 +195,12 @@ More example of signatures.
 
     Equal: all {A: Any}: A -> A -> Proposition
 
-        [U, U, Sort]
+        [I, U, U, Sort]
 
 
     Plus {A: Any} (R: Endorelation A): Endorelation A
 
-        [[U,U,Sort], U, U, Sort]
+        [I, [U, U, Sort], U, U, Sort]
 
 
     naturalInduction
@@ -295,14 +208,14 @@ More example of signatures.
         (zero: P zero) (step: all {i}: P i -> P (add1 i))
         {n}: P n
 
-        [U, [U,U], U]
+        [I, U, [U,U], I, U]
 
 
     listInduction
         {A: Any} {P: Predicate (List A)}
         : P [] -> (all {a l}: P l -> P (a :: l)) -> {l} -> P l
 
-        [U, [U,U], U]
+        [I, I, U, [U,U], I, U]
 
 
     lessEqualInduction {R: Endorelation Natural}
@@ -310,9 +223,13 @@ More example of signatures.
             -> (all {n m}: LessEqual n m -> R n m -> R (add1 n) (add1 m))
             -> all {n m}: LessEqual n m -> R n m
 
-        [U, [LessEqual U U, U, U], LessEqual U U, U]
-
+        [I, U, [I, I, LessEqual U U, U, U], LessEqual U U, U]
 \end{alba}
+
+Note that everything which is neither an implicit argument nor a global function
+nor a sort is \emph{unknown}. Applications of implicit arguments to any
+arguments are \emph{unkown} in the signature.
+
 
 
 
@@ -332,42 +249,9 @@ type.
         add1 i := List Int)
 \end{alba}
 %
-In computed types each branch of the pattern match can return a different type.
-Therefore we have to allow set of types in signatures. The above two types have
-the signatures
-%
-\begin{alba}
-    {True, False}
 
-    {Int, List Int}
-\end{alba}
-
-Note that computed types are always dependent. They depend on some object on
-which the pattern match is done.
-
-
-
-
-
-
-
-\subsubsection{General Relation}
-
-Looking more into corner cases reveals that the \emph{includes} relation is not
-yet the correct form of the relation. Look at the two signatures.
-%
-\begin{alba}
-    [Int, U]
-
-    [U, String]
-\end{alba}
-
-Both would be satisfied by an argument type \code{Int} and a result type
-\code{String}. Therefore we have to consider both as \emph{related}.
-
-As general rule we allow symbol overloading only if any pairs of types have
-signatures which are unrelated. In other words: No two signatures of the types
-of an overloaded symbol can be related.
+Since computed types can have any forms we consider them as unknown in
+signatures.
 
 
 
@@ -404,7 +288,7 @@ There are only two sources for ambiguity:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 We use metavariables or holes to describe terms which have to be derived by
-unification. There are two reasons to introduce metavariables.
+unification. There are some reasons to introduce metavariables.
 
 \begin{itemize}
 
@@ -439,9 +323,9 @@ In the elaboration procedure of the lean theorem prover described in
 instantiated by closed terms i.e. by terms which do not contain neither free
 variables nor bound variables.
 
-This can be achieved by using metavariables of the form $?m: \Pi
+This can be achieved by using metavariables of the form $\meta{M}: \Pi
 \vec{x}^{\vec{A}}.T$ where $\vec{x}$ is the collection of all free variables and
-using the metavariable only in the form $?m \vec{x}$.
+using the metavariable only in the form $\meta{M} \vec{x}$.
 
 
 
@@ -465,12 +349,12 @@ using the metavariable only in the form $?m \vec{x}$.
 We need a metavariable for the type of $f$ and introduce $f$ as a free variable
 into the context, i.e. we need the context
 $$
-    \Gamma, {?T_f}^{\Any_1}, f^{?T_f}
+    \Gamma, {\meta{T}_f}^{\Any_1}, f^{\meta{T}_f}
 $$
 
 In this context start to analyze \code{1 + f 10}. $+$ is an overloaded symbol
 for the various numbers and other overloadings. After seeing the number $1$ as
-the first argument, only addition of numbers remain. But it still remains
+the first argument, only addition of numbers remains. But it still remains
 ambiguous.
 
 In trying to elaborate the second argument \code{f 10} we have as the required
@@ -478,21 +362,21 @@ type one of the possible numbers. Now the elaboration becomes stuck, because the
 elaboration of \code{10} is ambiguous and we don't want to nest ambiguities.
 
 So we have to elaborate the local definition next. We have to add a metavariable
-$?T_x$ for the type of $x$ and the free variable $x$ to the context.
+$\meta{T}_x$ for the type of $x$ and the free variable $x$ to the context.
 $$
-    \Gamma, {?T_f}^{\Any_1}, f^{?T_f}, {?T_x}^{\Any_1}, x^{?T_x}
+    \Gamma, {\meta{T}_f}^{\Any_1}, f^{\meta{T}_f}, {\meta{T}_x}^{\Any_1}, x^{\meta{T}_x}
 $$
 
 The we elaborate \code{2*x + 25} with any of the possible number types as the
 required type. This elaboration is unique for any of the number types and
-assigns the corresponding number type to the metavariable $?T_x$.
+assigns the corresponding number type to the metavariable $\meta{T}_x$.
 
 Elaborating the abstraction we get
 $$
     (\lambda x^N. 2x + 25): \Pi x^N. N
 $$
-where $N$ is the corresponding number type. Now we get the assignment $?T_f :=
-\Pi x^N. N$ and can continue with the elaboration of \code{f 10}.
+where $N$ is the corresponding number type. Now we get the assignment $\meta{T}_f
+:= \Pi x^N. N$ and can continue with the elaboration of \code{f 10}.
 
 
 \vskip 5mm
