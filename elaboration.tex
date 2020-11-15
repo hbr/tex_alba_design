@@ -389,5 +389,118 @@ There are only two sources for ambiguity:
 
 
 
+
+
+
+
 \section{Metavariables and Unification}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We use metavariables or holes to describe terms which have to be derived by
+unification. There are two reasons to introduce metavariables.
+
+\begin{itemize}
+
+\item Implicit arguments
+
+\item Untyped variables
+
+\item Required types for terms which do not have an explicit required type.
+
+\item Convert the type of an untyped variable to a function type.
+
+\end{itemize}
+
+
+The context of elaboration has 3 types of variables.
+
+\begin{itemize}
+
+\item Constants: All variables which have already been in the context at the
+start of elaboration.
+
+\item Free variables: All variables introduced to start the elaboration of an
+abstraction, a function type or a where expression.
+
+\item Bound variables: Variables shifted into the context during unification to
+unify abstractions, function types or where expressions.
+
+\end{itemize}
+
+In the elaboration procedure of the lean theorem prover described in
+\cite{demoura2015} metavariables are defined in a way such that they can only
+instantiated by closed terms i.e. by terms which do not contain neither free
+variables nor bound variables.
+
+This can be achieved by using metavariables of the form $?m: \Pi
+\vec{x}^{\vec{A}}.T$ where $\vec{x}$ is the collection of all free variables and
+using the metavariable only in the form $?m \vec{x}$.
+
+
+
+
+
+
+
+
+\section{Where Expressions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection{Example}
+
+\begin{alba}
+    1 + f 10
+    where
+        f x := 2 * x + 25
+\end{alba}
+
+We need a metavariable for the type of $f$ and introduce $f$ as a free variable
+into the context, i.e. we need the context
+$$
+    \Gamma, {?T_f}^{\Any_1}, f^{?T_f}
+$$
+
+In this context start to analyze \code{1 + f 10}. $+$ is an overloaded symbol
+for the various numbers and other overloadings. After seeing the number $1$ as
+the first argument, only addition of numbers remain. But it still remains
+ambiguous.
+
+In trying to elaborate the second argument \code{f 10} we have as the required
+type one of the possible numbers. Now the elaboration becomes stuck, because the
+elaboration of \code{10} is ambiguous and we don't want to nest ambiguities.
+
+So we have to elaborate the local definition next. We have to add a metavariable
+$?T_x$ for the type of $x$ and the free variable $x$ to the context.
+$$
+    \Gamma, {?T_f}^{\Any_1}, f^{?T_f}, {?T_x}^{\Any_1}, x^{?T_x}
+$$
+
+The we elaborate \code{2*x + 25} with any of the possible number types as the
+required type. This elaboration is unique for any of the number types and
+assigns the corresponding number type to the metavariable $?T_x$.
+
+Elaborating the abstraction we get
+$$
+    (\lambda x^N. 2x + 25): \Pi x^N. N
+$$
+where $N$ is the corresponding number type. Now we get the assignment $?T_f :=
+\Pi x^N. N$ and can continue with the elaboration of \code{f 10}.
+
+
+\vskip 5mm
+\subsubsection{General Case}
+
+Draft: $\equiv, \approx, \cong, \simeq, \doteq, \precapprox, \precsim$.
+
+
+
+\begin{alba}
+    body
+    where
+        a := def   -- 'def' can be '\ x y ... := e'
+
+    body
+    where
+        f x y .. := def
+\end{alba}
