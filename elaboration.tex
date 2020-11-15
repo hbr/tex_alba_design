@@ -62,11 +62,18 @@ A type in normal form is either
 \item a variable application $v a_0 a_1 \ldots$
 
 \item a pattern match application
-    $\case(\lambda \vec{y}^\vec{B} x^T. R) a_0 a_1 \ldots$
+    $\case(\lambda \vec{y}^\vec{B} x^T. R, \vec{f}) \,\vec{a}\, e\, \ldots$
+    %
+    where $\vec{a}$ are the index arguments and $e$ is the object of the
+    inductive type which is not a constructor expression.
+
+\item a fixpoint application
+    $\fix(x^T := t, k)\, \vec{a}\, e\, \ldots$
+    %
+    where $k = |\vec{a}|$ and $e$ is not a constructor expression.
 \end{enumerate}
 %
-Due to the typing rules neither lambda abstractions nor fixpoints can be types
-(why not fixpoints???).
+Due to the typing rules lambda abstractions cannot be types.
 
 
 
