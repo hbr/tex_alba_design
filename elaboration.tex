@@ -287,6 +287,8 @@ There are only two sources for ambiguity:
 \section{Metavariables and Unification}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\subsection{Metavariables}
+
 We use metavariables or holes to describe terms which have to be derived by
 unification. There are some reasons to introduce metavariables.
 
@@ -326,6 +328,96 @@ variables nor bound variables.
 This can be achieved by using metavariables of the form $\meta{M}: \Pi
 \vec{x}^{\vec{A}}.T$ where $\vec{x}$ is the collection of all free variables and
 using the metavariable only in the form $\meta{M} \vec{x}$.
+
+Whenever we try to unify
+$$
+    \meta{M} \vec{x} \le T
+$$
+we get the solution
+$$
+\begin{array}{lll}
+    \meta{M} &:=& \lambda \vec{x}^{\vec{A}}. T
+
+    \\
+
+    \meta{M} \vec{x} &\leadsto& T
+\end{array}
+$$
+
+It is not yet clear if such a form of introducing metavariables is really
+necessary. But this form has the advantage to include in each introduction of a
+metavariable the variables on which it can depend. The unification problem
+$\meta{M} \vec{x} \le T$ indicates that $T$ is allowed to depend only on the
+variables $\vec{x}$. If $T$ contains more variables, we can reject the
+instantication of $\meta{M} := \lambda \vec{x}^{\vec{A}}. T$ because the
+definition term is not closed.
+
+If we don't use this scheme to introduce metavariables we have to make sure that
+metavariables are not instantiated inconsistently.
+
+
+
+
+\subsection{Unification}
+
+Unification is usually triggered during elaboration of an application. The type
+of the actual argument must be a subtype of the argument required from the
+function term. Therefore a unification problem usually starts with
+$$
+    A \le R
+$$
+where $A$ is the type of the actual argument and $R$ is the required type of the
+argument.
+
+
+
+\section{Elaboration Primitives}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Each term elaboration needs a required type. If there is no explicit required
+type, we introduce a metavariable for that type. The elaboration of the term
+fills the metavariable.
+
+
+
+\subsection{Sort}
+
+There are only two sorts to build: \code{Proposition} and \code{Any}. The
+allowed required types are
+\begin{itemize}
+
+\item for \code{Proposition}: $\Any_i$ or a metavariable whose type is
+at least $\Any_1$.
+
+\item for \code{Any}: $\Any_i$ for $0 < i$ or a metavariable whose type is at
+least $\Any_2$.
+
+\end{itemize}
+
+
+
+\subsection{Variable}
+
+
+\subsection{Typed Term}
+
+
+\subsection{Product}
+
+
+
+\subsection{Application}
+
+
+
+\subsection{Abstraction}
+
+
+\subsection{Pattern Match}
+
+
+\subsection{Fixpoint}
+
 
 
 
@@ -382,7 +474,8 @@ where $N$ is the corresponding number type. Now we get the assignment $\meta{T}_
 \vskip 5mm
 \subsubsection{General Case}
 
-Draft: $\equiv, \approx, \cong, \simeq, \doteq, \precapprox, \precsim$.
+Draft: $\equiv, \approx, \cong, \simeq, \doteq, \precapprox, \precsim, \lesssim,
+\gtrsim$.
 
 
 
