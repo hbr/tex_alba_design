@@ -286,8 +286,11 @@ There are only two sources for ambiguity:
 
 \section{Metavariables and Unification}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 \subsection{Metavariables}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 We use metavariables or holes to describe terms which have to be derived by
 unification. There are some reasons to introduce metavariables.
@@ -359,6 +362,7 @@ metavariables are not instantiated inconsistently.
 
 
 \subsection{Unification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Unification is usually triggered during elaboration of an application. The type
 of the actual argument must be a subtype of the argument required from the
@@ -372,51 +376,148 @@ argument.
 
 
 \section{Elaboration Primitives}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Each term elaboration needs a required type. If there is no explicit required
-type, we introduce a metavariable for that type. The elaboration of the term
-fills the metavariable.
+Each term which we are going to build has a requirement. The requirement can be
+either empty, or the term must represent a type or the type of the term must be
+a subtype of a required type.
 
+We can build terms without any required type. Such terms do not satisfy any
+requirement. If we unify a the type of a term with a requirement, then the
+term satisfies the requirement and that satisfaction is stored within the
+elaborated term.
 
-
-\subsection{Sort}
-
-There are only two sorts to build: \code{Proposition} and \code{Any}. The
-allowed required types are
-\begin{itemize}
-
-\item for \code{Proposition}: $\Any_i$ or a metavariable whose type is
-at least $\Any_1$.
-
-\item for \code{Any}: $\Any_i$ for $0 < i$ or a metavariable whose type is at
-least $\Any_2$.
-
-\end{itemize}
+We can also unify an elaborated term directly with some requirement. Then the
+elaborated term is a subtype of the requirement. This subtype satisfaction is
+stored as well in the elaborated term.
 
 
+\begin{description}
 
-\subsection{Variable}
+\item [Metavariable] We need a primitive to create a metavariable. In the
+    metavariable we store the reason why it has been created. The metavariable
+        serves either as a type for an untyped variable, as the type of a
+        toplevel expression to build or as a placeholder for an implicit
+        argument of a function call.
 
-
-\subsection{Typed Term}
-
-
-\subsection{Product}
-
-
-
-\subsection{Application}
+        In the last case we have a type for the metavariable because every
+        implicit argument has a type.
 
 
+\item [Sort]
+    Build the sort and unify its type with the required type. If the unification
+        is successful, mark the term to satisfy its required type.
 
-\subsection{Abstraction}
+        Note: A sort cannot be applied to arguments. If there are explicit
+        arguments, report an error.
+
+\item [Variable]
+    A variable can be applied to arguments. Therefore the required type is valid
+        only as a result type for the whole application, not for the variable
+        alone.
+
+        First we build the variable without any requirement. With the build we
+        get the signature of its type. The signature of its type shows on how
+        many arguments the variable can be applied, the positions of the
+        implicit arguments and the result type.
+
+        From the signature we can skip the actual arguments and all implicits
+        which occur before. This gives us a result signature in this specific
+        call context. Note: If the result type in the signature is unknown it is
+        valid that there are more explicit arguments than the signature shows.
+
+        The actual result signature in this specific call context can be
+        compared with the signature of the required type. From the comparison we
+        see, if the actual variable can return an object of the corresponding
+        result type and if more implicit arguments have to be entered after the
+        last explicit argument.
+
+        If there are no explicit actual arguments, we generate the possibly
+        remaining implicit arguments and unify the actual result type with the
+        required result type.
 
 
-\subsection{Pattern Match}
+\item[Application] First we elaborate the function term with the requirement for
+    the whole application and the number of explicit arguments incremented by
+        one.
+
+        We look into the signature of its type. It has to accept at least one
+        explicit arguments.
+
+        If this is possible we generate metavariables for the implicit arguments
+        before the next explicit argument and apply the function term to the
+        implicit arguments.
+
+        The we extract the expected type of the next explicit argument and
+        generate a requirement for the actual argument.
+
+        We build the argument term with the requirement. The we apply the
+        function term to the argument.
+
+        Then we have check, if more implicit arguments are needed to satisfy the
+        requirement of the application.
+
+\item [Typed Term] First we elaborate the type of the typed term with the
+    requirement of being a type. Then we unify the elaborated type with the
+    requirement.
+
+    Then we elaborate the term of the typed term with the type of the typed
+    term as a requirement.
+
+    After doing this successfully we can form the typed term which is guaranteed
+    to satisfy the requirement of the whole term.
+
+    If the typed term is applied to actual arguments, then the unificatioin of
+    the elaborated type with the requirement cannot be done. If just can be
+    checked, if the elaborated type is consistent with the requirement after
+    application of some more arguments.
 
 
-\subsection{Fixpoint}
+\item [Product] A product cannot be applied to arguments. If there are actual
+    arguments, then an error has to be reported.
+
+    The requirement has to be a sort. If not, an error has to be reported.
+
+    From the requirement of the whole product we can generate requirements for
+    the argument type and the result type.
+
+    If the requirement for the product is a proposition, then the argument type
+    can be an arbitrary type and the result type has to be a proposition as
+    well.
+
+    If the requirement for the product is an impredicative universe, then the
+    requirement for both the argument type and the result type is the same
+    impredicative universe.
+
+    If the requirement for the product is an arbitrary type, then the argument
+    type and the result type can be arbitrary types.
+
+    We elaborate the argument type. Then we add a new free variable with the
+    argument type. Next we elaborate the result type.
+
+    Finally we generate the product type by abstracting out the ultimate free
+    variable.
+
+
+\item [Abstraction] An abstraction can be applied to arguments. If there are
+    arguments, we try to elaborate a redex.
+
+    \begin{comment}
+        blalbkakljdalk dlskj
+    \end{comment}
+
+
+
+\item [Where Expression]
+
+\item [Pattern Match]
+
+\item [Fixpoint]
+
+\end{description}
+
+
 
 
 
