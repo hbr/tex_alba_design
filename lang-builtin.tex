@@ -15,49 +15,41 @@ The usual modulo arithmetic is used.
 Interface for \code{Nat} in Alba:
 %
 \begin{alba}
-  class Nat       -- opaque type
+    Nat: Any
 
-  0: Nat
-  1: Nat
-  ...
-  9: Nat
-  hex_a:Nat
-  ...
-  hex_f:Nat
-  base10:   Nat
-  base16:   Nat
-  greatest_nat: Nat
+    0: Nat
+    1: Nat
+    ...
+    9: Nat
+    hex_a:Nat
+    ...
+    hex_f:Nat
+    base10:   Nat
+    base16:   Nat
+    greatest_nat: Nat
 
-  (=) (a,b:Nat): Decision (a = b)
-  (+) (a,b:Nat): Nat
-  (-) (a,b:Nat): Nat
-  (*) (a,b:Nat): Nat
+    (=) (a,b:Nat): Decision (a = b)
+    (+) (a,b:Nat): Nat
+    (-) (a,b:Nat): Nat
+    (*) (a,b:Nat): Nat
 
-  {: Representation of numbers:
+    {- Representation of numbers:
 
-    538    =  (5 * base10 + 3) * base10 + 8
-    0xa91f =  ((hex_a * base16 + 9) * base16 + 1) * base16 + hex_f
-  :}
+      538    =  (5 * base10 + 3) * base10 + 8
+      0xa91f =  ((hex_a * base16 + 9) * base16 + 1) * base16 + hex_f
+    :}
 
-  (/) (a,b:Nat): Maybe(Nat)
-  (/) (a,b:Nat): b /= 0 -> Nat
-  (mod) (a,b:Nat): Maybe(Nat)
-  (mod) (a,b:Nat): b /= 0 -> Nat
+    (/) (a,b:Nat): Maybe(Nat)
+    (/) (a,b:Nat): b /= 0 -> Nat
+    (mod) (a,b:Nat): Maybe(Nat)
+    (mod) (a,b:Nat): b /= 0 -> Nat
 
-  (<=) (a,b:Nat): Boolean
-  (<)  (a,b:Nat): Boolean
-  (>=) (a,b:Nat): Boolean
-  (>)  (a,b:Nat): Boolean
+    (<=) (a,b:Nat): Boolean
+    (<)  (a,b:Nat): Boolean
+    (>=) (a,b:Nat): Boolean
+    (>)  (a,b:Nat): Boolean
 
-  1 /= 0
-\end{alba}
-
-\begin{alba}
-  class Int
-  -- same as Nat
-  ...
-  least_int:    Nat
-  greatest_int: Nat
+    1 /= 0
 \end{alba}
 
 
@@ -80,9 +72,51 @@ Potential problems:
 \end{enumerate}
 
 
+
+
+
+
+
+
+\subsection{Int}
+
+\begin{alba}
+    Int: Any
+
+    zero: Int
+    one:  Int
+    smallest: Int
+    greatest: Int
+
+    (+): Int -> Int -> Int
+    (-): Int -> Int -> Int
+    (*): Int -> Int -> Int
+
+    (=) (n: Int) (m: Int): Decision (Equal n m)
+
+    class
+        LessEqual: Endorelation Int
+    :=
+        start {n}:
+            LessEqual smallest n
+
+        step {n m}:
+            LessEqual n m
+            -> Not (Equal m greatest)
+            -> LessEqual (add1 n) (add1 m)
+\end{alba}
+
+
+
+
+
+\vskip 5mm
 \subsection{Byte}
 
 TBD
+
+
+
 
 \subsection{Character}
 
@@ -96,7 +130,7 @@ TBD
   character (n:Nat): Maybe(Character)
   character (n:Nat): n.is_unicode -> Character
 
-  {: Escape sequences
+  {- Escape sequences
     '\0'          null character (0x00)
     '\n'          newline (0x0a)
     '\r'          carriage return (0x0d)
@@ -105,11 +139,18 @@ TBD
     '\v'          vertical tab (0x0b)
     '\''          single quote (0x27)
     '\\'          backslash (0x2c)
+    '\cA'         ctrl-A (0x01)
+    ...
+    '\cZ'         ctrl-Z (0x1a)
+    '\e'          esc (0x1b, 27)
     '\xhh'        hexadecimal representation of the character
     '\uhhhh'      unicode character, 4 hexadecimal digits
 
     maybe better
     '\u{hh...}'   unicode character, 1 up to 8 hexadecimal digits
+
+    Remark: '\u{hh...}' is the javascript way, '\Uhhhhhhhh' is the c way.
+
 
     or directly with conversion
 
@@ -118,7 +159,7 @@ TBD
     character(0x0a) = just '\n'
 
     nat('\a')  = 97
-  :}
+  -}
 \end{alba}
 
 
@@ -136,14 +177,24 @@ TBD
 
 
 
+
+
+
+
+
+
+
+
+\vskip 5mm
 \subsection{String}
+%%%%%%%%%%%%%%%%%%%
 
 \begin{alba}
   class String create
     []
     (^) (Character,String)
 
-  {:
+  {-
     "Hello"   = 'H' ^ 'e' ^ 'l' ^ 'l' ^ 'o' ^ []
 
     "A \nstring \xa0bla\u{01ab00} with escapes"
@@ -161,7 +212,7 @@ TBD
      the start """ must be followed by a newline
      the end """ must follow a newline (plus optional blanks)
     """
-  :}
+  -}
 \end{alba}
 
 The compiler implements strings as pairs $(i,s)$ where $(0,s)$ represents the
@@ -189,7 +240,13 @@ $17 \times 2^{16} = 1,114,112$ code points minus $2,048$ technically-invalid
 surrogate code points (i.e. $1,112,064$ valid code points).
 
 
+
+
+
+\vskip 5mm
 \subsection{Natural}
+%%%%%%%%%%%%%%%%%%%%
+
 
 Represent arbitrary sized natural numbers.
 %
