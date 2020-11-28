@@ -2127,19 +2127,21 @@ definition
 %
 \begin{alba}
     class Terminating (A: Any) (R: Endorelation A) (x: A): Proposition :=
-        terminate: (all y: r x y -> Terminating r y) -> Terminating r x
+        terminate:
+            (all y: R x y -> Terminating R y)
+            -> Terminating R x
 \end{alba}
 %
-where \code{Terminating R x} says that all add1s of \code{x} in the
+where \code{Terminating R x} says that all successors of \code{x} in the
 relation \code{R} finally lead to an element which is terminal i.e. which does
-not have any add1 in \code{R}. The basic idea is to provide the function
+not have any successor in \code{R}. The basic idea is to provide the function
 \code{findHelper} with an extra argument which is a proof of \code{Terminating R
 start} which we can deconstruct at each recursive call.
 
 
 
 First we note that all numbers satisfying the predicate \code{P} are terminating
-because they do not have any add1s in the relation \code{R}.
+because they do not have any successors in the relation \code{R}.
 
 \begin{alba}
     satToTerminating (x: Natural) (pX: P x): Terminating R x
@@ -2164,9 +2166,10 @@ terminating as well.
 \begin{alba}
     terminatingToPredecessor
         (x: Natural)
-        (tXSucc: Terminating R x.add1)
+        (tXSucc: Terminating R (add1 x))
         : Terminating R x
-    {- Theorem: The predecessor of a terminating number is terminating. -}
+    {- Theorem: The predecessor of a terminating number in the relation 'R'
+       is terminating. -}
     :=
         inspect tXSucc case
             terminate f :=
@@ -2175,7 +2178,7 @@ terminating as well.
             g f y rXY: Terminating R y :=
                 inspect rXY case
                     ltXY * lbY :=
-                        inspect x.add1 = y case
+                        inspect add1 x = y case
                             left xSuccEqY :=
                                 leibniz xSuccEqY tXSucc
                             right xSuccNeqY :=
