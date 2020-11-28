@@ -79,7 +79,25 @@ the dom:
 \end{enumerate}
 
 
+Io actions in the browser
 
+\begin{itemize}
+
+\item Access the Dom
+
+\item Upload files and access them:
+
+    Files are uploaded to the browser via e.g. an input element (\code{<input
+        type = "file">}). The user gets a file menu and after successful upload
+        the input element has an attribute \code{files}. A file object is a
+        blob.
+
+\item Make Http requests
+
+\item Generate random numbers
+
+
+\end{itemize}
 
 
 
@@ -348,7 +366,7 @@ Callback \code{(err) => {...}}.
 \subsection{Streams}
 
 Readable streams generate their own buffers. If data is availabe on a readable
-stream the even \code{readable} is emitted. An \code{error} event can be
+stream the event \code{readable} is emitted. An \code{error} event can be
 emitted at any time e.g. when the stream cannot be created (file cannot be
 opened for a file stream).
 
