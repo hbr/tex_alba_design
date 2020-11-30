@@ -391,13 +391,26 @@ no possibility to make such a decision by looking only at \code{not (a and
 
 
 
+\subsection{Predicates and Relations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{alba}
+    Predicate (A: Any): Any :=
+        A -> Proposition
+
+    Relation (A B: Any): Any :=
+        A -> B -> Proposition
+
+    Endorelation (A: Any): Any :=
+        Relation A A
+\end{alba}
 
 
 
 
 
 
-
+\vskip 5mm
 \subsection{Existential Quantification}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -407,9 +420,9 @@ inductive type
 %
 \begin{alba}
     class
-        exist A (f: Predicate A): Proposition
+        Exist A (f: Predicate A): Proposition
     create
-        witness x: f x -> exist f
+        witness x: f x -> EXist f
 \end{alba}
 %
 i.e. the existence of an object with a certain property is proved by providing
