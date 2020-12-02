@@ -2139,9 +2139,9 @@ In order to make the recursive calls structurally decreasing we use the
 definition
 %
 \begin{alba}
-    class Terminating (A: Any) (R: Endorelation A) (x: A): Proposition :=
-        terminate:
-            (all y: R x y -> Terminating R y)
+    class Terminating (A: Any) (R: Endorelation A): Predicate A :=
+        terminate {x}:
+            (all {y}: R x y -> Terminating R y)
             -> Terminating R x
 \end{alba}
 %
@@ -2157,12 +2157,12 @@ First we note that all numbers satisfying the predicate \code{P} are terminating
 because they do not have any successors in the relation \code{R}.
 
 \begin{alba}
-    satToTerminating (x: Natural) (pX: P x): Terminating R x
+    satToTerminating {x: Natural} (pX: P x): Terminating R x
     {- Theorem: All numbers 'x' which satisfy the predicate 'P' are
        terminating. -}
     :=
         terminate
-            (\ y rXY :=
+            (\ {y} rXY :=
                 inspect rXY case
                     xLtY * lbY :=
                         {- If 'y' is a lower bound and 'x' satisfies the
@@ -2178,7 +2178,7 @@ terminating as well.
 %
 \begin{alba}
     terminatingToPredecessor
-        (x: Natural)
+        {x: Natural}
         (tXSucc: Terminating R (add1 x))
         : Terminating R x
     {- Theorem: The predecessor of a terminating number in the relation 'R'
@@ -2188,7 +2188,7 @@ terminating as well.
             terminate f :=
                 terminate (g f)
         where
-            g f y rXY: Terminating R y :=
+            g f {y} rXY: Terminating R y :=
                 inspect rXY case
                     ltXY * lbY :=
                         inspect add1 x = y case
