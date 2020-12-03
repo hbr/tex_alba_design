@@ -1858,15 +1858,15 @@ m ...} the arguments \code{n m} are implicit.
 We can generate an induction law.
 \begin{alba}
     leInduction
-        (R: Endorelation Natural)
-        (ini: all i: R 0 i)
-        (stp: all i j: i <= j -> R i j -> r i.add1 j.add1)
-        : all {i j}: i <= j => R i j
+        {R: Endorelation Natural}
+        (ini: all {i}: R 0 i)
+        (stp: all {i j}: LessEqual i j -> R i j -> R i.add1 j.add1)
+        : all {i j}: LessEqual i j -> R i j
     :=
-        \ i j le :=
+        \ {i j} le :=
             inspect le case
                 init: ini
-                step le0 := stp le0 (leInduction ini stp le0)
+                step le0 := stp le (leInduction ini stp le0)
 \end{alba}
 
 The inductive type has no parameters and two index arguments. The index
@@ -1878,35 +1878,36 @@ on the pattern which can constitute the proposition \code{n <= m}
 
         0               0                   init 0
 
-        0               j.add1         init j.add1
+        0               j.add1              init j.add1
 
-        i.add1     0                   impossible
+        i.add1          0                   impossible
 
-        i.add1     j.add1         step i j iLEj
+        i.add1          j.add1              step i j iLEj
 \end{alba}
 %
 Using this analysis the compiler generates the following propositions
 \begin{alba}
-    discriminate: all n: not n.add1 <= 0
+    discriminate: all n: not LessEqual n.add1 0
 
-    inversion: all n m: n.add1 <= m.add1 => n <= m
+    inversion: all n m: LessEqual n.add1 m.add1 -> LessEqual n m
 \end{alba}
 
 Let's do the proofs by hand.
 
 \begin{alba}
     -- discriminate and invert via induction law
-    discriminate (n: Natural): n.add1 <= 0 -> false :=
+    discriminate (n: Natural): LessEqual n.add1 zero -> False :=
         leInduction
             {\ n m :=
-                inspect n case
-                    zero := true
-                    i.successsor :=
-                        inspect m case
-                            zero := false
-                            j.add1 := true}
-            (\ m := trueValid)
-            (\ n m le r := trueValid)
+                inspect n, m case
+                    zero, _ :=
+                        True
+                    add1 i, zero :=
+                        False
+                    add1 i, add1 j :=
+                        True}
+            (\ {m} := trueValid)
+            (\ {n m} le r := trueValid)
 
 
     invert {n m: Natural}
@@ -1914,15 +1915,15 @@ Let's do the proofs by hand.
     :=
         leInduction
             {\ n m :=
-                inspect n case
-                    zero := true
-                    i.add1 :=
-                        inspect m case
-                            zero := true
-                            j.add1 :=
-                                LessEqual i j}
-            (\ m := trueValid)
-            (\ n m le r := le)
+                inspect n, m case
+                    zero, _ :=
+                        true
+                    add1 i, zero :=
+                        true
+                    add1 i, add1 j :=
+                        LessEqual i j}
+            (\ {m} := trueValid)
+            (\ {n m} le r := le)
 
 
     -- discriminate and invert via pattern match
@@ -1973,20 +1974,17 @@ Let's do the proofs by hand.
 
 \begin{alba}
     leImpliesLeSucc
-        (a b: Natural)
-        :  a <= b  =>  a <= b.add1
+        {a b: Natural}
+        :  LessEqual a b  ->  LessEqual a (add1 b)
     :=
         case
-            init b :=
-                init b.add1
+            init :=
+                init
 
-            step n m lenm :=
+            step lenm :=
                 -- a = n.add1, b = m.add1
                 -- goal: n.add1 <= m.add1.add1
-                step
-                    n
-                    m.add1
-                    (leImpliesLeSucc n m lenm)
+                step (leImpliesLeSucc lenm)
 \end{alba}
 
 
@@ -2056,21 +2054,21 @@ Properties:
 \subsubsection{Lower Bounds}
 
 \begin{alba}
-    lowerBound (P: Predicate Natural) (a: Natural): Proposition :=
+    LowerBound (P: Predicate Natural) (a: Natural): Proposition :=
             -- 'a' is a lower bound for all numbers satisfying 'P'
-        all x: P x -> LessEqual a x
+        all {x}: P x -> LessEqual a x
 
-    least (P: Predicate Natural) (a: Natural): Proposition :=
+    Least (P: Predicate Natural) (a: Natural): Proposition :=
             -- 'a' is the smallest number satisfying 'p'
-        lowerBound P a and P a
+        LowerBound P a and P a
 
 
     nextLowerBound
         {P: Predicate Natural}
         {n: Natural}
-        (lb: lowerBound P n)
+        (lb: LowerBound P n)
         (nfn: not (P n))
-        : lowerBound P (add1 n)
+        : LowerBound P (add1 n)
     :=
         {- Theorem: If 'n' is a lower bound for the predicate 'P' and 'n'
            does not satisfy 'P', then the add1 of 'n' is a lower bound
@@ -2082,12 +2080,13 @@ Properties:
                 right neq :=
                     leToLt lb neq
 
+
     lowerBoundTransitive
-        (p: Predicate Natural)
-        (x y: Natural)
-        : x <= y => lowerBound y p => lowerBound x p
+        {P: Predicate Natural}
+        {x y: Natural}
+        : LessEqual x y -> LowerBound P y -> LowerBound P x
     :=
-        \ leXY lbY z pZ :=
+        \ leXY lbY {z} pZ :=
             leTransitive leXY (lbY pZ)
 \end{alba}
 
