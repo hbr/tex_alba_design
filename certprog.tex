@@ -2173,8 +2173,22 @@ because they do not have any successors in the relation \code{R}.
 
 
 
-Now we are going to prove that all numbers below a terminating number are
+Now we are going to prove that the predecessor of a terminating number is
 terminating as well.
+
+Let's assume that $x + 1$ is terminating. This is possible only if all
+successors of $x + 1$ in the relation $R$ are terminating. Remember that a
+successor of $x + 1$ in the relation $R$ is a number greater that $x + 1$ which
+is a lower bound for the predicate $P$.
+
+We have to prove that all successors $y$ of $x$ in the relation $R$ are
+terminating as well i.e. that all $y$ with $x < y$ which are lower bounds for
+the predicate $P$ are terminating.
+
+$y$ is either $x + 1$ or a number greater than $x + 1$. If $y$ is $x + 1$ we are
+ready, because $x + 1$ is terminating by assumption. If $x + 1 < y$ is valid
+then $y$ is a successor of $x + 1$ in the relation $R$ and therefore terminating
+by assumption.
 %
 \begin{alba}
     terminatingToPredecessor
@@ -2188,14 +2202,15 @@ terminating as well.
             terminate f :=
                 terminate (g f)
         where
-            g f {y} rXY: Terminating R y :=
-                inspect rXY case
-                    ltXY * lbY :=
-                        inspect add1 x = y case
-                            left xSuccEqY :=
-                                leibniz xSuccEqY tXSucc
-                            right xSuccNeqY :=
-                                f (leToLt ltXY xSuccNeqY * lbY)
+            g f: all {y}: R x y -> Terminating R y :=
+                \ {y} rXY :=
+                    inspect add1 x = y case
+                        left xSuccEqY :=
+                            leibniz xSuccEqY tXSucc
+                        right xSuccNeY :=
+                            inspect rXY case
+                                ltXY * lbZ :=
+                                    f (leToLt ltXY xSuccNeY * lbY)
 
     terminatingToZero
         : all (n: Natural): Terminating R x -> Terminating R zero
