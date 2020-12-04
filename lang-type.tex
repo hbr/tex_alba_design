@@ -178,10 +178,10 @@ in the case of an infinite type hierachy.
 
 
 \begin{definition}
-  Let $i,k$ range over numbers, $s$ range over sorts, $x,y$ range over
-  variables, $t, a, e, f, A, B, C, T, R$ range over terms and $\Gamma$ range
-  over contexts. We use boldface to indicate a list of something. Terms are
-  defined by the grammar
+  Let $i,k$ range over numbers, $s$ range over sorts, $x, y, I$ range over
+  variables, $\Gamma$ range over contexts and all other letters range over
+    terms. We use boldface to indicate a list of something. Terms are defined by
+    the grammar
   $$
   \begin{array}{lllll}
     t &:= & s
@@ -268,12 +268,31 @@ and fixpoints (recursive function) need some explanation.
   $n$ into a proof of the trivial fact $n \ge 0$.
 
 
-\item[Inductive type] $\Inductive (\Gamma,I^K,\Cbold)$ An inductive type
-  consists of a context of parameters
-  $\Gamma = [p_0^{P_0}, p_1^{P_1}, \ldots]$, a kind $L$ which is valid in a
-  context with the parameters and a variable of this type and an array of
-  constructor types $\Cbold = [C_0, C_1, \ldots]$ which are all valid in the
-  context $\Gamma, x^T$ appended to the global context.
+\item[Inductive type] $\Inductive (\Gamma,I^K,\Cbold)$
+    %
+    An inductive type consists of a context of parameters $\Gamma = [p_0^{P_0},
+        p_1^{P_1}, \ldots]$, a kind $L$ which is valid in a context with the
+        parameters and a variable of this type and an array of constructor types
+        $\Cbold = [C_0, C_1, \ldots]$ which are all valid in the context
+        $\Gamma, x^T$ appended to the global context.
+
+
+        We have the typing judgment
+        $$
+            \Inductive (\Gamma, I^K, \vec{C})
+            : \Pi \vec{p}^\vec{P} . K
+        $$
+
+
+        Each constructor type $C_j$ has the form
+        $$
+        \Pi \vec{y}^{\vec{B}_j}. I \vec{a}_j
+        $$
+        %
+        where $[B_{j0}, B_{j1}, \ldots]$ are the argument types of the
+        constructor and the corresponding constructor constructs an object of
+        type $ I \vec{a}_j$ where the actual indices $\vec{a}_j$ can (and
+        usually do) depend on the constructor arguments $\vec{y}$.
 
   The parameter types $P_i$ are in many cases $\Any$ so that the parameter
   variables $p_i$ are type variables. The inductive type of natural numbers has
@@ -329,7 +348,7 @@ and fixpoints (recursive function) need some explanation.
   need names, just the types are needed. Names are for humans, therefore in
   the program text we use the names for the inductive types and the
   constructors. In the mathematical formulae the term
-  $\Inductive_{[], I^\Any, [I, I \to I]}$ completely specifies the type and
+  $\Inductive\, ([], I^\Any, [I, I \to I])$ completely specifies the type and
   $\mathbb{N}$ is just a name for it.
 
   Furthermore note that the type constructor $T$ in $\Inductive_{\Gamma, x^T,
@@ -342,25 +361,39 @@ and fixpoints (recursive function) need some explanation.
   are sometimes called the index or the indices of the inductive type.
 
 
-\item[Constructor] $\Constructor^i_T$ This term specifies the $i$-th
-  constructor of the inductive type $T$. It is the actual constructor object
-  and not the constructor type. The following typing judgements are valid.
-  $$
-  %
-  \begin{array}{lll}
-    \Constructor^0_\mathbb{N}
-    &:& \mathbb{N}
-    \\
-    \Constructor^1_\mathbb{N}
-    &:& \mathbb{N} \to \mathbb{N}
-    \\
-    \Constructor^0_\mathbb{L}
-    &:& \Pi A^\Any. \mathbb{L} \, A
-    \\
-    \Constructor^1_\mathbb{L}
-    &:& \Pi A^\Any. A \to \mathbb{L}\, A -> \mathbb{L}\,A
-  \end{array}
-  $$
+
+
+\item[Constructor] $\Constructor_i\, (\Gamma, I^K, \vec{C})$
+    %
+    This term specifies the $i$-th constructor of the inductive type $\Gamma,
+    I^K, \vec{C}$. It is the actual constructor object and not the constructor
+    type. We have the typing judgment
+    $$
+    \Constructor_i (\ind)
+    :
+    \Pi \vec{p}^\vec{P} . C_i[I := \Inductive (\ind) \vec{p}]
+    $$
+    where $\ind = (\Gamma, I^K, \vec{C})$.
+
+
+
+    Examples of valid typing judgements.
+    $$
+    %
+    \begin{array}{lll}
+        \Constructor_0\, (\ind_\Natural)
+        &:& \Natural
+        \\
+        \Constructor_1\, (\ind_\Natural)
+        &:& \Natural \to \Natural
+        \\
+        \Constructor_0\, (\ind_\mathbb{L})
+        &:& \Pi A^\Any. \mathbb{L} \, A
+        \\
+        \Constructor_1\, (\ind_\mathbb{L})
+        &:& \Pi A^\Any. A \to \mathbb{L}\, A \to \mathbb{L}\,A
+    \end{array}
+    $$
   %
   The term $\Constructor^0_{\mathbb{N}}$ represents the number $0$ and
   therefore has the type $\mathbb{N}$. The term $\Constructor^1_{\mathbb{N}}$
@@ -370,24 +403,29 @@ and fixpoints (recursive function) need some explanation.
   The parameters of an inductive type are arguments for the constructors and
   have to be provided to get an object of the inductive type. Usually the
   parameters occur within the constructor types (otherwise they would be
-  meaningless) and therefore e.g. the type of $\Constructor^0_{\mathbb{L}}$ is
+  meaningless) and therefore e.g. the type of $\Constructor_0\, (\ind_\List)$ is
   a dependent product. In order construct an empty list of natural numbers we
   need the term
   $$
   %
-  \Constructor^0_{\mathbb{L}} \, \mathbb{N}
+  \Constructor_0\, (\ind_\List) \, \Natural
   $$
   and the term
   $$
-  \Constructor^1_{\mathbb{L}}
+  \Constructor_1\, (\ind_\List)
   \,
   \mathbb{N}
   \,
-  \underbrace{\Constructor^0_{\mathbb{N}}}_{\text{zero}}
+  \underbrace{\Constructor_0\, (\ind_\Natural)}_{\text{zero}}
   \,
-  (\underbrace{\Constructor^0_{\mathbb{L}} \, \mathbb{N}}_{\text{empty list}})
+  (\underbrace{\Constructor_0\, (\ind_\List) \, \Natural}_{\text{empty list}})
   $$
   constructs a singleton list of natural numbers with the element zero.
+
+
+
+
+
 
 
 \item[Pattern match]
@@ -412,10 +450,14 @@ and fixpoints (recursive function) need some explanation.
     return type of the case expression applied to the actual indices and the
     actual inductive object. The elimination function has the form
     $$
+        E
+        =
         \lambda \vec{x}^{\vec{A}} z^{\Inductive (\ind) \vec{q} \vec{x}}. R
     $$
     where $R$ is a type and the type
     $$
+        E
+        :
         \Pi \vec{x}^{\vec{A}} z^{\Inductive (\ind) \vec{q} \vec{x}}. s_R
     $$
     where $s_R$ is the sort of the type $R$.
@@ -459,8 +501,8 @@ and fixpoints (recursive function) need some explanation.
         $$
         F :=
         \case(
-            [\Nat,\, \lambda i^\Nat. \List\, \Nat],\;
-            \lambda \_^\Nat. \Any
+            \lambda \_^\Nat. \Any, \;
+            [\Nat,\, \lambda i^\Nat. \List\, \Nat]
         )
         $$
         defines a function which maps the number zero to the type of natural numbers
@@ -472,7 +514,10 @@ and fixpoints (recursive function) need some explanation.
         function which maps the number zero to the number zero and every other
         number to an empty list of natural numbers.
         $$
-        \case([\Constructor^0_\Nat,\, \Constructor^0_\List\, \Nat],\; F)
+        \case(
+            F, \;
+            [\Constructor_0 (\ind_\Nat),\, \Constructor_0 (\ind_\List)\, \Nat]
+        )
         $$
     }
 

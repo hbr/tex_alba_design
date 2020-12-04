@@ -710,9 +710,9 @@ Equality is defined in Alba as an inductive type.
 \end{alba}
 
 Note that the type \code{A} and the object \code{a} are parameters of the
-inductive type. The expression \code{(=) a} is a predicate i.e. a function
-\code{\textbackslash\ x := a = x} mapping each object \code{x} into the
-proposition \code{a = x}.
+inductive type. The expression \code{Equal a} is a predicate i.e. a function
+\code{\textbackslash\ x := Equal a x} mapping each object \code{x} into the
+proposition \code{Equal a x}.
 
 In the proposition \code{Equal a b} the character of the first argument \code{a}
 and the second argument \code{b} is different. The first argument is a parameter
@@ -741,8 +741,8 @@ all possible predicates.
 \begin{alba}
     leibniz
         {A} {a b: A}
+        {F: A -> Any}
         (eq: Equal a b)
-        (F: A -> Any)
         : F a -> F b
     :=
         {- If the two objects 'a' and 'b' are equal then we can map any
@@ -2948,7 +2948,7 @@ types. A vector in Alba can be defined as
     :=
         nil: Vector A 0
 
-        cons: all n: A -> Vector A n -> Vector A n.add1
+        cons: all {n}: A -> Vector A n -> Vector A n.add1
 \end{alba}
 
 A companion type for indices into a vector is the following type
@@ -2962,7 +2962,7 @@ A companion type for indices into a vector is the following type
 \end{alba}
 
 
-We can savely retrieve the $i$-th element of a vector
+We can safely retrieve the $i$-th element of a vector
 
 \begin{alba}
     getElement {A: Any} {n: Natural} (i: Below n) (v: Vector A n): A :=
