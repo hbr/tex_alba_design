@@ -578,7 +578,74 @@ and fixpoints (recursive function) need some explanation.
 
 
 
+\paragraph{Summary of Inductive Types}
 
+$$
+\begin{array}{lll}
+    \ind
+    &=& (\Gamma,\, I^K,\, \vec{C})
+
+    \\
+
+    \Gamma
+    &=& [p_0^{P_0}, p_1^{P_1}, \ldots]
+
+    \\
+
+    K
+    &=& \Pi \vec{x}^\vec{A}. s
+
+    \\
+
+    C_i
+    &=&
+    \Pi
+        \vec{y}^{\vec{B}_i}
+        .
+        I \vec{a}_i
+
+    \\
+
+    \Inductive (\ind)
+    &:& \Pi \vec{p}^\vec{P}. K
+
+    \\
+
+    \Constructor_i (\ind)
+    &:& \Pi \vec{p}^\vec{P}. C_i[I := \Inductive(\ind) \vec{p}]
+
+    \\
+
+    \case(E, \vec{f})
+    &:&
+    \Pi
+        \vec{x}^\vec{A}
+        z^{\Inductive (\ind) \vec{q} \vec{x}}
+    .
+    E \vec{x} z
+
+    \\
+
+    E
+    &:&
+    \Pi
+        \vec{x}^\vec{A}
+        z^{\Inductive (\ind) \vec{q} \vec{x}}
+    .
+    s
+
+    \\
+
+    f_i
+    &:&
+    \Pi
+        \vec{y}^{\vec{B}_i}
+        .
+        E
+            \vec{a}_i
+            (\Constructor(\ind) \vec{q} \vec{y})
+\end{array}
+$$
 
 
 \subsection{Reduction}
@@ -636,6 +703,11 @@ and fixpoints (recursive function) need some explanation.
   Compatible closure means that a term can be reduced by reducing one of its
   subterms.
 \end{definition}
+
+
+
+
+
 
 
 
@@ -1453,27 +1525,30 @@ and a corresponding simple recursive function
   \item[inductive type]
     $$
     \rulev
-    { T = \Pi \pbold^\Pbold \xbold^\Abold.s
+    { K \reduce \Pi \vec{x}^\Abold.s
       \\
-      \Gamma, I:T \vdash I:T
+      \Gamma, \vec{p}^\vec{P}, I^K \vdash I : K
       \\
-      \forall i\;.\; C_i = \Pi \ybold^{\Bbold_i}. I \,\pbold \, \abold_i
+      \forall i\;.\; C_i = \Pi \vec{y}^{\vec{B}_i}. I \, \vec{a}_i
       \;\text{\small(constructor type with positivity)}
       \\
-      \forall i\;.\, \Gamma, I:T, \pbold:\Pbold \vdash C_i : s
+      \forall i\;.\, \Gamma, \vec{p}^\vec{P}, I^K
+      \vdash
+      C_i : s
     }
     {
-      \Gamma \vdash
-      \Inductive_{[\pbold:\Pbold], I:T, [C_0,C_1,\ldots]}
+      \Gamma
+      \vdash
+      \Inductive ([\vec{p}^\vec{P}], I^K, [C_0,C_1,\ldots])
       :
-      T
+      \Pi \vec{p}^\vec{P}. K
     }
     $$
     where the conditions above the line require
     \begin{enumerate}
-    \item $T$ must be a kind.
+    \item $K$ must be a kind.
 
-    \item $T$ is a valid type so that a
+    \item $K$ is a valid type so that a
       variable can be defined which has that type.
 
     \item The types $C_i$ are constructor types for the variable $I$ which
@@ -1483,7 +1558,7 @@ and a corresponding simple recursive function
       types, only in the result type).
 
     \item The constructor types $C_i$ are valid types in a context with the
-      parameters and a bound variable $I$ of type $T$.
+      parameters and a bound variable $I$ of type $K$.
     \end{enumerate}
 
 
