@@ -212,18 +212,19 @@ in the case of an infinite type hierachy.
 
     \\
 
-      & \mid & \Inductive_{\Gamma,x^T,\Cbold}
-    & \text{inductive type}
+      & \mid & \Inductive (\Gamma, I^K, \vec{C})
+      & \text{inductive type, variable $I$, kind $K$, types $\vec{C}$}
 
     \\
 
-      & \mid & \Constructor^i_T
-    & \text{i-th constructor of the inductive type } T
+      & \mid & \Constructor_i (\Gamma, I^K, \vec{C})
+    & \text{i-th constructor of an inductive type}
 
     \\
 
-      & \mid & \case(\fbold, \lambda \ybold^\Abold x^T.R)
-    & \text{pattern match}
+
+      & \mid & \case(E, \vec{f})
+      & \text{pattern match (elmination function, functions)}
 
     \\
 
@@ -266,9 +267,10 @@ and fixpoints (recursive function) need some explanation.
   $\Pi i^{\mathbb{N}}. i \ge 0$ can exist, because it maps any natural number
   $n$ into a proof of the trivial fact $n \ge 0$.
 
-\item[Inductive type] $\Inductive_{\Gamma,x^T,\Cbold}$ An inductive type
+
+\item[Inductive type] $\Inductive (\Gamma,I^K,\Cbold)$ An inductive type
   consists of a context of parameters
-  $\Gamma = [p_0^{P_0}, p_1^{P_1}, \ldots]$, a type $T$ which is valid in a
+  $\Gamma = [p_0^{P_0}, p_1^{P_1}, \ldots]$, a kind $L$ which is valid in a
   context with the parameters and a variable of this type and an array of
   constructor types $\Cbold = [C_0, C_1, \ldots]$ which are all valid in the
   context $\Gamma, x^T$ appended to the global context.
@@ -283,11 +285,11 @@ and fixpoints (recursive function) need some explanation.
   %
   \begin{array}{lllll}
     \mathbb{N}
-    &:=& \Inductive_{[], I^\Any, [I, I \to I]}
+    &:=& \Inductive ([], I^\Any, [I, I \to I])
     &:& \Any
     \\
     \mathbb{L}
-    &:=& \Inductive_{[A^\Any],  I^{\Any\to\Any},  [IA, A \to IA \to IA]}
+    &:=& \Inductive ([A^\Any],  I^{\Any},  [I, A \to I \to I])
     &:& \Any \to \Any
   \end{array}
   $$
@@ -389,32 +391,37 @@ and fixpoints (recursive function) need some explanation.
 
 
 \item[Pattern match]
-    $\case(\fbold, \lambda \ybold^\Abold x^T. R)$
+    $\case(E, \vec{f})$
 
-    A pattern match expression of this form has the type $\Pi \ybold^\Abold
-    x^T.R$ where $\Abold$ are the types of the indices of the inductive type and
-    $T = \Inductive_{\ldots} \pbold \ybold$ is the inductive type containing
-    arbitrary parameters $\pbold$ and the indices $\ybold$.  I.e. a case
+    A pattern match expression of this form has the type
+    %
+    $$
+    \Pi
+        \vec{x}^\vec{A}
+        z^{\Inductive(\ind)\vec{q}\vec{x}}
+        . E \vec{x} z
+    $$
+    %
+    where $\vec{A}$ are the index types and $\vec{q}$ are the actual parameters.
+    I.e. a case
     expression expects one argument for each index and one argument for an
-    object of the inductive type. $R$ is the result type of the case expression
-    applied to its arguments. The result type might depend on the indices and on
-    the inductive object.
+    object of the inductive type.
 
-    The inductive type $\Inductive_{\ldots} \pbold \abold$ must be a type and
-    not only a type constructor i.e. it must have enough arguments to be a type.
-    E.g. $\mathbb{N}$ and $\mathbb{L}\, \mathbb{N}$ are types, but $\mathbb{L}$
-    is not a type (only a type constructor).
+    The subterm $E$ is an elimination function. It is a type constructor. Given
+    the actual indices and the object of the inductive type it reduces to the
+    return type of the case expression applied to the actual indices and the
+    actual inductive object. The elimination function has the form
+    $$
+        \lambda \vec{x}^{\vec{A}} z^{\Inductive (\ind) \vec{q} \vec{x}}. R
+    $$
+    where $R$ is a type and the type
+    $$
+        \Pi \vec{x}^{\vec{A}} z^{\Inductive (\ind) \vec{q} \vec{x}}. s_R
+    $$
+    where $s_R$ is the sort of the type $R$.
 
-    The subterm $\lambda \ybold^\Abold x^T.R$ is the elimination function. It
-    determines the result type of the pattern match expression. It is a function
-    which maps the index expressions $\abold$ and an expression $e$ of type
-    $\Inductive_{\ldots} \pbold \abold$ to $R[\ybold := \abold, x:=e]$
-    which is the result type of the expression. In many simple cases $R$ does
-    not depend on its arguments and therefore the result type is the same for
-    all cases of the pattern match. However the elimination function becomes
-    important as soon as each case returns an object of a different type.
 
-    The array $\fbold = [f_0, f_1, \ldots]$ contains a function for each
+    The array $\vec{f} = [f_0, f_1, \ldots]$ contains a function for each
     constructor of the inductive type. The function $f_i$ maps the arguments of
     the $i$-th constructor to an object of the corresponding result type of the
     case.
@@ -424,11 +431,11 @@ and fixpoints (recursive function) need some explanation.
       $$
       %
       \begin{array}{l}
-          \case ([ 0 , \lambda i^\Nat. 1], \lambda \_^\Nat. \Nat)
+          \case ( \lambda \_^\Nat. \Nat,\quad [ 0 ,\, \lambda i^\Nat. 1])
 
           \\
 
-          \case ([ 0, \lambda i^\Nat. i], \lambda \_^\Nat. \Nat)
+          \case (\lambda \_^\Nat. \Nat,\quad [ 0,\, \lambda i^\Nat. i])
       \end{array}
       $$
       where $0$ is an abbreviation for $\Constructor^0_\Nat$ and $1$ is an
