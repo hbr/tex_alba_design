@@ -1596,6 +1596,40 @@ some implicit arguments explicitly to understand the details.
 
 
 
+\vskip 5mm
+\subsection{Discrimination and Inversion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{alba}
+    discriminateNatural {n: Natural} (eq: Equal zero (add1 n)): False :=
+        inspect eq case
+            { \ {m} _ :=
+                inspect m case
+                    zero :=
+                        True
+                    add1 n :=
+                        False
+            }
+            identical :=
+                trueValid
+
+
+    injectNatural {n m: Natural} (eq: Equal (add1 n) (add1 m)): Equal n m :=
+        inspect eq case
+            { \ {k} _ :=
+                inspect k case
+                    zero :=
+                        True  -- Not needed
+                    add1 m :=
+                        Equal n m}
+            identical :=
+                identical
+\end{alba}
+
+
+
+
 
 
 
@@ -1994,9 +2028,71 @@ Let's do the proofs by hand.
 
 
 
+\vskip 5mm
+\subsection{Discriminate and Invert Revisited}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{alba}
+    discriminateLE {n: Natural} (le: LessEqual (add1 n) zero): False :=
+        aux
+            le
+            identical
+            identical
+        where
+            aux
+                {m k}
+                (leMK: LessEqual m k)
+                : Equal m (add1 n) -> Equal k zero -> False
+            :=
+                inspect leMK case
+                    init :=
+                        \ eqZeroSuccN _ :=
+                            discriminateNatural eqZeroSuccN
+
+                    step le :=
+                        \ _ eqKSuccZero :=
+                            flipEqual eqKSuccZero
+                            |> discriminateNatural
+
+
+    invertLE {n m: Natural} (le: LessEqual (add1 n) (add1 m)): LessEqual n m :=
+        aux
+            le
+            identical
+            identical
+        where
+            aux
+                {k l}
+                (le: LessEqual k l)
+                : Equal k (add1 n) -> Equal l (add1 m) -> LessEqual n m
+            :=
+                inspect le case
+                    init :=
+                        discriminateNatural >> exFalso
+
+                    step le :=
+                        \ eqSuccKSuccN eqSuccLSuccM :=
+                            leibniz
+                                (invertNatural eqSuccKSuccN)
+                                (leibniz
+                                    (invertNatural eqSuccLSuccM)
+                                    le: LessEqual k l)
+\end{alba}
 
 
 
+
+
+
+
+
+
+
+
+
+
+\vskip 5mm
 \subsection{Strict Order}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
