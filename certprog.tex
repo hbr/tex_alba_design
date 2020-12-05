@@ -1633,6 +1633,85 @@ some implicit arguments explicitly to understand the details.
 
 
 
+\vskip 5mm
+\subsection{Even and Odd}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{alba}
+    class
+        Even: Predicate Natural
+    :=
+        zeroEven: Even zero
+        nextEven {n}: Even n -> Even (add1 (add1 n))
+
+
+
+    oneNotEven (ev: Even (add1 zero)): False :=
+        {- 'Even (add1 zero)' cannot be constructed by any of the
+           two constructors. -}
+        inspect ev case
+            {\ {n} _ :=
+                inspect n case
+                    zero :=
+                        True
+                    add1 zero :=
+                        False
+                    add1 (add1 _) :=
+                        True}
+            zeroEven :=
+                trueValid
+            nextEven evN :=
+                trueValid
+
+
+    injectEven {n: Natural} (ev: Even (add1 (add1 n))): Even n :=
+        {- 'Even (add1 (add1 n))' can only be constructed by the
+           second constructor. -}
+        inspect ev case
+            {\ {n} _ :=
+                zero :=
+                    True
+                add1 zero :=
+                    True   -- not needed
+                add1 (add1 k) :=
+                    Even k}
+            zeroEven :=
+                trueValid
+            nextEven ev :=
+                ev
+\end{alba}
+
+
+
+\begin{alba}
+    class
+        Odd: Predicate Natural
+    :=
+        oneOdd: Odd (add1 zero)
+
+        nextOdd {n}: Odd n -> Odd (add1 (add1 n))
+
+
+    zeroNotOdd (odd: Odd zero): False :=
+        inspect odd case
+            -- none of the cases is possible
+
+    injectOdd {n: Natural} (odd: Odd (add1 (add1 n))): Odd n :=
+        inspect odd case
+            -- Only one case is possible
+            nextOdd oddN := oddN
+\end{alba}
+
+The compiler can compare the premise of type \code{Odd (add1 (add1 n))} with
+the type \code{Odd (add1 zero)} constructed by the first constructor and the
+type \code{Odd (add1 (add1 m))} constructed by the second constructor. It can
+conclude that only the second case is possible and generate the corresponding
+elimination function.
+
+
+
 
 \vskip 5mm
 \subsection{Arithmetic}
