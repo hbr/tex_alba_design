@@ -1898,7 +1898,7 @@ Let's do the proofs by hand.
     -- discriminate and invert via induction law
     discriminate (n: Natural): LessEqual n.add1 zero -> False :=
         leInduction
-            {\ n m :=
+            {\ {n m} _ :=
                 inspect n, m case
                     zero, _ :=
                         True
@@ -1907,14 +1907,14 @@ Let's do the proofs by hand.
                     add1 i, add1 j :=
                         True}
             (\ {m} := trueValid)
-            (\ {n m} le r := trueValid)
+            (\ {n m} le := trueValid)
 
 
     invert {n m: Natural}
         : LessEqual n.add1 m.add1 -> LessEqual n m
     :=
         leInduction
-            {\ n m :=
+            {\ {n m} _ :=
                 inspect n, m case
                     zero, _ :=
                         true
@@ -1923,7 +1923,7 @@ Let's do the proofs by hand.
                     add1 i, add1 j :=
                         LessEqual i j}
             (\ {m} := trueValid)
-            (\ {n m} le r := le)
+            (\ {n m} le := le)
 
 
     -- discriminate and invert via pattern match
