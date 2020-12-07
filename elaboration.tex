@@ -375,6 +375,100 @@ argument.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Elaboration of Terms}
+%====================================
+
+
+
+\subsection{Pattern Match}
+%-------------------------
+
+
+\begin{alba}
+    inspect e case
+        {\ {x} z :=
+            {- optional elmination function -}
+        }
+        c0 y00 y01 ... := d0
+        c1 y10 y11 ... := d1
+        ...
+\end{alba}
+
+
+
+
+
+\begin{enumerate}
+\item
+    Collect constructors: Each case begins with a constructor. If we collect
+    all constructors we can find the candidate types for the inductive type.
+
+    Possible errors are:
+
+    \begin{itemize}
+        \item Some of the \code{ci}s are not constructors.
+        \item The set of constructors do not belong to the same inductive type.
+    \end{itemize}
+
+    If we get one (or more) inductive type, we get it in the form
+    $$
+        \Inductive_i (\ind)
+        :
+        \Pi \vec{p}^\vec{P} \vec{x}^\vec{A} . s
+    $$
+    i.e. we do not yet know the parameters and the indices.
+
+\item
+    Build the inspected expression \code{e} with an (or more) expected inductive
+    type. We need metavariables for the parameters and the indices of the
+    inductive type, because the set of constructors identify only the
+    inductive type, but not the parameters and the indices.
+
+    I.e. we get an expression of the form
+    $$
+        e: \Inductive_i (\ind) \vec{q} \vec{a}
+    $$
+    where $\vec{q}$ are the actual parameters and $\vec{a}$ are the actual
+    indices of the inductive type.
+
+\item
+    Infer or build the elimination function. The elimination function must have
+    the type
+    $$
+        \Pi \vec{x}^\vec{A} z^{\Inductive_i (\ind) \vec{q} \vec{x}} . s_R
+    $$
+    with the actual parameters $\vec{q}$ which we have derived in the previous
+    step. The sort $s_R$ of the result type is still unknown.
+
+    If the elimination function is explicitly given, we can assign (or check)
+    the types of $\vec{x}$ and $z$ and elaborate it.
+
+    If the elimination function is not available we introduce a metavariable
+    $\meta{R}$ of the correct type of the elimination function and unify
+    $\meta{R}
+    \vec{q} \vec{a}$ with the expected result type of the whole inspect
+    expression.
+\end{enumerate}
+
+
+
+
+
+
+
+
 \section{Elaboration Primitives}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
