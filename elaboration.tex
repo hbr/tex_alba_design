@@ -392,6 +392,37 @@ argument.
 
 
 
+
+
+\subsection{Function Call}
+%-------------------------
+
+
+\begin{alba}
+    f a b c ...
+\end{alba}
+where the function term \code{f} is one of the following
+
+\begin{itemize}
+\item
+    Global or local name
+\item
+    Pattern match
+\item
+    Function abstraction
+\end{itemize}
+
+The function term can be ambiguous e.g. if it is an overloaded global name.
+
+In case of ambiguity, it can be resolved by looking at the call context (number
+of explicit arguments), the signature of the expected type and the argument
+types. The overloaded symbol has a set of signatures. The signatures tell the
+criteria on which the decision can be made.
+
+First we filter out the signatures which fit the call context.
+
+
+
 \subsection{Pattern Match}
 %-------------------------
 
@@ -399,7 +430,7 @@ argument.
 \begin{alba}
     inspect e case
         {\ {x} z :=
-            {- optional elmination function -}
+            {- optional elimination function -}
         }
         c0 y00 y01 ... := d0
         c1 y10 y11 ... := d1
