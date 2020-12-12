@@ -22,9 +22,93 @@ step. I.e. the learning curve shall be flat and not steep.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+In the type $\Pi x^A. B$ the variable $x$ can occur in $B$. If it does not occur
+in the result type we simply write $A \to B$. The type $\Pi x^A. B$ is a
+function type. We have the valid typing rule
+$$
+\rulev{
+    \Gamma \vdash f: \Pi x^A. B
+
+    \\
+
+    \Gamma \vdash a: A
+}
+{
+    \Gamma \vdash f a: B[x:= a]
+}
+$$
+
+If $x$ occurs in $B$, then $a$ occurs in $B[x:=a]$. Therefore having the type of
+$f a$ it is possible to \emph{infer} the argument $a$ by just looking at
+$B[x:=a]$.
+
+
+If the formal argument $x$ in the type $\Pi x^A. B$ occurs in the result type
+$B$, then we call the argument $x$ \emph{potentially implicit}. In many cases a
+potentially implicit argument is mandatory implicit as well.
+
+The argument $x$ is \emph{mandatory implicit} in the type $\Pi x^A. B$, if it is
+potentially implicit and one of the following conditions is satisfied.
+
+\begin{enumerate}
+
+\item
+    $A$ is a kind i.e. either a syntactical kind or reduces to a syntactical
+        kind. I.e. the normal form of $A$ has the structure $s$ or $\Pi
+        \vec{z}^\vec{C}.  s$ where $s$ is a sort.
+
+
+\item
+    $B$ is a proposition i.e. $B: \Prop$. This implies that $\Pi x^A. B$ is a
+        proposition as well.
+
+\end{enumerate}
+
+
+If a potentially implicit argument is not mandatory implicit, then the user has
+the freedom to mark the argument as implicit or not. In all other cases the user
+must mark the argument as implicit.
+
+The following shows how explicit and implicit arguments appear in source code.
+
+
+\begin{alba}
+    all {x: A}: B               -- Implicit argument 'x'
+
+    all (x: A): B               -- Explicit argument 'x'
+
+    A -> B                      -- No implicit argument possible
+
+
+    \ (x: A) ... := ...         -- Explicit argument 'x'
+
+    \ {x: A} ... := ...         -- Implicit argument 'x'
+
+
+    f a                         -- Explicit argument 'a'
+
+    f {a}                       -- Implicit argument 'a'
+\end{alba}
+%
+In an actual call the user has the freedom to provide an implicit argument or
+ommit it. If the user provides the implicit argument, it has to be put into
+braces.
+
+A function type can have several implicit arguments in sequence. If the user
+wants to supply a subsequence implicit argument, then the previous have to be
+supplied as well.
 
 
 
+
+
+
+
+
+
+
+
+\vskip 5mm
 \section{Overloading}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
