@@ -79,13 +79,13 @@ entered as actual arguments for \code{A}.
 
 Remember that \code{false} is an inductive type with the following definition.
 \begin{alba}
-    class false: Proposition := -- no constructors
+    class FAlse: Proposition := -- no constructors
 \end{alba}
 %
 Since there are no constructors we can complete the desired function
 
 \begin{alba}
-    exFalso (A: Any): false -> A :=
+    exFalso (A: Any): False -> A :=
         case
             -- empty pattern match, because there are no constructors
 \end{alba}
@@ -102,19 +102,19 @@ cases, there is nothing to be done.
 
 Negation is defined in the prelude as
 \begin{alba}
-  (not) (a: Proposition): Proposition :=
-    a => false
+    (Not) (A: Proposition): Proposition :=
+        A -> False
 \end{alba}
 
 We want to prove the contrapositive law of logic which states
 \begin{alba}
-  (a => b) => (not b => not a)
+    (A -> B) -> (Not B -> Not A)
 \end{alba}
-for all propositions \code{a} and \code{b}. A proof of that fact would be
+for all propositions \code{A} and \code{B}. A proof of that fact would be
 written in Alba as the function
 %
 \begin{alba}
-  contrapositive (a b: Proposition): (a => b) => not b => not a
+  contrapositive (A B: Proposition): (A -> B) -> Not B -> Not A
   :=
     _      -- '_' means: Compiler, please generate a proof!
 \end{alba}
@@ -124,45 +124,51 @@ generate such a proof automatically. But if you want to write the proof
 explicitly it looks like
 
 \begin{alba}
-    contrapositive (a b: Proposition): (a => b) => not b => not a
+    contrapositive {A B: Proposition} (f: A -> B) (nB: Not B): Not A
     :=
-        \ fab notB evA := fab evA |> notB
+        \ a :=
+            nB (f a)
+
+    -- Alternative using function composition
+    contrapositive {A B: Proposition} (f: A -> B) (nB: Not B): Not A
+    :=
+        f >> nB
 \end{alba}
 
-\noindent Explanation: A proof of \code{not a} is a function which maps a proof
-of \code{a} into a proof of false. If we have a proof of \code{a} we can use the
-argument \code{fab} which maps a proof of \code{a} into proof of
-\code{b} and then use \code{notB} which maps a proof of \code{b} into a proof
-of \code{false} which is the desired result.
+\noindent Explanation: A proof of \code{Not A} is a function which maps a proof
+of \code{A} into a proof of False. If we have a proof of \code{A} we can use the
+argument \code{f} which maps a proof of \code{A} into proof of
+\code{B} and then use \code{nB} which maps a proof of \code{B} into a proof
+of \code{False} which is the desired result.
 
 
 
 Note that in classical logic the two propositions
 \begin{alba}
-  a  =>  b
+  A  ->  B
 
-  not b => not a
+  Not B -> Not A
 \end{alba}
 %
 are equivalent. This is not the case in constructive logic on which Alba is
 based. Suppose we wanted to prove
 %
 \begin{alba}
-  (not b => not a) => a => b
+  (Not B -> Not A) -> A -> B
 \end{alba}
 %
 in Alba. In order to do this we need a function
 \begin{alba}
-  contra2 a b (p: not b => not a) (pa: a): b :=
+  contra2 A B (P: Not B -> Not A) (pa: A): B :=
      ...
 \end{alba}
 %
-It is not difficult to see that there is no way to generate a proof of \code{b}
+It is not difficult to see that there is no way to generate a proof of \code{B}
 by using the arguments. The second argument of the function is atomic i.e. it
 is not a function which can be applied. The first argument is a function whose
 type we can expand to get
 \begin{alba}
-  p: (b => false) => a => false
+    p: (B -> False) -> A -> False
 \end{alba}
 %
 \code{p} is a function with two arguments. There is no way to supply the first
@@ -176,25 +182,29 @@ constructive logic is capable to prove \code{not not a}. I.e. we should be able
 to prove
 
 \begin{alba}
-  (not b => not a) => a => not not b
+    (Not B -> Not A) -> A -> Not Not B
 \end{alba}
 and define a function with the signature
 
 \begin{alba}
-  contra3 (a b: Propositon): (not b => not a) => a => not not b :=
+    contra3 (A B: Propositon): (Not B -> Not A) -> A -> Not Not B :=
     ...
 \end{alba}
 
 Now we have more possibilities because we are no longer required to prove
-\code{b} directly, but only to derive \code{false} from \code{not b}. This
-opens the possibility to use the function of type \code{not b => not a}.
+\code{B} directly, but only to derive \code{FAlse} from \code{Not B}. This
+opens the possibility to use the function of type \code{Not B -> Not A}.
 %
 \begin{alba}
-    contra3 (a b: Proposition): (not b => not a) => a => not not b
-    :=
-        \   fNotBNotA evA notB: false :=
-                fNotBNotA notB evA
+    contra3 {A B} (f: Not B -> Not A) (a: A): Not Not B :=
+        \ notB :=
+            f notB a
 \end{alba}
+
+
+
+
+
 
 
 
@@ -207,27 +217,27 @@ Logical disjunction is defined in the prelude as the inductive type
 %
 \begin{alba}
     class
-        (or) (a b: Proposition): Proposition
+        (Or) (A B: Proposition): Proposition
     :=
-        left:  a => a or b
-        right: b => a or b
+        left:  A -> A Or B
+        right: B -> A Or B
 \end{alba}
 %
-i.e. you can either use a proof of \code{a} or a proof of \code{b} to generate
-a proof of \code{a or b}.
+i.e. you can either use a proof of \code{A} or a proof of \code{B} to generate
+a proof of \code{A Or B}.
 
 It is a basic law of logic that \code{a or b} and \code{b or a} are
 equivalent, i.e. we should be able to prove
 %
 \begin{alba}
-  a or b  =>  b or a
+  A Or B  ->  B Or A
 \end{alba}
 %
 We prove this fact by defining the corresponding function which pattern
 matches on the construction of \code{a or b}
 %
 \begin{alba}
-    swapOr (a b: Proposition): a or b => b or a
+    swapOr {A B: Proposition}: A Or B -> B Or A
     :=
         case
             left pa  := right pa
@@ -236,30 +246,27 @@ matches on the construction of \code{a or b}
 
 \noindent Another law of logic states
 \begin{alba}
-  a or b  =>  (a => c) => (b => c)  =>  c
+    A Or B  ->  (A -> C) -> (B -> C)  ->  C
 \end{alba}
 %
-i.e. whenever we have a prove of \code{a or b} and are able to conclude
-\code{c} from \code{a} and \code{c} from \code{b}, then we are able to
-conclude \code{c}.
+i.e. whenever we have a prove of \code{A or B} and are able to conclude
+\code{c} from \code{A} and \code{C} from \code{B}, then we are able to
+conclude \code{C}.
 
 A function which proves this fact is easy to implement by pattern matching on
-the construction of \code{a or b}.
+the construction of \code{A or B}.
 
 \begin{alba}
     eliminateOr
-        (a b c: Proposition)
-        :   a or b
-            => (a => c)
-            => (b => c)
-            => c
+        {A B C: Proposition}
+        (aOrB: A Or B)
+        (aToC: A -> C)
+        (bToC: B -> C
+        : C
     :=
-        case
-            left pa :=
-                \ fac _ := fac pa
-
-            right pb :=
-                \ _ fbc := fbc pb
+        inspect aOrB case
+            left a  := aToC a
+            right b := bToC b
 \end{alba}
 
 
@@ -275,24 +282,26 @@ the construction of \code{a or b}.
 
 \begin{alba}
     class
-        (and) (a b: Proposition): Proposition
+        (And) (A B: Proposition): Proposition
     :=
-        (,): a => b => a and b
+        (,): A -> B -> A And B
 \end{alba}
 
 
 \begin{alba}
-    swapAnd (a b: Proposition): a and b => b and a
+    swapAnd {A B: Proposition} (ab: A And B): B And A
     :=
-        case
-            (pa, pb) := (pb, pa)
+        inspect ab case
+            (a, b) := (b, a)
 \end{alba}
 
 
+
+
 \begin{alba}
-    eliminate1And (a b: Proposition): a and b => a :=
-        case
-            (pa, pb) := pa
+    eliminate1And {A B: Proposition} (ab: A And B): A :=
+        inspect ab case
+            (a, b) := a
 \end{alba}
 
 
@@ -308,43 +317,39 @@ the construction of \code{a or b}.
 The De Morgan's Laws are other basic laws of logic. The first of the De
 Morgan's laws states the equivalence of the two statements
 \begin{alba}
-  not (a or b)
+    Not (A Or B)
 
-  not a and not b
+    Not A And Not B
 \end{alba}
 %
 In order to prove the equivalence we have to prove both directions.
 \begin{alba}
     deMorgan1Forward
-        (a b: Proposition)
-        : not (a or b) => not a and not b
+        {A B: Proposition} (notAOrB: Not (A Or B)): Not A And Not B
     :=
-        \ notAOrB :=
-            (left >> notAOrB,  right >> notAOrB)
+        (left >> notAOrB, right >> notAOrB)
 \end{alba}
 %
-Explanation: \code{notAOrB} is a function which maps evidence of \code{a or b}
-into evidence of \code{false}. A proof of \code{not a} needs a function which
-maps evidence of \code{a} into evidence of \code{false}. Therefore we can
-combine \code{left} which maps evidence of \code{a} into evidence of \code{a or
-b} and \code{notAOrB} which maps evidence of \code{a or b} into evidence of
-\code{false} and we are done for \code{not a}. The proof of \code{not b} follows
+Explanation: \code{notAOrB} is a function which maps evidence of \code{A Or B}
+into evidence of \code{False}. A proof of \code{Not A} needs a function which
+maps evidence of \code{A} into evidence of \code{False}. Therefore we can
+combine \code{left} which maps evidence of \code{A} into evidence of \code{A Or
+B} and \code{notAOrB} which maps evidence of \code{A Or B} into evidence of
+\code{False} and we are done for \code{Not A}. The proof of \code{Not B} follows
 the same pattern.
 
 
 
 \begin{alba}
     deMorgan1Backward
-        (a b: Proposition)
-        : not a and not b => not (a or b)
+        {A B: Proposition} (notAB: Not A And Not B): Not (A Or B)
     :=
-        case
-            (notA, notB) :=
-                case
-                    left evA :=
-                        notA evA
-                    right evB :=
-                        notB evB
+        \ aOrB :=
+            inspect notAB, aOrB case
+                (notA, notB), left a :=
+                    notA a
+                (notA, notB), right b :=
+                    notB b
 \end{alba}
 
 
@@ -359,7 +364,7 @@ The forward direction can be proved by the function
 \begin{alba}
     deMorgan2Forward
         (a b: Proposition)
-        : not a or not b => not (a and b)
+        : not a or not b -> not (a and b)
     :=
         case
             left notA :=
@@ -422,7 +427,7 @@ inductive type
     class
         Exist A (f: Predicate A): Proposition
     create
-        witness x: f x -> EXist f
+        witness x: f x -> Exist f
 \end{alba}
 %
 i.e. the existence of an object with a certain property is proved by providing
@@ -447,7 +452,7 @@ as another way to express the proposition
 A basic law of logic states
 %
 \begin{alba}
-  (some x: f x) => (all x: f x => a) => a
+  (some x: f x) -> (all x: f x -> a) -> a
 \end{alba}
 %
 Proofs using this law reads like
@@ -463,7 +468,7 @@ We can prove this law in Alba by writing the function
         (A: Any)
         (f: Predicate A)
         (prop: Proposition)
-        : some x: f x => (all x: f x => prop) => prop
+        : some x: f x -> (all x: f x -> prop) -> prop
     :=
         \   some_x
             allx
@@ -495,7 +500,7 @@ The proofs of the forward and backward direction are not complicated.
     ex_de_morgan1_forward
         (A: Any)
         (f: Predicate A)
-        : not (some x: f x) => all x: not (f x)
+        : not (some x: f x) -> all x: not (f x)
     :=
         \   no_x
             x
@@ -509,7 +514,7 @@ The proofs of the forward and backward direction are not complicated.
     ex_de_morgan1_backward
         (A: Any)
         (f: Predicate A)
-        : (all x: not (f x)) => not (some x: f x)
+        : (all x: not (f x)) -> not (some x: f x)
     :=
         \   all_not
             some_x
@@ -532,7 +537,7 @@ The forward direction is easy.
     ex_de_morgan2_forward
         (A: Any)
         (f: Predicate A)
-        : (some x: not (f x)) => not (all x: f x)
+        : (some x: not (f x)) -> not (all x: f x)
     :=
         \   some_x
             all_x
@@ -1002,8 +1007,8 @@ transitive closure of a relation.
 
         step a b c:
             r a b
-            => r.star b c
-            => r.star a c
+            -> r.star b c
+            -> r.star a c
 \end{alba}}
 
 Having the definition we prove that the reflexive transitive closure is
@@ -1057,10 +1062,10 @@ It is possible to convert any relation into an equivalence relation.
      r.equivalence a a
 
     forward a b c:
-      r a b => r.equivalence b c => r.equivalence a b
+      r a b -> r.equivalence b c -> r.equivalence a b
 
     backward a b c:
-      r b a => r.equivalence b c => r.equivalence a b
+      r b a -> r.equivalence b c -> r.equivalence a b
 \end{alba}
 
 
@@ -1121,8 +1126,8 @@ single step.
            c  -> some d :}
     all a b c:
       r a b
-      => r a c
-      => some d: r b d and r c d
+      -> r a c
+      -> some d: r b d and r c d
 \end{alba}
 
 
@@ -1144,8 +1149,8 @@ stripe lemma.
     (r: Endorelation A)
     (rdia: r.is_diamond)
     : all a b c:                       --  a *> b
-        r.star a b =>                  --  |    |
-        r a c =>                       --  v    v
+        r.star a b ->                  --  |    |
+        r a c ->                       --  v    v
         some d: r b d                  --  c *> d?
                 and
                 r.star c d :=
@@ -1213,7 +1218,7 @@ can be inferred by the type checker are implicit.
             (relation: Endorelation A)
             (transitive:
                 all a b c:
-                    relation a b => relation b c => relation a c)
+                    relation a b -> relation b c -> relation a c)
 
     class
         Path A (r: TransitiveRelation A) (a b: A)
@@ -2054,7 +2059,7 @@ Let's do the proofs by hand.
 
 
 \begin{alba}
-    lessEqualZeroIsZero (a: Natural): a <= 0 => a = 0 :=
+    lessEqualZeroIsZero (a: Natural): a <= 0 -> a = 0 :=
         inspect a case
             zero :=
                 \ le := identical zero
@@ -2077,7 +2082,7 @@ Let's do the proofs by hand.
 
     -- 'init' proves 'f zero' i.e. 'zero <= zero'
     -- 'step' proves 'all i: f i -> f i.add1'
-    --     i.e. 'i <= i => i.add1 <= i.add1
+    --     i.e. 'i <= i -> i.add1 <= i.add1
     --     with implicit argument 'i'
 \end{alba}
 
@@ -2185,22 +2190,22 @@ Let's do the proofs by hand.
 Properties:
 
 \begin{alba}
-    leToLt (a b: Natural) (le: a <= b): a /= b => a < b :=
+    leToLt (a b: Natural) (le: a <= b): a /= b -> a < b :=
         inspect le case
-            init b: 0 /= b => 0 < b :=
+            init b: 0 /= b -> 0 < b :=
                 inspect b case
                     zero: \ ne := identical zero |> ne |> exFalso
-                    add1 i: 0 /= add1 i => 0 < add1 i :=
+                    add1 i: 0 /= add1 i -> 0 < add1 i :=
                         \ ne := step (init i)
             step i j ij
-            : add1 i /= add1 j => add1 i < add1 j :=
+            : add1 i /= add1 j -> add1 i < add1 j :=
                 \ ne :=
                     step (leToLt ij (ne << apply add1))
 \end{alba}
 
 
 \begin{alba}
-    leToNotlt (a b: Natural): a <= b => not b < a :=
+    leToNotlt (a b: Natural): a <= b -> not b < a :=
         leInduction
             {\ a b := not b < a}
             (\ b := discriminate)
@@ -2209,7 +2214,7 @@ Properties:
             a
             b
 
-    ltToNotLe (a b: Natural): a < b => not b <= a :=
+    ltToNotLe (a b: Natural): a < b -> not b <= a :=
         \ lt le :=
             lt |> leToNotLt le
 \end{alba}
@@ -2576,7 +2581,7 @@ With advanced pattern match we could write the function more compactly.
 
     lowerBound (f: Predicate Natural) (n: Natural): Proposition :=
             -- 'n' is a lower bound for all numbers which satisfy 'f'.
-        all i: f i => n <= i
+        all i: f i -> n <= i
 
     least (f: Predicate Natural) (n: Natural): Proposition :=
             -- 'n' is the least number which satisfies 'f'
@@ -2713,7 +2718,7 @@ to prove the proposition
     all (n: Natural): 0 /= n.add1
 \end{alba}
 
-Remember that \code{0 /= n.add1} is equivalent to \code{0 = n.add1 =>
+Remember that \code{0 /= n.add1} is equivalent to \code{0 = n.add1 ->
 false}. In order to prove the property we have to find a function which
 maps any natural number \code{n} and a proof of \code{0 = n.add1} into a
 proof of \code{false}.
@@ -2753,7 +2758,7 @@ natural numbers.
     :=
         (\ (eq: 0 = n.add1): false := g n.add1 eq)
         where
-            g: all k: 0 = k => f k :=
+            g: all k: 0 = k -> f k :=
                 case
                     identical :=
                         -- goal: f 0
@@ -2792,7 +2797,7 @@ The injectivity of the add1 function of natural numbers can be expressed
 by the property
 
 \begin{alba}
-    all (n m: Natural): n.add1 = m.add1  =>  n = m
+    all (n m: Natural): n.add1 = m.add1  ->  n = m
 \end{alba}
 
 In order to prove this property we need only a little trick. We have to
@@ -2818,7 +2823,7 @@ premise equality.
     :=
         g m.add1 eq
         where
-            g: all k: n.add1 = k => f k :=
+            g: all k: n.add1 = k -> f k :=
                 case identical :=
                     -- goal f n.add1
                     identical
@@ -2872,7 +2877,7 @@ Consider the inductive predicate
         isEven: Predicate Natural
     :=
         zero: isEven 0
-        next: all n: isEven n => isEven n.add1.add1
+        next: all n: isEven n -> isEven n.add1.add1
 \end{alba}
 
 The proposition \code{isEven 0} can be constructed only with the first
@@ -2886,7 +2891,7 @@ I.e. we should be able to prove the following propositions:
 \begin{alba}
     discriminate: not 0.add1.isEven
 
-    invert: all n: isEven n.add1.add1 => isEven n
+    invert: all n: isEven n.add1.add1 -> isEven n
 \end{alba}
 
 
@@ -2897,7 +2902,7 @@ I.e. we should be able to prove the following propositions:
     :=
         g 0.add1
         where
-            g: all k: k.isEven => f k :=
+            g: all k: k.isEven -> f k :=
                 case
                     zero :=
                         -- goal: f 0
@@ -2923,11 +2928,11 @@ I.e. we should be able to prove the following propositions:
 \noindent Now we prove \code{invert}
 %
 \begin{alba}
-    invert (n: Natural): n.add1.add1.isEven => n.isEven
+    invert (n: Natural): n.add1.add1.isEven -> n.isEven
     :=
         g n.sucessor.add1
         where
-            g: all k: k.isEven => f k :=
+            g: all k: k.isEven -> f k :=
                 case
                     zero :=
                         -- goal: f 0
@@ -2957,14 +2962,14 @@ to them in a simpler manner.
 
 First let's look at the proof of
 \begin{alba}
-    discriminate: isEven 0.add1 => false :=
+    discriminate: isEven 0.add1 -> false :=
         case ...
 \end{alba}
 The pattern matches a proof of \code{isEven 0.add1} against the two
 possible constructors
 \begin{alba}
     zero: isEven 0
-    next n: isEven n => isEven n.add1.add1
+    next n: isEven n -> isEven n.add1.add1
 \end{alba}
 First the compiler tries to the premise with the final types of the
 constructors.
@@ -3004,17 +3009,17 @@ appropriate type for the branch and the overall goal is satisfied as well.
 A complete pedantic proof with an explicitely entered elimnation function looks
 like
 \begin{alba}
-    discriminate isEven 0.add1 => false :=
+    discriminate isEven 0.add1 -> false :=
         \ ev := g 0 ev where
             g k ev :=
                 inspect
                     ev
                     \ j p := inspect j case
-                        0 := false => false
+                        0 := false -> false
                         m.succ :=
                             inspect m case
                                 0 := false
-                                n.succ := false => false
+                                n.succ := false -> false
                 case
                     zero :=
                         identity
@@ -3023,7 +3028,7 @@ like
 \end{alba}
 But the shorter one should do its job as well.
 \begin{alba}
-    discriminate isEven 0.add1 => false :=
+    discriminate isEven 0.add1 -> false :=
         case --  <--- no valid cases to analyze
 \end{alba}
 
@@ -3031,7 +3036,7 @@ But the shorter one should do its job as well.
 Now let's look at the proof of
 
 \begin{alba}
-    inversion k: isEven k.add1.add1 => isEven k :=
+    inversion k: isEven k.add1.add1 -> isEven k :=
         case ...
 
     -- needed unifications
@@ -3054,12 +3059,12 @@ defined as a mutual type family.
         :=
             zero: isEven 0
 
-            fromOdd n: n.isOdd => n.add1.isEven
+            fromOdd n: n.isOdd -> n.add1.isEven
 
         class
             isOdd: Natural -> Proposition
         :=
-            fromEven n: n.isEven => n.add1.isOdd
+            fromEven n: n.isEven -> n.add1.isOdd
 \end{alba}
 %
 Looking at the possible ways to construct the even or the odd property we should
@@ -3068,9 +3073,9 @@ be able to proof the following theorems.
 \begin{alba}
     discriminate: not 0.isOdd
 
-    invertEven n: n.add1.isEven => n.isOdd
+    invertEven n: n.add1.isEven -> n.isOdd
 
-    invertOdd  n: n.add1.isOdd  => n.isEven
+    invertOdd  n: n.add1.isOdd  -> n.isEven
 \end{alba}
 
 
@@ -3080,40 +3085,40 @@ be able to proof the following theorems.
     discriminate: not 0.isOdd :=
         (\ odd := f 0 odd identical)
         where
-        f n: n.isOdd => 0 = n => false
+        f n: n.isOdd -> 0 = n -> false
         :=
             case
                 fromEven k _ :=
-                    -- goal: 0 = k.add1 => false
+                    -- goal: 0 = k.add1 -> false
                     discriminate
 
-    invertEven n: n.add1.isEven => n.isOdd
+    invertEven n: n.add1.isEven -> n.isOdd
     :=
         (\ ev := f n.add1 ev identical)
         where
-        f k: k.isEven => k = n.add1 => n.isOdd
+        f k: k.isEven -> k = n.add1 -> n.isOdd
         :=
             case
                 zero :=
-                    -- goal 0 = n.add1 => false
+                    -- goal 0 = n.add1 -> false
                     discriminate n
 
                 fromOdd m mOdd :=
-                    -- goal: m.add1 = n.add1 => n.isOdd
+                    -- goal: m.add1 = n.add1 -> n.isOdd
                     invert m n -- produces m = n
                     >>
                     case
                         identical := mOdd
 
-    invertOdd n: n.add1.isOdd => n.isEven
+    invertOdd n: n.add1.isOdd -> n.isEven
     :=
         (\ odd := f n.add1 odd identical)
         where
-        f k: k.isOdd => k = n.add1 => n.isEven
+        f k: k.isOdd -> k = n.add1 -> n.isEven
         :=
             case
                 fromEven m mEven :=
-                    -- goal: m.add1 = n.add1 => n.isEven
+                    -- goal: m.add1 = n.add1 -> n.isEven
                     invert m n -- produces m = n
                     >>
                     case
@@ -3141,12 +3146,12 @@ properties.
 
 
 \begin{alba}
-    reject (n: Natural): 0 = n.add1 => false
+    reject (n: Natural): 0 = n.add1 -> false
     :=
         (\ k :=
             (case identical := trueValid)
             : 0 = k
-              =>
+              ->
               (case 0 := true; _.add1 := false) k)
           n.add1
 \end{alba}
