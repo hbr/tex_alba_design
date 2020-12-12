@@ -2376,15 +2376,14 @@ by assumption.
             terminate f :=
                 terminate (g f)
         where
-            g f: all {y}: R x y -> Terminating R y :=
-                \ {y} rXY :=
-                    inspect add1 x = y case
-                        left xSuccEqY :=
-                            leibniz xSuccEqY tXSucc
-                        right xSuccNeY :=
-                            inspect rXY case
-                                ltXY * lbZ :=
-                                    f (leToLt ltXY xSuccNeY * lbY)
+            g f {y} rXY: Terminating R y :=
+                inspect add1 x = y case
+                    left xSuccEqY :=
+                        leibniz xSuccEqY tXSucc
+                    right xSuccNeY :=
+                        inspect rXY case
+                            ltXY * lbZ :=
+                                f (leToLt ltXY xSuccNeY * lbY)
 
     terminatingToZero
         : all (n: Natural): Terminating R x -> Terminating R zero
@@ -2439,6 +2438,59 @@ assumptions of the section as additional arguments. Therefore the function
 
 
 
+
+
+\subsubsection{Elaboration of \code{terminatingToPredecessor}}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+\begin{alba}
+    terminatingToPredecessor
+        {x: Natural}
+        (tXSucc: Terminating R (add1 x))
+        : Terminating R x
+    :=
+        inspect tXSucc case
+            terminate f :=
+                terminate (g f)
+            {- Type of 'f'
+
+                f: all {y}: R (add1 x) y -> Terminating R y
+
+               Required type of 'g f':
+
+                g f: all {y}: R x y -> Terminating R y
+            -}
+        where
+            g f {y} rXY :=
+                ...
+\end{alba}
+
+
+The elaborator has a type for \code{tXSucc} which is
+%
+\code{Terminating R (add1 x)}.
+%
+The body of the function inspects \code{tXSucc} and therefore gets a type for
+\code{f}.
+
+Since the result type of the function is \code{Terminating R x} and it is
+constructed by the constructor \code{terminate}, the type of \code{g f} can be
+inferred uniquely. Given the type of \code{f} and the type of {g f} the
+elaborator is able to infer
+%
+\begin{alba}
+    g:  (all {y}: R (add1 x) y -> Terminating R y)
+        ->
+        (all {y}: R x y -> Terminating R y)
+\end{alba}
+%
+The argument type and the result type depend on the common variable \code{x}.
+However there is no need to abstract over \code{x} in the type of \code{g}.
+
+Since the definition of \code{g} has no type annotation, the elaborator cannot
+infer a type of \code{g} from the definition.
 
 
 \vskip 5mm
