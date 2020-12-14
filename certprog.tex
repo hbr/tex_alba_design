@@ -2371,7 +2371,9 @@ In order to make the recursive calls structurally decreasing we use the
 definition
 %
 \begin{alba}
-    class Terminating (A: Any) (R: Endorelation A): Predicate A :=
+    class
+        Terminating (A: Any) (R: Endorelation A): Predicate A
+    :=
         terminate {x}:
             (all {y}: R x y -> Terminating R y)
             -> Terminating R x
@@ -2382,6 +2384,23 @@ relation \code{R} finally lead to an element which is terminal i.e. which does
 not have any successor in \code{R}. The basic idea is to provide the function
 \code{findHelper} with an extra argument which is a proof of \code{Terminating R
 start} which we can deconstruct at each recursive call.
+
+We can find structurally smaller elements with the help of the function
+\code{progress}
+
+\begin{alba}
+    progress
+        {A: Any} {x y: A} {R: Endorelation A}
+        (term: Terminating R x)
+        (rXY: R x y)
+        : Terminating R y
+    :=
+        inspect term case
+            terminate f :=
+                f rXY
+\end{alba}
+
+
 
 
 
@@ -2444,11 +2463,16 @@ by assumption.
                                 f (leToLt ltXY xSuccNeY * lbY)
 
     terminatingToZero
-        : all (n: Natural): Terminating R x -> Terminating R zero
+        : all {n: Natural}: Terminating R n -> Terminating R zero
     :=
         naturalInduction
             identitiy
-            (\ i f := f <| terminatingToPredecessor i)
+            (\ tNToTZero tNSucc :=
+                tNToTZero (terminatingToPredecessor tNSucc))
+        {- In the induction step we have to prove
+            (Terminating R n -> Terminating R zero)
+            -> Terminating R (add1 n) -> Terminating R zero
+        -}
 \end{alba}
 
 Now it is easy to define the function for unbounded search.
@@ -2465,11 +2489,9 @@ Now it is easy to define the function for unbounded search.
                 (start, lb, startOk)
             right startNotOk :=
                 findHelper
-                    start.add1
+                    (add1 start)
                     nLb
-                    (inspect tStart case
-                        terminate g :=
-                            g (reflexive, nLb))
+                    (progress tStart (reflexive, nLB))
                 where
                     nLb := nextLowerBound lb startNotOk
 
