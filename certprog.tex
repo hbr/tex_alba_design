@@ -1251,6 +1251,59 @@ can be inferred by the type checker are implicit.
 
 
 
+\subsection{Wellfounded Relations}
+%---------------------------------
+
+In classical mathematics a wellfounded relation is a linear order over a carrier
+where all nonempty set of carrier elements have a least element. This definition
+of non very well suited to constructive mathematics.
+
+In constructive mathematics we first define inductively the \emph{accessible}
+elements of a relation.
+%
+\begin{alba}
+    class
+        Accessible {A: Any} (R: Endorelation A): Predicate A
+        {- 'Accessible R x' says that 'x' is accessible in the relation 'R',
+           i.e. either 'x' has no predecessor in the relation 'R' or all
+           predecessors are accessible as well.
+        -}
+    :=
+        access: (all {y}: R y x -> Accessible R y) -> Accessible R x
+\end{alba}
+%
+We define that a relation is wellfounded if all elements are accessible.
+%
+\begin{alba}
+    Wellfounded {A: Any} (R: Endorelation A): Proposition :=
+        all {x}: Accessible R x
+\end{alba}
+
+
+Since \code{Accessible} is inductively defined, we can use any proof of
+\code{Accessible R x} and a proof of \code{R y x} for some \code{y} to
+construct a proof of \code{Accessible R y} which is \emph{structurally smaller}
+than the proof of \code{Accessible R x}.
+
+\begin{alba}
+    smaller
+        {A: Any} {x y: A} {R: Endorelation A}
+        (acc: Accessible R x)
+        (rYX: R y x)
+        : Accessible R y
+    :=
+        inspect acc case
+            access f :=
+                f rYX
+\end{alba}
+
+
+
+
+
+
+
+
 
 
 
