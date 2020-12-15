@@ -43,6 +43,50 @@ The purpose of this chapter is to demonstrate the possibility in Alba to write
 functions and prove properties about these functions in the same language.
 
 
+We use the operators \code{|>}, \code{<|}, \code{>>} and \code{>>} to make some
+terms more readable.
+
+\begin{alba}
+    (|>)
+        {A: Any} {F: A -> Any}
+        (a: A)
+        (f: all x: F x)
+        : F a
+    {- 'a |> f' Inject the argument 'a' into the function 'f'. -}
+    :=
+        f a
+
+
+    (<|)
+        {A: Any} {F: A -> Any}
+        (f: all x: F x)
+        (a: A)
+        : F a
+    {- 'f <| a' Apply the function 'f' to the  the argument 'a'.-}
+    :=
+        f a
+
+
+    (>>)
+        {A B C: Any}
+        (f: A -> B)
+        (g: B -> C)
+        : A -> C
+    {- 'f >> g' Function composition 'f' and then 'g'. -}
+    :=
+        \ x := g (f x)
+
+
+    (<<)
+        {A B C: Any}
+        (f: B -> C)
+        (g: A -> B)
+        : A -> C
+    {- 'f << g' Function composition 'f' after  'g'. -}
+    :=
+        \ x := f (g x)
+\end{alba}
+
 
 
 \newpage
