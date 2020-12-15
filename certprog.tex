@@ -437,11 +437,11 @@ The forward direction can be proved by the function
         case
             left notA :=
                 case
-                    (a, _) :=
+                    (a, b) :=
                         notA a
             right notB :=
                 case
-                    (_, b) :=
+                    (a, b) :=
                         notB b
 \end{alba}
 
@@ -460,6 +460,65 @@ no possibility to make such a decision by looking only at \code{Not (A And
   B)}.
 
 
+
+
+
+
+\subsection{Irrefutable Propositions}
+%------------------------------------
+
+The classical statement \emph{tertium non datur} or the law of the excluded
+middle $A \lor \lnot A$ is not valid constructively. However we can prove
+constructively that this statement is not false.
+
+We introduce the statement that a proposition is irrefutable i.e. that a
+statement cannot be wrong.
+
+\begin{alba}
+    Irrefutable (A: Proposition): Proposition :=
+        {- 'A' is irrefutable means that every proof of 'Not A' leads to
+           a contradiction. -}
+        Not A -> False
+\end{alba}
+
+
+
+We can prove that the law of the excluded middle is irrefutable.
+
+\begin{alba}
+    excludedMiddle
+        {A: Proposition}
+        : Irrefutible (A Or Not A)
+        {- The law of the exclude middle is irrefutable. -}
+    :=
+        \ (f: A Or Not A -> False): False
+        :=
+            (right >> f) (left >> f)
+            {- The function term has the type 'Not A -> False' and
+               the argument term has the type 'Not A'. -}
+\end{alba}
+%
+In order to understand this proof it is important to understand that a proof of
+a negation of a proposition is a function mapping any proof of the proposition
+into a proof of \code{False}.
+
+The constructor \code{left} maps any proof of \code{A} into a proof of \code{A
+Or Not A}. This can be mapped by the assumption \code{A Or Not A -> False} into
+a proof of \code{False}. Therefore the argument term is a proof of \code{Not A}.
+
+The constructor \code{right} maps any proof of \code{Not A} into a proof of
+\code{A OR Not A}. Again by using the assumption \code{A Or Not A -> False} we
+can get a proof of \code{False}. I.e. the function term is a proof of \code{Not
+A -> False}.
+
+The application of the function term to the argument term is therefore a proof
+of \code{False}. This proves that the assumption that the law of the excluded
+middle is wrong leads to a contradiction.
+
+
+Every classically valid proposition is either constructively provable or it can
+be proved constructively to be irrefutable. This technique is also known under
+the name \emph{double negation substitution}.
 
 
 
