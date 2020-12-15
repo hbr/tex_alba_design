@@ -310,6 +310,30 @@ the construction of \code{A or B}.
 
 
 
+\vskip 5mm
+\subsection{Combine Disjunction and Conjuntion}
+
+
+\begin{alba}
+    section
+        {A B C: Proposition}
+    :=
+        forward: (A Or B -> C) -> (A -> C) And (B -> C) :=
+            \ f :=
+                ( left >> f, right >> f )
+
+
+        backward: (A -> C) And (B -> C) -> A Or B -> C :=
+            case
+                (ac, bc) :=
+                    case
+                        left a  := ac a
+                        right b := bc b
+\end{alba}
+
+
+
+
 
 \vskip 5mm
 \subsection{De Morgan's Laws}
@@ -355,41 +379,41 @@ the same pattern.
 
 There is a second De Morgan's law stating the equivalence of
 \begin{alba}
-  not a or not b
+  Not A or Not B
 
-  not (a and b)
+  Not (A And B)
 \end{alba}
 
 The forward direction can be proved by the function
 \begin{alba}
     deMorgan2Forward
-        (a b: Proposition)
-        : not a or not b -> not (a and b)
+        (A B: Proposition)
+        : Not A Or Not B -> Not (A And B)
     :=
         case
             left notA :=
                 case
-                    (evA, _) :=
-                        notA evA
+                    (a, _) :=
+                        notA a
             right notB :=
                 case
-                    (_, evB) :=
-                        notB evB
+                    (_, b) :=
+                        notB b
 \end{alba}
 
 
 In trying to prove the backward direction we face some difficulties. In order
-to prove \code{not a or not b} we have to prove either \code{not a} or
-\code{not b}. The only premise we have is \code{not (a and b)} which is a
-function mapping any proof of \code{a and b} into \code{false}.
+to prove \code{Not A Or Not B} we have to prove either \code{Not A} or
+\code{Not B}. The only premise we have is \code{Not (A And B)} which is a
+function mapping any proof of \code{A And B} into \code{False}.
 
 This proof is not possible in constructive logic. Therefore it is not possible
 to prove it in Alba either.
 
 In order to prove a disjunction in constructive logic we have to decide which
-of the two possibilities of \code{not a or not b} we want to prove. There is
-no possibility to make such a decision by looking only at \code{not (a and
-  b)}.
+of the two possibilities of \code{Not A Or Not B} we want to prove. There is
+no possibility to make such a decision by looking only at \code{Not (A And
+  B)}.
 
 
 
@@ -425,57 +449,38 @@ inductive type
 %
 \begin{alba}
     class
-        Exist A (f: Predicate A): Proposition
-    create
-        witness x: f x -> Exist f
+        Exist {A: Any} (F: Predicate A): Proposition
+    :=
+        exist {x}: F x -> Exist F
 \end{alba}
 %
 i.e. the existence of an object with a certain property is proved by providing
 a witness and a proof that the witness satisfies the required property.
 
-In Alba we write
-%
-\begin{alba}
-  some (x:A): f x
-
-  -- or
-
-  some x: f x   -- if the type 'A' can be inferred from the context
-\end{alba}
-%
-as another way to express the proposition
-%
-\begin{alba}
-  exist f
-\end{alba}
-
 A basic law of logic states
 %
 \begin{alba}
-  (some x: f x) -> (all x: f x -> a) -> a
+    (Exist F) -> (all {x}: F x -> P) -> P
 \end{alba}
 %
 Proofs using this law reads like
 \begin{quote}
-  We know that there exists an object satisfying $f$. Let $x$ be such an
-  object satisfying $f$. From $ f x$ we can conclude $a$. Therefore $a$ is
+  We know that there exists an object satisfying $F$. Let $x$ be such an
+  object satisfying $F$. From $ F x$ we can conclude $P$. Therefore $P$ is
   valid.
 \end{quote}
 
 We can prove this law in Alba by writing the function
 \begin{alba}
-    exist_elim
-        (A: Any)
-        (f: Predicate A)
-        (prop: Proposition)
-        : some x: f x -> (all x: f x -> prop) -> prop
+    elimExist
+        {A: Any}
+        {F: Predicate A}
+        {P: Proposition}
+        : Exist F -> (all {x}: F x -> P) -> P
     :=
-        \   some_x
-            allx
-        :=
-            inspect some_x case
-                witness x fx :=
-                    allx x fx
+        case
+            exist fX:=
+                \ g := g fX
 \end{alba}
 
 
@@ -483,83 +488,80 @@ Like for logical disjunction and conjunction there are two De Morgan's laws for
 existential and universal quantification. The first law states the equivalence
 of
 \begin{alba}
-  not (some x: f x)
+    Not Exist F
 
-  all x: not (f x)
+    all {x}: Not F x
 \end{alba}
 or in words
+%
 \begin{quote}
   If there are no objects satisfying a certain property, then all objects do
-  not satisfy the property. And if all objects do not satisfy a propert, then
+  not satisfy the property. And if all objects do not satisfy a property, then
   there are no objects satisfying the property.
 \end{quote}
+
 
 The proofs of the forward and backward direction are not complicated.
 
 \begin{alba}
-    ex_de_morgan1_forward
-        (A: Any)
-        (f: Predicate A)
-        : not (some x: f x) -> all x: not (f x)
+    existDeMorgan1Forward
+        {A: Any} {F: Predicate A}
+        : Not Exist F -> all {x}: Not F x
     :=
-        \   no_x
-            x
-            fx
-        :=
-            no_x (witness x fx)
+        \ noX fX :=
+            exist fX |> noX
 \end{alba}
 
 
 \begin{alba}
-    ex_de_morgan1_backward
-        (A: Any)
-        (f: Predicate A)
-        : (all x: not (f x)) -> not (some x: f x)
+    existDeMorgan1Backward
+        {A: Any} {F: Predicate A}
+        : (all {x}: Not F x) -> Not Exist F
     :=
-        \   all_not
-            some_x
-        :=
-            inspect some_x case
-                witness x fx :=
-                    all_not x fx
+        \ allNot existF :=
+            inspect existF case
+                exist fX := allNot fX
 \end{alba}
+
+
 
 The second De Morgan's law states the equivalence of
 \begin{alba}
-  some x: not (f x)
+    Exist (Not F x)
 
-  not all x: f x
+    Not all {x}: F x
 \end{alba}
+
 
 The forward direction is easy.
 
 \begin{alba}
-    ex_de_morgan2_forward
-        (A: Any)
-        (f: Predicate A)
-        : (some x: not (f x)) -> not (all x: f x)
+    existDeMorgan2Forward
+        {A: Any}
+        {F: Predicate A}
+        : Exist (Not F x) -> Not all {x}: F x
     :=
-        \   some_x
-            all_x
-        :=
-            inspect some_x case
-                witness x not_fx :=
-                    not_fx (all_x x)
+        case
+            exist notFX :=
+                \ allX :=
+                    notFX allX
 \end{alba}
+
+
 
 However the backward direction is not possible to prove. Constructive logic
 requires us to find a witness in order to prove
 \begin{alba}
-  some x: not (f x)
+    Exist (Not F x)
 \end{alba}
 %
 But the premise
 %
 \begin{alba}
-  not all x: f x
+    Not all {x}: F x
 \end{alba}
 does not give us any possibility to extract a witness which does not satisfy
-the property \code{f}
+the property \code{F}
 
 
 
