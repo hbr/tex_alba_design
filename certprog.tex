@@ -1705,10 +1705,23 @@ arithmetic functions like addition, multiplication and relational operators
 are implemented as efficient functions. But all these builtin functions behave
 as the following functions defined recursively on the inductive type above.
 
-Since \code{Natural} is a recursive inductive type, we can write an induction
-law for it.
+Since \code{Natural} is a recursive inductive type, we can write a generic
+recursion function and use the recursion function to define an induction law.
 
 \begin{alba}
+    naturalRecursion
+        {F: Natural -> Any}
+        (start: F zero)
+        (next: all i: F i -> F (add1 i))
+        (n: Natural):
+        : F n
+    :=
+        inspect n case
+            zero :=
+                start
+            add1 i :=
+                next i (naturalRecursion start next i)
+
     naturalInduction
         {P: Predicate Natural}
         (start: P zero)
@@ -1716,18 +1729,8 @@ law for it.
         {n: Natural}
         : P n
     :=
-        inspect n case
-            {\ (i: Natural): Proposition := P i}
-            zero: P zero :=
-                start
-            add1 i: P (add1 i) :=
-                next
-                    {i}
-                    (naturalInduction start next {i}: P i)
+        naturalRecursion {P} start next n
 \end{alba}
-
-We added the optional elimination function, some type annotations and written
-some implicit arguments explicitly to understand the details.
 
 
 
@@ -1737,7 +1740,7 @@ some implicit arguments explicitly to understand the details.
 
 \begin{alba}
     recurse {A: Any} (n: Natural) (f: Natural -> A -> A) (start: A): A :=
-        naturalInduction
+        naturalRecursion
             {\ i := A}
             start
             f
