@@ -478,6 +478,51 @@ argument.
 
 
 
+\subsection{Function Call with Unknown Function Type}
+%----------------------------------------------------
+
+
+\begin{alba}
+    f a
+
+    -- where
+    f: ?F v     -- 'v' is array of free variables
+\end{alba}
+
+In the best case the type of the argument is known $a: A$ and the result type is
+known $f a: R$. In this case we can use $A \to R$ as the type of $f$.
+
+We can try to use a dependent product for the type of $f$. We could try
+$$
+    f: \Pi x^{\meta{A} \vec{v}}. \meta{B} \vec{v}x
+$$
+%
+This results in the unification constraints
+$$
+\begin{array}{lll}
+    \meta{A} \vec{v}
+    &\unify&
+    A
+
+    \\
+
+    \meta{B} \vec{v} a
+    &\unify&
+    R
+\end{array}
+$$
+%
+The first one can be immediately resolved by $\meta{A} := \lambda \vec{v}. A$.
+The second one is not of the pattern type, because $\vec{v} a$ are not mutually
+distinct free variables. Therefore it cannot be resolved immediately. It might
+be resolvable in the course of the elaboration. However at that point the
+application $f a$ cannot be safely made because it is only typesafe under the
+unresolved unification constraint.
+
+
+
+
+\vskip 5mm
 \subsection{Function Call}
 %-------------------------
 
@@ -504,6 +549,40 @@ types. The overloaded symbol has a set of signatures. The signatures tell the
 criteria on which the decision can be made.
 
 First we filter out the signatures which fit the call context.
+
+
+
+\subsection{Where Expression}
+%-----------------------------
+
+\begin{alba}
+    body where
+        ...
+        h ... := ...
+        g ... := ...
+        f ... := ...
+\end{alba}
+
+\code{f} is the outermost local definition. It has to be introduced into the
+context as a free variable.
+
+If the local definition is completely untyped e.g.
+\code{f x y := x + y} we cannot infer a type of \code{f} and we have to
+introduce a metavariable for its type.
+
+The signature might be given partially of fully. We analyze the signature of $f$
+from left to right until no more type annotation is given. If the signature is
+given only partially, we introduce a metavariable for the remaining untyped
+arguments and the result type.
+
+We elaborate the body only if the signature of a local definition is given
+fully.
+
+We most usual case is that the signature is not given or given only partially
+and the type shall be inferred from its use in the inner local definitions or in
+the body.
+
+
 
 
 
