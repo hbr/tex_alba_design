@@ -1944,7 +1944,7 @@ Now we prove that addition is commutative. In order to prove commutativity of
 addition we need two lemmas.
 
 \begin{alba}
-    zeroRightNeutral (a: Natural): a + zero = a :=
+    zeroRightNeutral {a: Natural}: a + zero = a :=
         induce
             {\a := a + zero = a}
 
@@ -1958,7 +1958,7 @@ addition we need two lemmas.
 
 
 \begin{alba}
-    pushSuccessor {a b: Natural}: Equal (a + b).add1  (a + add1 b) :=
+    pushSuccessor {a b: Natural}: Equal (add1 a + b)  (a + add1 b) :=
         naturalInduction
             identical
             (\ {i} eq := apply add1 eq)
@@ -3351,8 +3351,6 @@ properties.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-FOR DISCUSSION!!
-
 
 Vectors or length indexed lists are an often used example to show dependent
 types. A vector in Alba can be defined as
@@ -3372,8 +3370,8 @@ A companion type for indices into a vector is the following type
     class
         Below: Natural -> Any
     :=
-        belowStart {k} -> Below (add1 k)
-        belowNext {k}: Below k -> Below (add1 k)
+        belowStart {k}: Below (add1 k)
+        belowNext {k}:  Below k -> Below (add1 k)
 \end{alba}
 
 
@@ -3411,16 +3409,75 @@ We can append two vectors.
 
 
 \begin{alba}
+    zip {A B C: Any} {n: Natural}
+        (f: A -> B -> C)
+        (xs: Vector A n)
+        (ys: Vector B n)
+        : Vector C n
+    :=
+        inspect xs, ys case
+            nil, nil :=
+                nil
+            cons x xs, cons y ys :=
+                cons (f x y) (zip xs xs)
+\end{alba}
+
+
+
+\begin{alba}
+    replicate {A: Any} (n: Natural) (x: A): Vector A n :=
+        inspect n case
+            zero :=
+                nil
+            add1 k :=
+                cons x <| replicate k x
+\end{alba}
+
+\begin{alba}
+    transpose {A: Any} {n m: Natural}
+        (matrix: Vector (Vector A m) n)
+        : Vector (Vector A n) m
+    :=
+        inspect matrix case
+            nil :=  -- required type Vector (Vector A zero) m
+                replicate zero nil
+            cons {k} row rows :=
+                -- row: Vector A m
+                -- rows: Vector (Vector A m) k
+                -- goal: Vector (Vector A (add1 k)) m
+                zip cons (transpose rows)
+                -- transpose rows: Vector (Vector A k) m
+\end{alba}
+
+
+
+
+
+
+\begin{alba}
+    reversePrepend
+        {A: Any} {n m: Natural}
+        (xs: Vector A n) (ys: Vector A m)
+        : Vector A (n + m)
+        -- reverse the vector 'xs' and prepend it in front of 'ys'.
+    :=
+        inspect xs case
+            nil :=
+                ys
+            cons {k} x xs :=
+                leibniz
+                    (Vector A)
+                    pullSuccessor
+                    (reversePrepend xs (cons x ys)
+                     : Vector A (k + add1 m)
+
+
     reverse {A: Any} {n: Natural} (v: Vector A n): Vector A n
     :=
-        inspect v case
-            nil := nil
-            cons x w := append (reverse w) (cons x nil)
-
-    -- Note: This function does not typecheck. The append function returns
-    --       an object of type 'Vector A (k + add1 0)' while it
-    --       should return an object of type 'Vector A (add1 0 + k)'
-    -- A proof would be necessary to show that both types are identical.
+        leibniz
+            (Vector A)
+            zeroRightNeutral
+            (reversePrepend v nil)
 \end{alba}
 
 
