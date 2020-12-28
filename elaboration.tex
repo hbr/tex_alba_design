@@ -17,6 +17,91 @@ available in the language and the user should be able to grasp the power step by
 step. I.e. the learning curve shall be flat and not steep.
 
 
+The user terms are imcomplete. Not all binders are explicitly typed, implicit
+arguments are usually ommitted, in local definitions types may be ommitted and
+implicit arguments might be left out. It is the task of the elaborators to
+derive complete terms from incomplete terms and issue understandable error
+messages in case it cannot derive complete welltyped terms.
+
+\paragraph{Metavariables}
+Whenever the elaborator encounters an untyped binder or a missing implicit
+argument, it introduces a metavariable. A metavariable is like a global function
+which has a type but no definition. Possible arguments to the function are all
+free variables in the context. I.e. a metavariable $\meta{m}$ has the type $\Pi
+\vec{v}^\vec{V}. T_m$ where $\vec{v}$ are the free variables of the context.
+
+Metavariables are instantiated by unification constraints. If the unifier
+produces the constraint $\meta{m} \vec{v} \unify e$ or $\meta{m} \vec{v}
+\unifysub e$ where all free variables in $\vec{v}$ are mutually distinct and $e$
+contains only a subset of the free variables and $\Pi \vec{v}^\vec{V}. E \le \Pi
+\vec{v}^\vec{V}.T_m$ where $E$ is the type of $e$, then the metavariable can be
+instantiated by $\meta{m} := \lambda \vec{v}^\vec{V}. e$.
+
+Unification constraints arise from comparing the type of an actual argument with
+the expected formal argument type of the function term during a function
+application. The type of the actual argument must be a subtype of the type of
+the formal argument. The elaborator unifies the type of the actual argument with
+the type of the formal argument. If any of the types contain metavariables, then
+unification constraints can be produced.
+
+
+Unification constraints of pattern type $\meta{m} \vec{v} \unify e$ where all
+free variables are mutually distinct and the corresponding types can be unified
+are immediately resolvable by $\meta{m} := \lambda \vec{v}. e$. But there are
+other constraints which cannot be immediately resolved. These constraint must be
+stored. The constraints can have dependencies i.e. they have a partial order.
+Solution of the constraints must respect the order.
+
+E.g. if the unification of the types of the left hand side and the right hand
+side of $\meta{m} \vec{v} \unify e$ produces some remaining constraints, then
+the resolution of this pattern type constraint has to be deferred until all
+constraints on which it depends have been resolved.
+
+
+\paragraph{Overloading} Global function or operator symbols and literal numbers
+can be overloaded in Alba i.e. they can be ambiguous.
+
+We allow ambiguity only if the number of explicit arguments is different or the
+result type or some argument types of explicit arguments are different. Types
+are different only if their head normal forms have a different global symbols in
+the head position. Therefore the elaborator knows for each global symbol exactly
+the positions of the explicit arguments which must be different and if the
+result type must be different for overloaded symbols with the same number of
+explicit arguments.
+
+Whenever the elaborator encounter an overloaded symbol or literal, it knows the
+number of explicit arguments and the result type. Partial application is
+possible. Therefore not all explicit arguments might be present as actual
+arguments.
+
+If the elaborator cannot decide immediately by looking at the expected result
+type which of the alternatives to use, it starts to introduce metavariables for
+the expected types of the explicit arguments a starts the elaboration of the
+arguments. If the elaboration of the arguments get stuck or does not provide
+enough information, then the elaboration of the function application gets stuck.
+
+If the elaboration of a function application gets stuck, then the elaborator
+proceeds with the elaboration of the remaining subterm. The elaboration of the
+remaining subterms might instantiate some metavariables such that the ambiguity
+can be resolved.
+
+But it might happen, that the ambiguity remains open. In that case we have to
+try the possiblities.
+
+Question: What happens if all possibilities are valid? Then the elaborator has
+not enough information to resolve the ambiguity. Error message \emph{I cannot
+decide which function to use.}
+
+Question: What happens if all possibilities fail? They fail because some of the
+constraints cannot be satisfied. Since the constraints are ordered we are only
+interested in the possibilities which fail to satisfy the highest constraint in
+the order. The source of unification problems is the compatibility of actual
+arguments with formal arguments.
+
+
+
+
+
 
 \section{Implicit Arguments}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

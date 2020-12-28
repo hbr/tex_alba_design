@@ -95,9 +95,10 @@
 \def\ignore#1{}
 
 \def\vec0#1{{\vec{#1}}}
-\def\vec#1{{\overrightarrow{#1}}}
-%\def\vec#1{\mathbf{#1}}
-\def\meta#1{{}^?\!#1}
+%\def\vec#1{{\overrightarrow{#1}}}
+\def\vec#1{\mathbf{#1}}
+%\def\meta#1{{}^?\!#1}
+\def\meta#1{{\scriptsize\raisebox{2pt}{?}}\!#1}
 \def\set#1{\{#1\}}
 
 \def\Abold{\mathbf{A}}
@@ -145,10 +146,17 @@
 \def\intdiv#1#2{\floor{\frac{#1}{#2}}}
 
 
+
+
+% Unification
+% -----------
 \def\unify{\simeq}
 \def\unifysub{\precsim}
 % other possibilities: \equiv, \approx, \cong, \simeq, \doteq, \precapprox,
 % \precsim, \lesssim, \gtrsim
+
+
+
 
 
 \def\imp{\Rightarrow}
