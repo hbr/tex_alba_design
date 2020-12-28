@@ -94,8 +94,11 @@
 
 \def\ignore#1{}
 
-\def\vec#1{\mathbf{#1}}
+\def\vec0#1{{\vec{#1}}}
+\def\vec#1{{\overrightarrow{#1}}}
+%\def\vec#1{\mathbf{#1}}
 \def\meta#1{{}^?\!#1}
+\def\set#1{\{#1\}}
 
 \def\Abold{\mathbf{A}}
 \def\abold{\mathbf{a}}
@@ -115,12 +118,13 @@
 
 
 \def\Abstract{{\cal{A}}}
-\def\Any{{\cal{U}}}
+\def\Prop{{\cal{P}}}
+\def\Any{{\cal{A}}}
+\def\Universe{{\cal{U}}}
 \def\Boolean  {{\mathbb{B}}}
 \def\Decision {{\mathbb{D}}}
 \def\List   {{\mathbb{L}}}
 \def\Natural{{\mathbb{N}}}
-\def\Prop{{\cal{P}}}
 
 \def\max   {\text{max}}
 \def\case  {\text{case}}

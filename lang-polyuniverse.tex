@@ -1,7 +1,90 @@
 \section{Polymorphic Universes}
 
-
 \noindent Status: VERY DRAFT
+
+
+We extend our grammar for terms
+$$
+\begin{array}{llll}
+    t
+    &::= &u
+    &\text{universe variable}
+
+    \\
+
+    &\mid & u+1
+    &\text{next higher universe}
+
+    \\
+
+    &\mid & \Universe
+    &\text{Type of universe variables}
+
+    \\
+
+    &\mid & \Prop
+
+    \\
+
+    &\mid & \Any_i
+    & i \in \set{0, 1, 2, \ldots}
+
+    \\
+
+    &\mid & \Any_t
+
+    \\
+
+    &\mid & x
+    &\text{variable}
+
+    \\
+
+    &\mid & t t
+    &\text{Application}
+
+    \\
+
+    &\mid & \lambda x^t. t
+    &\text{abstraction}
+
+    \\
+
+    &\mid & \Pi x^t. t
+    &\text{dependent function type}
+\end{array}
+$$
+where $\Prop, \Any, \Any_i, \Any_t$ are sorts.
+
+
+
+We use the additional typing rules
+\begin{description}
+
+\item[universe introduction]
+    $$
+    [u^\Universe] \vdash u : \Universe
+    $$
+
+    By weakening we get $\Gamma, u^\Universe \vdash u : \Universe$ for any valid
+    context $\Gamma$.
+
+\item [next higher universe]
+    $$
+    \rulev
+    {\Gamma \vdash u : \Universe}
+    {\Gamma \vdash u+1 : \Universe}
+    $$
+
+\item [type of a universe]
+    $$
+    \rulev
+    {\Gamma \vdash u : \Universe}
+    {\Gamma \vdash \Any_u : \Any_{u+1}}
+    $$
+\end{description}
+
+
 
 
 \begin{alba}
