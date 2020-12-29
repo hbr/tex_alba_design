@@ -93,18 +93,6 @@ definition might be sufficient.
     valid typing judgements $\Prop: \Any$, $\Any : \Box$ and because of
     transitivity $\Prop: \Box$.
 
-
-  \item Abstract datatypes: In Alba abstract datatypes are not types, they are
-    sorts. E.g. \code{Sortable} is an abstract datatype i.e. a sort in
-    Alba. The typing judgement \code{Natural}: \code{Sortable} is valid,
-    because the natural numbers have a decidable linear order i.e. they have
-    an order relation $\le$ and a decision function which given two numbers
-    $a, b$ either returns a proof of $a \le b$ or $\lnot\, a \le b$.
-
-    For all abstract datatypes $A$ the typing judgement $A: \Any$ is
-    valid. We can view $\Any$ as an abstract datatype which imposes no
-    requirements in its subtypes. Therefore any sort $S$ different from $\Any$
-    satisfies the judgment $S: \Any$.
   \end{enumerate}
 \end{definition}
 
@@ -1942,12 +1930,58 @@ We use the following syntax
         inspect a case
             adt a1 a2 ... := a1
     ...
+
+    -- an instance declaration
+    _: Adt q1 q2 ... :=
+        adt ...  -- provide the attributes
 \end{alba}
 
 
 
 
+\subsubsection{Example: Decidable}
 
+\begin{alba}
+    abstract class
+        Decidable (A: Any): Any
+    :=
+        isEqual: all (x y: A): Decision (Equal x y)
+
+    _: Decidable Int :=
+        decidable (=?)
+
+
+    nilNeqCons
+        {A: Any} {x: A} {xs: List A}
+        : Equal [] (x :: xs) -> False
+    :=
+        case
+            -- cannot match, no case
+
+    (=?)
+        {A: Any} {d: Decidable A}
+        (xs ys: List A)
+        : Decision (Equal xs ys)
+    :=
+        inspect xs, ys case
+            [], [] :=
+                left identical
+            [], _ :: _ :=
+                right nilNeqCons
+            _ :: _, [] :=
+                right (equalSymmetric >> nilNeqCons)
+            x :: xs, y :: ys :=
+                inspect
+                    isEqual d x y, xs =? ys
+                case
+                    left eqXY, left eqXsYs :=
+                        ...
+                    ...
+                    ...
+
+    _: Decidable (List Int) :=
+        decidable (=?)
+\end{alba}
 
 
 
