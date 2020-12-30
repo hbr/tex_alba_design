@@ -2139,80 +2139,63 @@ We can generate an induction law.
     leInduction
         {R: Endorelation Natural}
         (ini: all {i}: R 0 i)
-        (stp: all {i j}: LessEqual i j -> R i j -> R i.add1 j.add1)
-        : all {i j}: LessEqual i j -> R i j
+        (stp:
+            all {i j}
+            : LessEqual i j
+              -> R i j
+              -> R (add1 i) (add1 j))
+        {i j: Natural}
+        : i <= j -> R i j
     :=
-        \ {i j} le :=
-            inspect le case
-                init: ini
-                step le0 := stp le (leInduction ini stp le0)
+        case
+            init :=
+                ini
+            step le0 :=
+                stp le0 (leInduction ini stp le0)
 \end{alba}
 
-The inductive type has no parameters and two index arguments. The index
-arguments are of type \code{Natural}. Therefore the compiler can do some analysis
-on the pattern which can constitute the proposition \code{n <= m}
 
 \begin{alba}
-        n               m                   constructor
+    -- discriminate and invert via elimination function
+    discriminate {n: Natural}: add1 n <= zero -> False :=
+        case
+            {case
+                zero, _, _ :=
+                    True            -- Not possible
+                add1 i, zero :=
+                    False           -- Required
+                add1 i, add1 j :=
+                    True            -- Not possible
+            }
+            init :=
+                trueValid
+            step _ :=
+                trueValid
 
-        0               0                   init 0
-
-        0               j.add1              init j.add1
-
-        i.add1          0                   impossible
-
-        i.add1          j.add1              step i j iLEj
-\end{alba}
-%
-Using this analysis the compiler generates the following propositions
-\begin{alba}
-    discriminate: all n: not LessEqual n.add1 0
-
-    inversion: all n m: LessEqual n.add1 m.add1 -> LessEqual n m
-\end{alba}
-
-Let's do the proofs by hand.
-
-\begin{alba}
-    -- discriminate and invert via induction law
-    discriminate (n: Natural): LessEqual n.add1 zero -> False :=
-        leInduction
-            {\ {n m} _ :=
-                inspect n, m case
-                    zero, _ :=
-                        True
-                    add1 i, zero :=
-                        False
-                    add1 i, add1 j :=
-                        True}
-            (\ {m} := trueValid)
-            (\ {n m} le := trueValid)
+    invert {n m: Natural}: add1 n <= add1 m -> n <= m :=
+        case
+            {case
+                zero, _, _ :=
+                    True        -- Not possible
+                add1 i, zero, _ :=
+                    False       -- Not possible
+                add1 i, add1 j, _ :=
+                    i <= j      -- Required
+            }
+            init :=
+                trueValid
+            step le0 :=
+                le0
 
 
-    invert {n m: Natural}
-        : LessEqual n.add1 m.add1 -> LessEqual n m
+    -- discriminate and invert via advanced pattern match
+    discriminate {n: Natural}: add1 n <= zero -> False
+        case
+            -- No cases matches.
+
+    invert {n m: Natural}: add1 n <= add1 m -> n <= m
     :=
-        leInduction
-            {\ {n m} _ :=
-                inspect n, m case
-                    zero, _ :=
-                        true
-                    add1 i, zero :=
-                        true
-                    add1 i, add1 j :=
-                        LessEqual i j}
-            (\ {m} := trueValid)
-            (\ {n m} le := le)
-
-
-    -- discriminate and invert via pattern match
-    discriminate {n: Natural} (le: n.add1 <= 0): false :=
-        inspect le case
-            -- No case matches.
-
-    invert {n m: Natural} (le: LessEqual n.add1 m.add1): LessEqual n m
-    :=
-        inspect le case
+        case
             -- Init case does not match
             step le := le
 \end{alba}
@@ -2898,78 +2881,52 @@ In order to prove the uniqueness of the constructors of natural numbers we have
 to prove the proposition
 
 \begin{alba}
-    all (n: Natural): 0 /= n.add1
+    all {n: Natural}: zero /= add1 n
+
+    -- or
+    all {n}: add1 n /= zero
 \end{alba}
 
-Remember that \code{0 /= n.add1} is equivalent to \code{0 = n.add1 ->
-false}. In order to prove the property we have to find a function which
-maps any natural number \code{n} and a proof of \code{0 = n.add1} into a
-proof of \code{false}.
+Remember that \code{0 /= add1 n} is equivalent to \code{zero = add1 n ->
+False}. In order to prove the property we have to find a function which
+maps any natural number \code{n} and a proof of \code{zero = add1 n} into a
+proof of \code{False}.
 
-Since we can assume \code{0 = n.add1} we can use the leibniz property that
-\code{0} and \code{n.add1} satisfy the same predicates. If we find a
-predicate over natural numbers which we can prove for \code{0} we can use the
-leibniz rule to prove that \code{n.add1} satisfies the same predicate.
+The proof does a pattern match on the equality. We have to find an elimination
+function of the form $\lambda n e. R$ where $n$ is the index of the inductive
+object and $e$ is the inductive object and $(\lambda n e. R) 0 \reduce F$ or
+$(\lambda n e. R) (n+1) \reduce F$.
 
-We use the predicate
+The elimination function pattern matches on the index. Only the branch for the
+actual index must return the required result. The other branch can be chosen
+such that the cases are easy to produce. The following is an elimination
+function for the first case
+
 \begin{alba}
-    f: Natural -> Proposition :=
+    \ n _ :=
+        inspect n case
+            zero :=
+                True    -- Chosen to be easy to satisfy
+            add1 k :=
+                False   -- Required
+\end{alba}
+
+The whole proof reads
+
+\begin{alba}
+    discriminate {n: Natural}: zero = add1 n -> False :=
         case
-            0 :=
-                true
-            k.add1 :=
-                false
-\end{alba}
-
-Evidently \code{f 0} and \code{true} are equivalent propositions and \code{f
-n.add1} and \code{false} are equivalent propositions.
-
-A proof of \code{f 0} i.e. \code{true} is trivial, because the proposition
-\code{true} is an inductive type with one constructor.
-
-\begin{alba}
-    class true: Proposition := trueValid
+            {case
+                zero, _ :=
+                    True
+                add1 _, _ :=
+                    False}
+            identical :=
+                trueValid
 \end{alba}
 
 
-Here is the complete proof of the mutual exclusivity of the two constructors of
-natural numbers.
 
-
-\begin{alba}
-    discriminate (n: Natural): 0 /= n.add1
-    :=
-        (\ (eq: 0 = n.add1): false := g n.add1 eq)
-        where
-            g: all k: 0 = k -> f k :=
-                case
-                    identical :=
-                        -- goal: f 0
-                        trueValid
-            f :=
-                case 0 := true; k.add1 := false
-\end{alba}
-
-
-There is an alternative way to write \code{discriminate} with an elimination
-function
-
-\begin{alba}
-    discriminate (n: Natural): 0 /= n.add1 :=
-        \ (eq: 0 = n.add1) :=
-            inspect
-                n.add1     -- index (optional, can be ommitted)
-                eq              -- inductive object
-            case
-                {\ i p :=
-                    inspect i case
-                        zero := true
-                        add1 k := false}
-                identical := trueValid
-\end{alba}
-
-Instead of \code{true} we could use \code{all (A: Proposition):A -> A} and
-prove it by \code{\mybackslash\ A x := x} instead of \code{trueValid}.
 
 
 
@@ -2980,70 +2937,23 @@ The injectivity of the add1 function of natural numbers can be expressed
 by the property
 
 \begin{alba}
-    all (n m: Natural): n.add1 = m.add1  ->  n = m
+    all {n m: Natural}: add1 n = add1 m  ->  n = m
 \end{alba}
 
-In order to prove this property we need only a little trick. We have to
-express the goal \code{n = m} as a function of variable representing the right
-hand side of the premise equality which returns the required goal, when
-instantiated with \code{m.add1}. It might not be trivial to find such a
-function, but it is easy to see that the following function does the job.
-
 \begin{alba}
-    f: Natural -> Proposition :=
-        case 0 :=
-                true
-             i.add1 :=
-                n = i
-\end{alba}
-%
-Having that function the actual proof is a straightforward pattern match on the
-premise equality.
-
-
-\begin{alba}
-    invert (n m: Natural) (eq: n.add1 = m.add1): n = m
-    :=
-        g m.add1 eq
-        where
-            g: all k: n.add1 = k -> f k :=
-                case identical :=
-                    -- goal f n.add1
-                    identical
-            f :=
-                case
-                    0 :=
-                        true -- never used
-                    i.add1 :=
-                        n = i
-\end{alba}
-
-
-We can write \code{invert} as well with an elimination function
-
-\begin{alba}
-    invert (n m: Natural) (eq: n.add1 = m.add1): n = m :=
-        inspect
-            m.add1
-            eq
+    injection {n m: Natural}: add1 n = add1 m -> n = m :=
         case
-            {\ i p :=
-                inspect i case
-                    zero :=
-                        true -- not used
-                    add1 m :=
-                        n = m}
+            {case
+                zero, _ :=
+                    False       -- Not needed
+                add1 m, _ :=
+                    n = m       -- Required
+            }
             identical :=
-                identical n
+                identical
 \end{alba}
 
-Note that for the matching case the elimination function is called with the
-arguments \code{n.add1} and \code{eq} and returns \code{n=n}.  This is
-correctly proved by \code{identical n}.
 
-However for the whole pattern match the elimination function is called with the
-arguments \code{m.add1} and \code{eq} and returns \code{n = m}. I.e. the
-whole inspect expression returns a proof of \code{n = m}.
 
 
 
