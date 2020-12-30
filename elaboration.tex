@@ -100,6 +100,38 @@ arguments with formal arguments.
 
 
 
+\paragraph{Stuck Elaboration} The elaboration of a term can become stuck for
+various reasons.
+
+\begin{description}
+
+    \item [Overloaded symbol]
+
+        There is an overloaded symbol and the elaborator cannot decide by
+        looking at the expected type. It cannot either elaborate an argument and
+        decide by looking at the argument type.
+
+    \item [Remaining unification constraints at function argument]
+
+        There is a function term and a required argument type and the elaborator
+        can build the argument. During unification of the argument type with the
+        required argument type there remain some unresolved unification
+        constraints.
+
+        The function term can only applied to the argument term as soon as the
+        remaining unification constraints have been resolved. The application is
+        waiting for the solution of the unification constraints.
+
+    \item [Trailing implicit argument]
+
+        The elaborator has built a function term with all explicit arguments and
+        the implicit arguments before or in between the explicit arguments.
+        After the last explicit argument there is at least one implicit argument
+        following. However the elaborator has not enough information on the
+        result type to decide whether to apply the term to the implicit
+        argument(s).
+
+\end{description}
 
 
 
