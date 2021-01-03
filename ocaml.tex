@@ -244,6 +244,65 @@ With this design no deeply nested call stack occurs.
 
 
 
+
+
+\section{Continuation Passing Style}
+
+Let's look at the factorial function written in direct style and in continuation
+passing style.
+
+\begin{ocaml}
+    let rec factorial (n: int): int =
+        if n <= 1 then
+            1
+        else
+            n * factorial (n - 1)
+
+    let rec factorialCps (n: int) (k: int -> 'a): 'a =
+        if n <= 1 then
+            k 1
+        else
+            factorialCps
+                    (n - 1)
+                    (fun r ->
+                         k (n * r))
+\end{ocaml}
+
+In continuation passing style every call is a tail call. I.e. the function does
+not need a growing call stack. The call stack is converted to a function closure
+for each recursive call.
+
+Now we make the same function really tail recursive in direct style and in
+continuation passing style
+
+\begin{ocaml}
+let factTail (n: int): int =
+    let rec aux (accu: int) (n: int): int =
+        if n <= 1 then
+            accu
+        else
+            aux (accu * n) (n - 1)
+    in
+    aux 1 n
+
+let factTailCps (n: int) (k: int -> 'a): 'a =
+    let rec aux (accu: int) (n: int) (k: int -> 'a): 'a =
+        if n <= 1 then
+            k accu
+        else
+            aux (accu * n) (n - 1) k
+    in
+    aux 1 n k
+\end{ocaml}
+
+The function in continuation passing style remains tail recursive (that is
+always the case) but in this case no function closure is needed to store the
+number \code{n}.
+
+
+
+
+
 \section{Command Line Interface}
 
 A command line interface prompts the user for input/commands, executes the
