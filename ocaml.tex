@@ -197,9 +197,8 @@ Now we try a different design
 \begin{ocaml}
     module Continuation (A:ANY) =
     struct
-        type answer = A.t
         type state =
-          | Done of answer
+          | Done of A.t
           | More of (unit -> state)
         ...
     end
@@ -223,8 +222,7 @@ and the basic monadic functions
 having this the function \code{run} can be implemented with tail recursion
 \begin{ocaml}
     let run (m: answer t): answer =
-        let rec iter state =
-            match state with
+        let rec iter = function
             | Done answer ->
                 answer
             | More f ->
@@ -235,6 +233,37 @@ having this the function \code{run} can be implemented with tail recursion
 %
 With this design no deeply nested call stack occurs.
 
+Let's code \code{even} and \code{add} in a continuation monad with a trampoline.
+
+\begin{ocaml}
+module C = Continuation (struct type t = bool end)
+
+let rec even (c: int) (n: int): bool C.t =
+    assert (0 <= n);
+    assert (0 <= c);
+    let open C in
+    if n = 0 then
+        return true
+    else if c = 0 then
+        return (n - 1) >>= (odd 10) (* trampoline bouncing *)
+    else
+        odd (c - 1) (n - 1)         (* normal recursive call *)
+
+and odd (c: int) (n:int) : bool C.t =
+    assert (0 <= n);
+    assert (0 <= c);
+    let open C in
+    if n = 0 then
+        return false
+    else if c = 0 then
+        return (n - 1) >>= (even 10)
+    else
+        even (c - 1) (n - 1)
+\end{ocaml}
+
+The call \code{C.run (even 5 20)} computes the evenness of $20$ by bouncing each
+$5$ steps back from the trampoline. Between the trampoline bouncing normal
+recursion is done.
 
 
 
