@@ -1,5 +1,91 @@
 \section{Builtin Types}
 
+\subsection{Machine Numbers}
+
+Machine number of various bitsizes can exist. They can be signed or unsigned.
+All numbers implement modulo arithmetic. Therefore the machine numbers form a
+cyclic group where the group operation is addition, the neutral element is $0$
+and $1$ is a generating element i.e. the group basically is $<1>$.
+
+We have a smallest and a greatest element with the property $g + 1 = s$ where
+$s$ is the smallest element and $g$ is the greatest element. In unsigned numbers
+the smallest element is zero.
+
+All numbers have a decision procedure for equality \code{=?}. Furthermore a
+decidable order relation is defined as
+
+\begin{alba}
+    class
+        (<=): Endorelation MN
+    :=
+        start {n}: smallest <= n
+        step {n m}:
+            n <= m
+            -> m /= greatest
+            -> n + one <= m + one
+
+    (<=?) (n m: MN): Decision (n <= m)
+\end{alba}
+
+
+Arithmetics is defined as
+
+\begin{alba}
+    (+): MN -> MN -> MN
+    (*): MN -> MN -> MN
+
+    wrapAround: smallest = one + greatest
+
+    plusZero {n: MN}:   zero + n = n
+    plusOne  {n m: MN}: (one + n) + m = one + (n + m)
+
+    timesZero {n: MN}:   zero * n = zero
+    timesOne  {n m: MN}: (one + n) * m = m + n * m
+\end{alba}
+
+
+We need a recursor
+
+\begin{alba}
+    recurse
+        {A B: Any}
+        (n m: MN) (start: A) (f: MN -> A -> Either A B)
+        : Either A B
+
+    recurseStart
+        {A B: Any}
+        (n m: MN)
+        (start: A)
+        (f: MN -> A -> Either A B)
+        : m <= n
+          -> recurse n m start f = left start
+
+    recurseNextOk
+        {A B: Any}
+        (n i m: MN)
+        (start: A)
+        (a: A)
+        (f: MN -> A -> Either A B)
+        : n <= i
+          -> i < m
+          -> recurse n i start f = left a
+          -> recurse n (one + i) start f = f i a
+
+    recurseNextFail
+        {A B: Any}
+        (n i m: MN)
+        (start: A)
+        (b: B)
+        (f: MN -> A -> Either A B)
+        : n <= i
+          -> i < m
+          -> recurse n i start f = right b
+          -> recurse n (one + i) start f = right b
+\end{alba}
+
+
+
+
 
 \subsection{Nat/Int}
 
