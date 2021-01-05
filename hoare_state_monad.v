@@ -1,12 +1,14 @@
 Definition Predicate (A: Type): Type :=
     A -> Prop.
 
+
 Definition Top {A: Type}: Predicate A :=
     fun _ => True.
 
 
 Inductive Refine {A: Type} (P: Predicate A): Type :=
     refine x: P x -> Refine P.
+
 
 Arguments refine {_ _}.
 
@@ -15,6 +17,8 @@ Arguments refine {_ _}.
 
 Definition HRelation (S A: Type): Type :=
     S -> A -> S -> Prop.
+
+
 
 
 (** 'Hoare Pre Post'
@@ -35,6 +39,7 @@ Definition Hoare
     forall s0,
         Pre s0
         -> Refine (fun p: A * S => Post s0 (fst p) (snd p)).
+
 
 
 Definition pure
@@ -78,3 +83,23 @@ Definition bind
             end
         end
     end.
+
+
+
+
+
+
+
+(* A different model
+   =================
+*)
+
+Definition Transformer (S A: Type) (P: Predicate S): Type
+:=
+    forall s, P s -> A -> S.
+
+
+Inductive
+    IOAction (S A: Type) (Pre: Predicate S): Transformer S A Pre -> Type
+:=
+    mkIO f: IOAction S A Pre f.

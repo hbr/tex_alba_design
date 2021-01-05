@@ -1,6 +1,6 @@
 \chapter{IO}
 
-\section{Basics}
+\section{The Cost of IO}
 
 Input and output have a high cost in terms of processor cycles
 {\small
@@ -38,6 +38,72 @@ Input/Output can be
 
 \item Console IO
 \end{enumerate}
+
+
+
+
+\section{Basics}
+
+A console application has a certain state. The state consists of the open
+files together with their descriptors, the allocated buffers, the history of
+what has been read or written to diskfiles, the open network sockets, ...
+
+An IO operation can have a certain precondition. E.g. in order to read data from
+a file, the file must be open for read and its buffer must have space to write
+bytes into it. The precondition is a predicate over the state.
+
+If the precondition is satisfied, the operation can be performed. In our example
+the operation is to read into the corresponding buffer. The operation returns
+the number of bytes read. If the number of bytes read is zero, then the end of
+file has been reached.
+
+The operation transforms the state into a new state. There is a state
+transformer function \code{f: all (s: State): Pre s -> Nat -> State} which
+describes the transformation. In the new state the buffer associated with the
+file is $n$ bytes longer and the bytes between $p_0$ and $p_0 + n - 1$ are
+exactly the bytes which has been read from the file. In order to call the
+function with the old state $s$ and the number of bytes $n$, the precondition
+has to be satisfied. Therefore the function needs a proof of the precondition.
+
+
+The opening of a file has no precondition. It can be issued in any state. The
+operation returns a file descriptor or an error message. If we want to open a
+file for read and the file does not exist, then the opening cannot succeed as
+expected and the system returns an error message.
+
+In that case the state transforming function has the same signature \code{all
+(s:State): Pre s -> A -> State} where \code{A} is the type of the result which
+is in this case \code{Result FileDesription Error}.
+
+In the case of success, the state has one more open file descriptor with no
+buffer and no actions yet performed. In case of error, the state is unchanged.
+
+In a similar manner allocation of buffers, writing into and reading from
+buffers, deallocation of buffers, opening and closing of network sockets can be
+described.
+
+Generation of random numbers fits into the same pattern. No precondition, no
+state change and the return value is a random number (maybe within a certain
+range). Of course the internal state has to change, because the system has to
+return a different random number on the next call. But this internal state
+change is hidden from the user. The user just gets an arbitrary number.
+
+
+\paragraph{Sequencing} In order to sequence two operations, we have to make sure
+that the transfer function of the first operation for all initial
+states satisfying the precondition of the first operation and all results of the
+first operation generates a new state which satisfies the precondition of the
+second operation. This is basically a monadic bind operation, because the
+second operation might want to use the result of the first operation.
+
+\begin{alba}
+    -- Precondition for sequencing
+    e: all (s1: S) (a: A) (e1: Pre1 s1): Pre2 (f1 s1 e1)
+
+    -- Combined transfer function
+    \ (s1: S) (e1: Pre s1): S :=
+        f2 (f1 (s1 e1)) (e s1 a e1)
+\end{alba}
 
 
 
