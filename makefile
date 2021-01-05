@@ -8,4 +8,4 @@ doc:
 %.vo: %.v
 	coqc $<
 
-coq: unbounded_search.vo
+coq: unbounded_search.vo hoare_state_monad.vo
