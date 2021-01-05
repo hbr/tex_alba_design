@@ -133,6 +133,29 @@ various reasons.
 
 \end{description}
 
+A stuck elaboration means that the elaborator cannot elaborate a subterm. An
+elaboration is stuck either because one of its proper subterms are struck or if
+the elaboration waits for an instantiation of a metavariable or a unification
+constraint of a metavariable.
+
+So we have stuck elaborations which wait for conditions. As soon as some
+metavariable gets instantiated or gets a unification constraint, it has to be
+checked, if some elaboration waits for the condition. In that case the stuck
+elaboration can continue and maybe instantiate some metavariables or generate
+some new unification constraints. This might trigger other stuck elaborations.
+
+As long as we have stuck elaborations, the elaboration of the whole definition,
+declaration or top level term is stuck. If there are no more stuck elaborations,
+then we are ready.
+
+If there are stuck elaborations and none of the waiting conditions is satisfied,
+then an error has to be triggered and we cannot complete the elaboration. E.g.
+the toplevel term \code{1 + 2 + 3} cannot be elaborated, because none of the
+ambiguities can be resolved. One type annotation would be sufficient e.g.
+\code{1 + 2 + 3:Natural} or \code{1:Float + 2 + 3}.
+
+
+
 
 
 \section{Implicit Arguments}
