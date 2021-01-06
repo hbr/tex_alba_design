@@ -89,6 +89,23 @@ return a different random number on the next call. But this internal state
 change is hidden from the user. The user just gets an arbitrary number.
 
 
+
+\paragraph{Using Transforming Function} The use of a transforming function
+\code{f: all (s: State): Pre s -> A -> State} has the consequence that the state
+at the end of the operation is uniquely determined by the previous state and the
+return value. The system can be nondeterministic and choose a return value. But
+after it has chosen its return value, the poststate is uniquely determined.
+
+\paragraph{Disadvantage Tranforming Function} Using the transforming function it
+is not possible to express queries on the state. E.g. if we wanted to implement
+\code{isOpen fd} it can return \code{true} or \code{false}. But there is no
+possibility to connect it to the poststate since the poststate has to be the
+same as the prestate.
+
+
+
+
+
 \paragraph{Sequencing} In order to sequence two operations, we have to make sure
 that the transfer function of the first operation for all initial
 states satisfying the precondition of the first operation and all results of the
@@ -104,6 +121,29 @@ second operation might want to use the result of the first operation.
     \ (s1: S) (e1: Pre s1): S :=
         f2 (f1 (s1 e1)) (e s1 a e1)
 \end{alba}
+
+
+\paragraph{Using Transforming Relation} Alternatively to a transforming function
+a transforming relation of the type \code{T: State -> A -> State -> Proposition}
+can be used. \code{T s1 x s2} states that the operation can start in state
+\code{s1}, return the value \code{x} and end in state \code{s2}. Now the return
+state can be nondeterministic. There might be two different end states for the
+same initial state and return value.
+
+
+\paragraph{Using Traces} We can introduce a datatype describing the various io
+events which are possible. We can add runtime events like buffer allocation etc.
+to the possible events. Each even contains all relevant information attached to
+the event.
+
+A specification of a program is then a predicate on the sequence of events which
+it produces.
+
+A precondition is a predicate on the sequence of events which have occurred
+before the start of the computation. Therefore a specification is a relation
+\code{List E -> A -> List E -> Proposition} where $E$ is the event type and $A$
+is the return type. It relates the event trace before the computation, the
+return value and the additional events the computation produces.
 
 
 
