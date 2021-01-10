@@ -145,7 +145,30 @@ before the start of the computation. Therefore a specification is a relation
 is the return type. It relates the event trace before the computation, the
 return value and the additional events the computation produces.
 
+\begin{alba}
+    Event: Any := ...      -- Type of an io or runtime event
+    Trace: Any := List Event
 
+    Specification (A: Any): Any :=
+        Trace -> A -> Trace -> Proposition
+
+
+    Precondition {A: Any} (S: Specification A): Predicate Trace
+    :=
+        \ t1 := some a t2: S t1 a t2
+
+
+    pure {A: Any} (a: A): Specification A :=
+        \ t1 x t2 :=
+            x = a and t2 = []
+
+
+    bind {A B: Any} (S1: Specification A) (F: A -> Specification B)
+    : Specification B
+    :=
+        \ t1 b t3  :=
+            some a t2: S1 t1 a t2 and F a (t1 + t2) b t3
+\end{alba}
 
 
 

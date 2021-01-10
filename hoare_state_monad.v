@@ -1,3 +1,12 @@
+Require Import List.
+Import ListNotations.
+
+(* Some general definitions
+   ========================
+*)
+
+
+
 Definition Predicate (A: Type): Type :=
     A -> Prop.
 
@@ -6,100 +15,215 @@ Definition Top {A: Type}: Predicate A :=
     fun _ => True.
 
 
-Inductive Refine {A: Type} (P: Predicate A): Type :=
-    refine x: P x -> Refine P.
+Inductive Exist2 {A B: Type} (P: A -> B -> Prop): Prop :=
+    exist2 a b: P a b -> Exist2 P.
+
+Arguments exist2 {_ _ _ _ _}.
 
 
-Arguments refine {_ _}.
+Inductive Pair {A B: Type} (P: A -> B -> Prop): Prop :=
+    make_pair a b: P a b -> Pair P.
+
+Arguments make_pair {_ _ _}. (* a and t2 are not implicit. *)
 
 
-
-
-Definition HRelation (S A: Type): Type :=
-    S -> A -> S -> Prop.
-
-
-
-
-(** 'Hoare Pre Post'
-
-A computation which starts in a state 's1' satisfying 'Pre s1' and computes a
-value 'x' and ends in a state 's2' satisfying 'Post s1 x s2'.
-
-The state type 'S' and the return type 'A' are implicitely defined by the
-functions 'Pre' and 'Post'.
-
-*)
-Definition Hoare
-    {S A: Type}
-    (Pre: Predicate S)
-    (Post: HRelation S A)
-    : Type
+Definition mapPairPredicate
+    {A B: Type}
+    {P1: A -> B -> Prop}
+    {P2: A -> B -> Prop}
+    (pair: Pair P1)
+    (f: forall a b, P1 a b -> P2 a b)
+: Pair P2
 :=
-    forall s0,
-        Pre s0
-        -> Refine (fun p: A * S => Post s0 (fst p) (snd p)).
-
-
-
-Definition pure
-    {S A: Type}
-    : forall x, @Hoare S A Top (fun s0 y s1 => s0 = s1 /\ y = x)
-:=
-    fun x s top =>
-        refine
-            (x, s)
-            (conj eq_refl eq_refl: s = s /\ x = x).
-
-
-
-Definition bind
-    {S A B: Type}
-    {P1: Predicate S}
-    {Q1: HRelation S A}
-    {P2: A -> Predicate S}
-    {Q2: A -> HRelation S B}
-:
-    (Hoare P1 Q1)
-    ->
-    (forall x, Hoare (P2 x) (Q2 x))
-    ->
-    Hoare
-        (fun s1 => P1 s1 /\ forall x s2, Q1 s1 x s2 -> P2 x s2)
-        (fun s1 y s3 => exists x, exists s2, Q1 s1 x s2 /\ Q2 x s2 y s3)
-:=
-    fun c1 c2 s1 cond =>
-    match cond with
-    | conj pre1 post1 =>
-        match c1 s1 pre1 with
-        | refine (x,s2) proof1 =>
-            match c2 x s2 (post1 x s2 proof1) with
-            | refine (y,s3) proof2 =>
-                refine
-                    (y,s3)
-                    (ex_intro _ x (ex_intro _ s2 (conj proof1 proof2))
-                    :
-                    exists x s2, Q1 s1 x s2 /\ Q2 x s2 y s3)
-            end
-        end
+    match pair with
+    | make_pair a b sat =>
+        make_pair a b (f a b sat)
     end.
 
 
 
 
-
-
-
-(* A different model
-   =================
+(* Hoare State Monad
+   ====================
 *)
 
-Definition Transformer (S A: Type) (P: Predicate S): Type
-:=
-    forall s, P s -> A -> S.
+Module Hoare_state.
+Section hoare_state.
+    Variable State: Type.
+
+    Definition Trans (A: Type): Type :=
+        State -> A -> State -> Prop.
+
+    Definition TopTrans (A: Type): Trans A :=
+        fun _ _ _ => True.
 
 
-Inductive
-    IOAction (S A: Type) (Pre: Predicate S): Transformer S A Pre -> Type
-:=
-    mkIO f: IOAction S A Pre f.
+
+    Definition Hoare
+        {A: Type}
+        (Q: Predicate State)
+        (R: Trans A): Type
+    :=
+        forall s1,
+            Q s1
+            -> Pair (fun a s2 => R s1 a s2).
+
+
+    Definition pure
+        {A: Type} (a: A)
+    : Hoare Top (fun s1 x s2 => s2 = s1 /\ x = a)
+    :=
+        fun s1 _ =>
+            make_pair a s1 (conj eq_refl eq_refl).
+
+
+
+    Definition bind
+        {A B: Type}
+        {Q1: Predicate State}
+        {R1: Trans A}
+        {Q2: A -> Predicate State}
+        {R2: A -> Trans B}
+        (m: Hoare Q1 R1) (f: forall a, Hoare (Q2 a) (R2 a))
+    : Hoare
+        (fun s1 => Q1 s1 /\ forall a s2, R1 s1 a s2 -> Q2 a s2)
+        (fun s1 b s3 => Exist2 (fun a s2 => R1 s1 a s2 /\ R2 a s2 b s3))
+    :=
+        fun s1 bind_pre =>
+            let pre1: Q1 s1 :=
+                match bind_pre with
+                | conj pre1 _ => pre1
+                end
+            in
+            let pre2 a s2 sat1: Q2 a s2 :=
+                match bind_pre with
+                | conj _ pre2 => pre2 a s2 sat1
+                end
+            in
+            match m s1 pre1 with
+            | make_pair a s2 sat1 =>
+                mapPairPredicate
+                    (f a s2 (pre2 a s2 sat1))
+                    (fun a s2 sat2 => exist2 (conj sat1 sat2))
+            end.
+
+
+
+    Definition get
+    : Hoare Top (fun s1 a s2 => s2 = s1 /\ a = s1)
+    :=
+        fun s1 _ =>
+            make_pair s1 s1 (conj eq_refl eq_refl).
+
+
+    Definition put
+        (s: State)
+    : Hoare (A := unit) Top (fun _ _ s2 => s2 = s)
+    :=
+        fun s1 _ =>
+            make_pair tt s eq_refl.
+
+
+End hoare_state.
+End Hoare_state.
+
+
+
+
+
+(* Trace model
+   ===========
+*)
+
+Module Trace_IO.
+Section trace.
+    Variable Event: Type.
+
+    Definition Trace: Type := list Event.
+
+
+    Definition Spec (A: Type): Type :=
+        Trace -> A -> Trace -> Prop.
+
+
+    Inductive Pre {A: Type} (S: Spec A) (t1: Trace): Prop :=
+        | make_pre: forall a t2, S t1 a t2 -> Pre S t1.
+
+    Arguments make_pre {_ _ _ _ _} _.
+
+
+    Inductive Pair {A: Type} (P: A -> Trace -> Prop): Prop :=
+        make_pair a t2: P a t2 -> Pair P.
+
+    Arguments make_pair {_ _}. (* a and t2 are not implicit. *)
+
+
+    Inductive Post {A: Type} (P: A -> Trace -> Prop): Prop :=
+        make_post a t2: P a t2 -> Post P.
+
+    Arguments make_post {_ _ _ _}.
+
+
+
+    Definition Pure {A: Type} (a: A): Spec A :=
+        fun t1 x t2 => a = x /\ t2 = nil.
+
+
+    Definition Bind
+        {A B: Type}
+        (T1: Spec A) (F: A -> Spec B): Spec B
+    :=
+        fun t1 b t3 =>
+            Post (T1 t1)
+            /\
+            forall a t2, T1 t1 a t2 -> F a (t2 ++ t1) b t3.
+
+
+
+    Definition Hoare {A: Type} (S: Spec A): Type :=
+        forall t1,
+            Pre S t1
+            ->
+            Pair (fun a t2 => S t1 a t2).
+
+
+
+    Definition pure {A: Type} (x: A): Hoare (Pure x) :=
+        fun t1 p =>
+        make_pair x nil (conj eq_refl eq_refl: Pure x t1 x nil).
+
+(*
+    Definition bind
+        {A B: Type} {S1: Spec A} {F: A -> Spec B}
+    : Hoare S1
+      -> (forall x, Hoare (F x))
+      -> Hoare (Bind S1 F)
+    :=
+        fun c f t1 bnd_pre =>
+        let pre1: Pre S1 t1 :=
+            match bnd_pre with
+            | make_pre (conj (make_post sat) nxt) =>
+                make_pre sat
+            end
+        in
+        match c t1 pre1 with
+            make_pair a t2 sat1 =>
+                let pre2: Pre (F a) (t2 ++ t1):=
+                    match bnd_pre with
+                    | make_pre (conj _ nxt) =>
+                        make_pre (nxt _ _ sat1)
+                    end
+                in
+                match f a (t2 ++ t1) pre2 with
+                    make_pair b t3 sat2 =>
+                        make_pair
+                            b
+                            t3
+                            (conj
+                                (make_post sat1)
+                                (fun a t2 sat1 => _)
+                            : Bind S1 F t1 b t3)
+                end
+        end.*)
+End trace.
+End Trace_IO.
