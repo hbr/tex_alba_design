@@ -8,11 +8,14 @@ Welcome to Alba's documentation!
 
 .. toctree::
     :maxdepth: 3
+    :numbered:
     :caption: Contents:
     
     llpi/llpi
     llpi/pattern_match
     llpi/effects
+    io/index
+    builtin/index
 
 
 

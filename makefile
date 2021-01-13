@@ -1,4 +1,4 @@
-.PHONY: doc coq
+.PHONY: doc coq sphinx
 
 
 doc:
@@ -7,5 +7,8 @@ doc:
 
 %.vo: %.v
 	coqc $<
+
+sphinx:
+	make -C sphinx html
 
 coq: unbounded_search.vo hoare_state_monad.vo
