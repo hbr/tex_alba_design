@@ -58,7 +58,6 @@ Section hoare_state.
         fun _ _ _ => True.
 
 
-
     Definition Hoare
         {A: Type}
         (Q: Predicate State)
@@ -127,6 +126,59 @@ Section hoare_state.
 End hoare_state.
 End Hoare_state.
 
+
+
+(* Second Version of the Hoare state monad
+   =======================================
+*)
+Module Hoare_state2.
+Section hoare_state2.
+    Variable State: Type.
+
+    Definition Trans (A: Type): Type :=
+        State -> A -> State -> Prop.
+
+    Definition TopTrans (A: Type): Trans A :=
+        fun _ _ _ => True.
+
+
+    Definition Hoare {A: Type} (Q: Predicate State) (R: Trans A): Type :=
+        forall s1,
+            Q s1
+            -> Pair (fun a s2 => R s1 a s2).
+
+
+    Definition pure
+        {A: Type} (a: A)
+    : Hoare Top (fun s1 x s2 => s2 = s1 /\ x = a)
+    :=
+        fun s1 _ =>
+            make_pair a s1 (conj eq_refl eq_refl).
+
+
+    (*Definition bind
+        {A B: Type}
+        {Q1: Predicate State}
+        {R1: Trans A}
+        {Q2: A -> Predicate State}
+        {R2: A -> Trans B}
+        (m: Hoare Q1 R1)
+        (f: forall a, Hoare (Q2 a) (R2 a))
+        (pre2: forall s1 a s2, Q1 s1 -> R1 s1 a s2 -> Q2 a s2)
+    : Hoare
+        Q1
+        (fun s1 b s3 => Exist2 (fun a s2 => R1 s1 a s2 /\ R2 a s2 b s3))
+    :=
+        fun s1 bind_pre =>
+            match m s1 bind_pre with
+            | make_pair a s2 sat1 =>
+                _
+            end.*)
+
+
+
+End hoare_state2.
+End Hoare_state2.
 
 
 
