@@ -47,18 +47,23 @@ General
 
 .. code-block::
 
-    -- General
-
     class Void :=              -- no constructor
 
     class Unit := unit
 
-    class Refine {α: Any} (P: Predicate α) :=
-        refine x: P x → Refine
+    class Boolean := true; false
 
-    class Alternative (α β: Any) :=
-        left    :   A → Alternative
-        right   :   B → Alternative
+    class List {α: Any} := ([]); (::): α → List → List
+
+    class (,) (α β: Any) := (,)
+
+    class Result (A B: Any) :=
+        ok      :   A → Result
+        error   :   B → Result
+
+    class Either (α β: Any) :=
+        left    :   A → Either
+        right   :   B → Either
 
     class Tristate (α β γ: Any) :=
         left    : α → Tristate
@@ -66,15 +71,14 @@ General
         right   : γ → Tristate
 
     Decision (A: Proposition) :=
-        Alternative A (Not A)
+        Either A (Not A)
 
     class Maybe (A: Any) :=
         nothing : Maybe
         just    : A -> Maybe
 
-    class Result (A B: Any) :=
-        ok      :   A → Result
-        error   :   B → Result
+    class Refine {α: Any} (P: Predicate α) :=
+        refine x: P x → Refine
 
     (|>) {α: Any} {B: α → Any} (x: α) (f: ∀ x: B x): B x :=
         f x
@@ -87,10 +91,6 @@ General
 
     (<<) {α β γ: Any} (g: β → γ) (f: α → β): α → γ :=
         λ x := g (f x)
-
-    class Boolean := true; false
-
-    class List {α: Any} := ([]); (::): α → List → List
 
 
 
