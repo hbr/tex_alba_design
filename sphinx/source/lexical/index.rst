@@ -119,14 +119,15 @@ are in parentheses.
 
 .. code-block::
 
-    + - * / | \ < > = ~ :       -- ascii operator characters
+    + - * / | \ < > = ~ ^ : _   -- ascii operator characters
 
     ≤ (<=) ≥ (>=)               -- unicode operator characters
 
 
 An operator string is any nonempty sequence of operator characters which does
-not consist only of a backslash ``'\'`` or a colon ``:``. Reason: The backslash
-and the colon are a punctuation symbols.
+not consist only of a backslash ``'\'``, a colon ``:`` or an underline ``_``.
+Reason: The backslash and the colon are a punctuation symbols. The underline is
+a wildcard.
 
 An operator string and its ascii equivalent are the same.
 
@@ -160,14 +161,96 @@ Literals
 Numbers
 ----------------------------------------
 
+.. code-block::
+
+    -- integral numbers
+
+    100
+    123_4_75
+    0xaf_Bc_012
+    0b1110_10
+
+    -- floating point numbers
+    1.0
+    76_53.123
+    1e+10
+    1.5e-15
+
+- Underscores can be used to group digits.
+
+- Hexidecimal digits can be used in uppercase or lower case.
+
+- Floating point numbers cannot end in a ``.``.
+
+- The exponent in a floating point number is optional, the sign in the exponent
+  is mandatory.
 
 
-Characters
+Characters and Strings
 ----------------------------------------
 
+Literal characters and strings can use escape sequences. An escape sequence
+has form ``\cccc``. The following are legal escapes:
 
-Strings
-----------------------------------------
++---------------+-------------------------------+
+| Escapes                                       |
++---------------+-------------------------------+
++ ``\xab``      + 7 bit character code          |
++---------------+-------------------------------+
++ ``\u{7FFFF}`` + Unicode code point            |
++---------------+-------------------------------+
++ ``\"``        + double quote                  |
++---------------+-------------------------------+
++ ``\'``        + quote                         |
++---------------+-------------------------------+
++ ``\n``        + newline                       |
++---------------+-------------------------------+
++ ``\r``        + carriage return               |
++---------------+-------------------------------+
++ ``\0``        + Null                          |
++---------------+-------------------------------+
++ ``\\``        + Backslash                     |
++---------------+-------------------------------+
+
+If ``\c`` does not start a legal escape, it is treated as the character ``c``.
+
+
+
+Character
+    ``'c'``: ``c`` is either a unicode character or an escape.
+
+
+Byte
+    ``b'a'``: ``a`` is an ascii character or an escape representing an ascii
+    character.
+
+
+String
+    ``"cccc"``: ``cccc`` is any sequence of unicode characters or escapes.
+
+
+Raw string
+    ``r###"cccc"###``: ``cccc`` is any sequence of unicode characters. Escapes
+    are not processed.
+
+    The number of ``#`` must be the same at the beginning and the end. It can be
+    zero. The string cannot contain ``"###`` because this sequence would be
+    interpreted as the end of the string. the number of ``#``\ s can be chosen
+    such that the end of string can be recognized uniquely.
+
+
+Byte string
+    ``b"hello"``: Only ascii characters or escapes which represent ascii
+    characters are allowed.
+
+
+Raw byte string
+    ``br###"hello"###``: Like a raw string with ascii only characters. Escapes
+    are not processed. ``#``\ s can be used to recognize uniquely the end of the
+    string.
+
+
+
 
 
 Comments
@@ -187,6 +270,26 @@ Comments
     |} all {A: Any}: A
 
     {|| multiline docu comment. |}  ℕ → ℤ
+
+
+
+
+Whitespace
+========================================
+
+
+A whitespace is one of:
+
+- A sequence of blanks
+
+- A newline ``U+000A`` or carriage return character ``U+000D``
+
+- A comment
+
+Note that tabs are not valid lexical tokens. Reason: Since the language is
+indentation sensitive and tabs are interpreted differently by different editors,
+the layout would  not be well defined independently from the tabsize.
+
 
 
 
