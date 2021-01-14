@@ -10,12 +10,14 @@ Welcome to Alba's documentation!
     :maxdepth: 3
     :numbered:
     :caption: Contents:
-    
+
+    lexical/index
+    builtin/index
+    backend/index
     llpi/llpi
     llpi/pattern_match
     llpi/effects
     io/index
-    builtin/index
 
 
 

@@ -21,7 +21,7 @@ Logical
     class (=) (α: Any) (x: α): Predicate α :=
         identical: (=) x
 
-    class Exist {α: Any} (P: Predicate α) :=
+    class Exist {α: Any} (P: Predicate α): Proposition :=
         exist {x}: P x → Exist
 
     class False: Proposition :=     -- no constructor

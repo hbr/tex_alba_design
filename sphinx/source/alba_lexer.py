@@ -35,8 +35,8 @@ class AlbaLexer(RegexLexer):
         'root': [
             (r'\s+',        token.Text),
             (r'--.*',       token.Comment.Singleline),
-            (r'{-',         token.Comment.Multiline, 'comment'),
-            (r'\b(all|and|case|class|do|else|if|inspect|mutual|not|or|section|then|use|where)\b',
+            (r'{\|',         token.Comment.Multiline, 'comment'),
+            (r'\b(all|and|And|Any|case|class|do|else|ghost|in|if|inspect|let|module|mutual|not|Not|once|or|Or|Prop|ref|section|some|then|use|where)\b',
                 token.Keyword),
             (r'[a-zA-Z][a-zA-Z_0-9]*',   token.Name),
             (r'[0-9]+',     token.Number),
@@ -44,9 +44,10 @@ class AlbaLexer(RegexLexer):
             (r'.',          token.Text)
         ],
         'comment': [
-            (r'[^-]',       token.Comment.Multiline),
-            (r'-}',         token.Comment.Multiline, '#pop'),
-            (r'-',          token.Comment.Multiline)
+            (r'{\|',         token.Comment.Multiline, '#push'),
+            (r'[^|}]',      token.Comment.Multiline),
+            (r'\|}',         token.Comment.Multiline, '#pop'),
+            (r'[|}]',       token.Comment.Multiline)
         ]
 
     }
