@@ -12,6 +12,7 @@ Welcome to Alba's documentation!
     :caption: Contents:
 
     lexical/index
+    expressions/index
     builtin/index
     backend/index
     llpi/llpi
