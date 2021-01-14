@@ -119,9 +119,9 @@ are in parentheses.
 
 .. code-block::
 
-    + - * / | \ < > = ~ ^ : _   -- ascii operator characters
+    + - * / | \ & < > = ~ ^ : _     -- ascii operator characters
 
-    ≤ (<=) ≥ (>=)               -- unicode operator characters
+    ≤ (<=) ≥ (>=)                   -- unicode operator characters
 
 
 An operator string is any nonempty sequence of operator characters which does
