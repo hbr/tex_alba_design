@@ -4,6 +4,36 @@ Expressions
 
 
 
+Inductive Types
+========================================
+
+.. note::
+    The following is DRAFT
+
+
+
+.. code-block::
+
+    mutual
+        (α: Any)            -- common parameter
+    :=
+        class Tree :=
+            node: α → Forest → Tree
+        class Forest :=
+            []      : Forest
+            (::)    : Tree → Forest → Forest
+
+
+    mutual :=
+        class Even: Predicate ℕ :=
+            zero        : Even zero
+            even1 {n}   : Odd n → Even (add1 n)
+        class Odd:  Predicate ℕ :=
+            odd1 {n}    : Even n → Odd (add1 n)
+
+
+
+
 Pattern Match
 ========================================
 
@@ -153,4 +183,26 @@ Example:
 
 
 
+Dependent Pattern Match
+========================================
+
+
+.. note::
+    The following are DRAFT examples
+
+
+.. code-block::
+
+    section {α β γ: Any} :=
+        map (f: α → β → γ)
+        : ∀ {n}: Vector α n → Vector β n → Vector γ n
+        := case
+            λ []        []          := []
+            λ (x :: xs) (y :: ys)   := f x y :: map xs ys
+
+        class Image (f: α → β): β → Any :=
+            image a: Image (f a)
+
+        invers {f: α → β}: ∀ {b}: Image f b → α := case
+            λ (image a) := a
 
