@@ -27,9 +27,13 @@ Inductive Types
     mutual :=
         class Even: Predicate ℕ :=
             zero        : Even zero
-            even1 {n}   : Odd n → Even (add1 n)
+            even1 {n}   : Odd n → Even (succ n)
         class Odd:  Predicate ℕ :=
-            odd1 {n}    : Even n → Odd (add1 n)
+            odd1 {n}    : Even n → Odd (succ n)
+
+
+
+
 
 
 
@@ -65,6 +69,16 @@ A pattern match expression has the form
 
 where all lines have the same number of pattern.
 
+A pattern match expression is a function with the type
+
+.. code-block::
+
+    A₁ → A₂ → ... → R
+
+where the number of argument types is the same as the number of pattern in each
+row. The type of each pattern is the type of the corresponding argument. Each
+expression on the right hand side must have the result type ``R``.
+
 
 
 
@@ -84,16 +98,16 @@ Example of a pattern match in canonical form and in noncanonical forms
     case    -- canonical
         zero        []          := ...
         zero        (h :: t)    := ...
-        (add1 n)    []          := ...
-        (add1 n)    (h :: t)    := ...
+        (succ n)    []          := ...
+        (succ n)    (h :: t)    := ...
 
     case    -- non canonical
-        (add1 n)    (h :: t)    := ...
+        (succ n)    (h :: t)    := ...
         zero        _           := ...
         _           []          := ...
 
     case    -- non canonical
-        (add1 n)    (h :: t)    := ...
+        (succ n)    (h :: t)    := ...
         zero        []          := ...
         _           _           := ...
 
@@ -101,7 +115,7 @@ Example of a pattern match in canonical form and in noncanonical forms
                     zero     (h :: t)
                     (h :: t) zero
                 are missing. |}
-        (add1 n)    (h :: t)    := ...
+        (succ n)    (h :: t)    := ...
         zero        []          := ...
 
 
@@ -142,24 +156,24 @@ Example:
 .. code-block::
 
     case    -- non canonical
-        (add1 n)    (h :: t)    := e₁
+        (succ n)    (h :: t)    := e₁
         zero        []          := e₂
         m           ys          := e3
 
 
     case    -- variable pattern 'xs' splitted
-        (add1 n)    (h :: t)    := e₁
+        (succ n)    (h :: t)    := e₁
         zero        []          := e₂
         zero        ys          := f zero ys
-        (add1 n)    ys          := f (add1 n) ys
+        (succ n)    ys          := f (succ n) ys
     where
         f m ys := e
 
     case    -- reordered
         zero        []          := e₂
         zero        ys          := f zero ys
-        (add1 n)    (h :: t)    := e₁
-        (add1 n)    ys          := f (add1 n) ys
+        (succ n)    (h :: t)    := e₁
+        (succ n)    ys          := f (succ n) ys
     where
         f m ys := e₃
 
@@ -167,28 +181,162 @@ Example:
         zero        []          := e₂
         zero        []          := f zero []            -- not reachable
         zero        (y ::ys)    := f zero (y :: ys)
-        (add1 n)    (h :: t)    := e₁
-        (add1 n)    []          := f (add1 n) []
-        (add1 n)    (y :: ys)   := f (add1 n) (y :: ys) -- not reachable
+        (succ n)    (h :: t)    := e₁
+        (succ n)    []          := f (succ n) []
+        (succ n)    (y :: ys)   := f (succ n) (y :: ys) -- not reachable
     where
         f m ys := e₃
 
     case    -- reorder and eliminate not reachable cases
         zero        []          := e₂
         zero        (y ::ys)    := f zero (y :: ys)
-        (add1 n)    []          := f (add1 n) []
-        (add1 n)    (h :: t)    := e₁
+        (succ n)    []          := f (succ n) []
+        (succ n)    (h :: t)    := e₁
     where
         f m ys := e₃
+
+
+
+
+
 
 
 
 Dependent Pattern Match
 ========================================
 
+In the previous chapter we just described pattern match expressions whose types
+are not dependent. Now we describe the general case. The type of a pattern match
+expression is a function type which has the general form
+
+.. code-block::
+
+    ∀ (x₁: A₁) (x₂: A₂) ... : R
+
+    -- example
+
+    ∀ {n m}: succ n ≤ succ m → n ≤ m
+
+    -- in long form
+
+    ∀ {n m: ℕ} (_: succ n ≤ add2 m): n ≤ m
+
+Note that type annotations can be ommitted as long as the compiler can infer
+them and ``A → B`` is a shorthand for ``∀ (_: A): B``. Braces are used to mark
+implicit arguments.
+
+Variables which occur in types are inferrable variables and the corresponding
+types are dependent types. In the example ``n`` and ``m`` are inferrable
+variables and ``succ n ≤ succ m`` and ``n ≤ m`` are dependent types.
+
+In a type of a pattern match expression, all implicit variables must be
+inferrable variables. The reverse is not true in general.
+
+
+
+The general form of a pattern match expression:
+
+.. code-block::
+
+    case
+        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁
+        λ (p₂₁: A₂₁) (p₂₂: A₂₂) ... : R₂ := e₂
+        ...
+
+    -- Type:
+
+        ∀ (x₁: A₁) (x₂: A₂) ... : R
+
+A pattern is either a variable or a constructor applied to pattern.
+
+Type annotations for the pattern and the results in the pattern match expression
+are optional. Note that ``R`` can be a function type of the form ``∀ (y: B):
+C``.
+
+
+Rules:
+
+Distinct pattern variables:
+    All variables used in the pattern of the same line have to be distinct.
+
+Number of pattern:
+    The number of arguments in the type and the number of matched patterns in
+    each line must be the same.
+
+    However if there are implicit arguments in the type, the corresponing pattern
+    in the pattern match lines can be ommitted. Therefore the number of arguments
+    in the lines of the pattern match expression can be less than the number of
+    arguments in the type.
+
+    The compiler adds wildcard arguments ``{_}`` for the missing implicit
+    arguments in the pattern match lines.
+
+Optional arguments:
+    The pattern corresponding to implicit arguments in the type of the pattern
+    match expression have to be put in braces.
+
+Type completeness:
+    All variables occuring in the types ``A₁, A₂, ..., R`` of the type must
+    occur as variable in the type. E.g. the type ``n ≤ m`` is not a legal type
+    of a pattern match expression. ``∀ {n m}: n ≤ m`` is a legal type.
+
+Pattern Types:
+
+
+
+
+
+
 
 .. note::
     The following are DRAFT examples
+
+
+.. code-block::
+
+    -- Example: ≤ -----------------
+
+    class (≤): Endorelation ℕ :=
+        start {n}   : zero ≤ n
+        next  {n m} : n ≤ m → succ n ≤ succ m
+
+    reject: ∀ {n: ℕ}: succ n ≤ zero → False :=
+        case        -- no case match
+
+    inject: ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m := case
+        λ (next le):= le
+
+    -- long form:
+
+    inject: ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m := case
+        λ   {i}
+            {j} 
+            (next {i j} (le: i ≤ j): succ i ≤ succ j)
+        : i ≤ j
+        := le
+
+.. code-block::
+
+    -- Example 'Vector'
+
+    class Vector (α: Any): ℕ → Any :=
+        []      : Vector zero
+        (::)    : ∀ {n}: α → Vector n → Vector (succ n)
+
+    map {α β γ: Any} (f: α → β → γ)
+    : ∀ {n}: Vector α n → Vector β n → Vector γ n
+    := case
+        λ {zero}        []                  []  :=
+            []
+
+        λ {succ n}      ((::) {n} x xs)     ((::) {n} y ys) :=
+            (::)
+                {n}
+                (f x y)
+                (map {n} xs ys)
+
+
+
 
 
 .. code-block::
