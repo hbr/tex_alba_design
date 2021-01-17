@@ -151,47 +151,79 @@ reachable and can be eliminated.
 If we continue the same algorithm with all rows we end up with a pattern match
 expression in canonical form.
 
-Example:
-
-.. code-block::
+Example 1::
 
     case    -- non canonical
-        (succ n)    (h :: t)    := e₁
-        zero        []          := e₂
-        m           ys          := e3
+        λ (succ (succ n))     :=  e₁
+        λ _                   :=  e₂
+
+    case    -- wildcard '_'  splitted
+        λ (succ (succ n))     :=  e₁
+        λ zero                :=  e₂
+        λ (succ _)            :=  e₂
+
+    case    -- reordered
+        λ zero                :=  e₂
+        λ (succ (succ n))     :=  e₁
+        λ (succ _)            :=  e₂
+
+    case    -- wildcard '_'  splitted
+        λ zero                :=  e₂
+        λ (succ (succ n))     :=  e₁
+        λ (succ zero)         :=  e₂
+        λ (succ (succ n))     :=  e₂
+
+    case    -- reordered
+        λ zero                :=  e₂
+        λ (succ zero)         :=  e₂
+        λ (succ (succ n))     :=  e₁
+        λ (succ (succ n))     :=  e₂
+
+    case    -- redundant clause eliminated
+        λ zero                :=  e₂
+        λ (succ zero)         :=  e₂
+        λ (succ (succ n))     :=  e₁
 
 
-    case    -- variable pattern 'xs' splitted
-        (succ n)    (h :: t)    := e₁
-        zero        []          := e₂
-        zero        ys          := f zero ys
-        (succ n)    ys          := f (succ n) ys
+Example 2::
+
+    case    -- non canonical
+        λ (succ n)    (h :: t)    := e₁
+        λ zero        []          := e₂
+        λ m           ys          := e₃
+
+
+    case    -- variable pattern 'm' splitted
+        λ (succ n)    (h :: t)    := e₁
+        λ zero        []          := e₂
+        λ zero        ys          := f zero ys
+        λ (succ n)    ys          := f (succ n) ys
     where
         f m ys := e
 
     case    -- reordered
-        zero        []          := e₂
-        zero        ys          := f zero ys
-        (succ n)    (h :: t)    := e₁
-        (succ n)    ys          := f (succ n) ys
+        λ zero        []          := e₂
+        λ zero        ys          := f zero ys
+        λ (succ n)    (h :: t)    := e₁
+        λ (succ n)    ys          := f (succ n) ys
     where
         f m ys := e₃
 
     case    -- variable pattern 'ys' splitted
-        zero        []          := e₂
-        zero        []          := f zero []            -- not reachable
-        zero        (y ::ys)    := f zero (y :: ys)
-        (succ n)    (h :: t)    := e₁
-        (succ n)    []          := f (succ n) []
-        (succ n)    (y :: ys)   := f (succ n) (y :: ys) -- not reachable
+        λ zero        []          := e₂
+        λ zero        []          := f zero []            -- not reachable
+        λ zero        (y ::ys)    := f zero (y :: ys)
+        λ (succ n)    (h :: t)    := e₁
+        λ (succ n)    []          := f (succ n) []
+        λ (succ n)    (y :: ys)   := f (succ n) (y :: ys) -- not reachable
     where
         f m ys := e₃
 
     case    -- reorder and eliminate not reachable cases
-        zero        []          := e₂
-        zero        (y ::ys)    := f zero (y :: ys)
-        (succ n)    []          := f (succ n) []
-        (succ n)    (h :: t)    := e₁
+        λ zero        []          := e₂
+        λ zero        (y ::ys)    := f zero (y :: ys)
+        λ (succ n)    []          := f (succ n) []
+        λ (succ n)    (h :: t)    := e₁
     where
         f m ys := e₃
 
@@ -247,7 +279,7 @@ The general form of a pattern match expression:
 .. code-block::
 
     case
-        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁      -- a patter line
+        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁      -- a pattern clause
         λ (p₂₁: A₂₁) (p₂₂: A₂₂) ... : R₂ := e₂
         ...
 
@@ -273,13 +305,17 @@ A pattern is one of:
 
 
 
-Rules:
+
+
+Rules
+--------------------
 
 Distinct pattern variables:
-    All variables used in the explicit pattern of the same pattern line have to
-    be distinct.
+    All variables used in the explicit pattern of the same pattern clause have
+    to be distinct.
 
-    Variables in inferable pattern of the same pattern line need not be distinct.
+    Variables in inferable pattern of the same pattern clause need not be
+    distinct.
 
 
 Number of pattern:
@@ -291,7 +327,7 @@ Number of pattern:
     them.
 
     The compiler adds wildcard arguments ``{_}`` for the missing implicit
-    arguments in the pattern lines.
+    arguments in the pattern clauses.
 
 
 Implicit arguments in braces:
@@ -307,21 +343,136 @@ Type completeness:
 
 
 Consistent types:
-    The types in a pattern line (``Ai₁ Ai₂ ... Ri``) must be unifiable with
-    the corresponding types (``A₁ A₂ ... R``) of the type of the pattern match
-    expression where all inferable variables are considered as unification
-    variables.
+    The types in the ``i``\ th pattern clause (``Ai₁ Ai₂ ... Ri``) must be
+    unifiable with the corresponding types (``A₁ A₂ ... R``) of the type of the
+    pattern match expression where all inferable variables are considered as
+    unification variables.
 
-    This consistency requirement excludes pattern lines with some pattern
-    combinations where the types of the pattern line are not unifiable with the
+    This consistency requirement excludes pattern clauses with some pattern
+    combinations where the types of the pattern clause are not unifiable with the
     corresponding types in the type of the pattern match. In the extreme case
-    there are no allowed pattern lines and the pattern match is empty.
+    there are no allowed pattern clauses and the pattern match is empty.
+
+Exhaustive:
+    For all possible arguments which do not contain variables at least one of
+    the pattern clauses must match. The check for being exhaustive can be done
+    by transforming a pattern match expression into its canonical form (see next
+    chapter).
+
+Reachable:
+    All clauses must be reachable. I.e. for each clause there is at least one
+    set of arguments which matches the clause whih fails to match all previous
+    clauses.
+
+
+
+
+Canonical Forms
+--------------------
+
+The transformation into canonical form works by case splitting on variable
+pattern, reordering of the pattern clauses and dropping of non reachable
+clauses.
+
+
+
+Focus of Subsequent Clauses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We consider two pattern as equivalent if the have the same structure and only
+have different variables at the same position.
+
+The pattern in focus of two subsequent clauses is the first pattern on which
+both clauses are different. If there is no focal pattern, then the second one is
+unreachable.
+
+The focal point of two pattern is the first subpattern when scanned from left to
+right where they are different. The difference can be because of two different
+constructors at the focal point or a constructor and a variable at the focal
+point.
+
+If two clause have a focal pattern and the first has a variable at the focal
+point, then the second clause is unreachable.
+
+
+
+Reorder Clauses
+^^^^^^^^^^^^^^^
+
+We reorder clauses in order to transform them into the lexicographic order. The
+order is induced by the order in which the constructors are introduced in the
+corresponding inductive type.
+
+We swap the order of two subsequent clauses with a common prefix of pattern
+followed by a pattern which is out of order.
+
+Two pattern are out of order if they have identical structure scanned from left
+to right up to a point where they have different constructor pattern and the
+constructors are out of order.
+
+Examples of *out of order* clauses::
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... (zero         ) ...     := ...
+
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... (succ zero    ) ...     := ...
+
+We can swap the out of order clauses without changing the semantics of the
+pattern match expression.
+
+
+Split a Variable Pattern
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Variable splitting occurs on two subsequent clauses with a common prefix. The
+suffix of both start with an overlapping pattern and an arbitrary suffix.
+
+Two pattern overlap if scanned from left to right have an identical structure
+and then one of them has a variable pattern and the second one has a constructor
+pattern at the same position.
+
+Examples of overlapping clauses::
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... m               ...     := ...
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... (succ m       ) ...     := ...
+
+Note that both clauses must have identical structure up to the variable pattern.
+
+If we have two subsequent overlapping clauses, then we cannot swap the order
+without changing the semantics.
+
+If the first of two subsequent overlapping clauses contains the variable where
+the second one has a constructor pattern, then the second clause is not
+reachable (non reachable clauses are illegal).
+
+In order to split the variable pattern of two subsequent clauses we do a case
+split of the variable and replace the variable with all constructors by
+introducing new variables.
+
+Example::
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... m               ...     := ...
+
+    -- split 'm'
+
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... (zero         ) ...     := ...
+    λ p₁ p₂ ... (succ m       ) ...     := ...
+
+After the splitting we can reorder the first and the second clause.
 
 
 
 
 
-
+Draft Examples
+--------------------
 
 .. note::
     The following are DRAFT examples
