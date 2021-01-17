@@ -205,6 +205,9 @@ Example:
 Dependent Pattern Match
 ========================================
 
+Type
+--------------------
+
 In the previous chapter we just described pattern match expressions whose types
 are not dependent. Now we describe the general case. The type of a pattern match
 expression is a function type which has the general form
@@ -234,12 +237,17 @@ inferrable variables. The reverse is not true in general.
 
 
 
+
+
+Syntax
+--------------------
+
 The general form of a pattern match expression:
 
 .. code-block::
 
     case
-        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁
+        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁      -- a patter line
         λ (p₂₁: A₂₁) (p₂₂: A₂₂) ... : R₂ := e₂
         ...
 
@@ -247,40 +255,67 @@ The general form of a pattern match expression:
 
         ∀ (x₁: A₁) (x₂: A₂) ... : R
 
-A pattern is either a variable or a constructor applied to pattern.
-
 Type annotations for the pattern and the results in the pattern match expression
 are optional. Note that ``R`` can be a function type of the form ``∀ (y: B):
 C``.
+
+Pattern can be explicit (``p`` or ``(p: A)``) or implicit (``{p}`` or ``{p:
+A}``.
+
+
+A pattern is one of:
+
+- variable (or a wildcard ``_``)
+
+- constructor applied to pattern
+
+- arbitrary expression (only allowed in implicit pattern)
+
 
 
 Rules:
 
 Distinct pattern variables:
-    All variables used in the pattern of the same line have to be distinct.
+    All variables used in the explicit pattern of the same pattern line have to
+    be distinct.
+
+    Variables in inferable pattern of the same pattern line need not be distinct.
+
 
 Number of pattern:
     The number of arguments in the type and the number of matched patterns in
     each line must be the same.
 
     However if there are implicit arguments in the type, the corresponing pattern
-    in the pattern match lines can be ommitted. Therefore the number of arguments
-    in the lines of the pattern match expression can be less than the number of
-    arguments in the type.
+    in the pattern match lines can be ommitted because the compiler can infer
+    them.
 
     The compiler adds wildcard arguments ``{_}`` for the missing implicit
-    arguments in the pattern match lines.
+    arguments in the pattern lines.
 
-Optional arguments:
+
+Implicit arguments in braces:
     The pattern corresponding to implicit arguments in the type of the pattern
     match expression have to be put in braces.
 
-Type completeness:
-    All variables occuring in the types ``A₁, A₂, ..., R`` of the type must
-    occur as variable in the type. E.g. the type ``n ≤ m`` is not a legal type
-    of a pattern match expression. ``∀ {n m}: n ≤ m`` is a legal type.
 
-Pattern Types:
+Type completeness:
+    All variables occuring in the types ``A₁, A₂, ..., R`` (i.e. all *inferable*
+    variables) of the type must occur as variables in the type. E.g. the type
+    ``n ≤ m`` is not a legal type of a pattern match expression. ``∀ {n m}: n ≤
+    m`` is a legal type.
+
+
+Consistent types:
+    The types in a pattern line (``Ai₁ Ai₂ ... Ri``) must be unifiable with
+    the corresponding types (``A₁ A₂ ... R``) of the type of the pattern match
+    expression where all inferable variables are considered as unification
+    variables.
+
+    This consistency requirement excludes pattern lines with some pattern
+    combinations where the types of the pattern line are not unifiable with the
+    corresponding types in the type of the pattern match. In the extreme case
+    there are no allowed pattern lines and the pattern match is empty.
 
 
 
