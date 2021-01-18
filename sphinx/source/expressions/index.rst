@@ -42,206 +42,11 @@ Pattern Match
 ========================================
 
 
-
-Syntax
---------------------
-
-A pattern is one of:
-
-- A variable
-
-- A constructor pattern ``c p₁ p₂ ...`` where ``c`` is a constructor and ``p₁ p₂
-  ...`` are pattern
-
-- A literal
-
-
-All variables in a pattern must be distinct.
-
-A pattern match expression has the form
-
-.. code-block::
-
-    case
-        λ p₁₁ p₁₂ ... := e₁
-        λ p₂₁ p₂₂ ... := e₂
-        ...
-
-where all lines have the same number of pattern.
-
-A pattern match expression is a function with the type
-
-.. code-block::
-
-    A₁ → A₂ → ... → R
-
-where the number of argument types is the same as the number of pattern in each
-row. The type of each pattern is the type of the corresponding argument. Each
-expression on the right hand side must have the result type ``R``.
-
-
-
-
-
-Canonicalization
---------------------
-
-A pattern match expression is in its canonical form, if all possible
-combinations are explicit and in order of the constructors of the corresponding
-inductive type and the more left patterns vary slower than the more right
-patterns.
-
-Example of a pattern match in canonical form and in noncanonical forms
-
-.. code-block::
-
-    case    -- canonical
-        zero        []          := ...
-        zero        (h :: t)    := ...
-        (succ n)    []          := ...
-        (succ n)    (h :: t)    := ...
-
-    case    -- non canonical
-        (succ n)    (h :: t)    := ...
-        zero        _           := ...
-        _           []          := ...
-
-    case    -- non canonical
-        (succ n)    (h :: t)    := ...
-        zero        []          := ...
-        _           _           := ...
-
-    case    {| Illegal: The cases
-                    zero     (h :: t)
-                    (h :: t) zero
-                are missing. |}
-        (succ n)    (h :: t)    := ...
-        zero        []          := ...
-
-
-If a pattern match is exhaustive, it can always be canonicalized. A
-nonexhaustive pattern match is illegal.
-
-If all pattern in the first row are variables, nothing has to be done for that
-row.
-
-If all pattern in the first row are constructor patterns, the lines can be
-sorted such that all constructor pattern with the same constructor are grouped
-and the constructors appear in the order in which they appear in the
-corresponding inductive definition. This is possible, because swapping adjacent
-lines which begin both with a constructor pattern does not change the semantics.
-Constructors are mutually exclusive.
-
-If all pattern in a row are constructor pattern and there is a missing
-constructor, then the pattern match is not exhaustive i.e. illegal.
-
-If the pattern in the first row have constructors and variables, we have the
-mixed case.
-
-In the mixed case we have to split all lines with variables into the possible
-constructor pattern. In the right hand side the variable must be replaced by the
-corresponding constructed object. After the split we have all pattern of the
-first row with constructor pattern. Now we can reorder the expressions without
-changing the semantics.
-
-During reordering there might appear subsequent pattern with the same
-constructor. Only the first one is reachable. The subsequent pattern are not
-reachable and can be eliminated.
-
-If we continue the same algorithm with all rows we end up with a pattern match
-expression in canonical form.
-
-Example 1::
-
-    case    -- non canonical
-        λ (succ (succ n))     :=  e₁
-        λ _                   :=  e₂
-
-    case    -- wildcard '_'  splitted
-        λ (succ (succ n))     :=  e₁
-        λ zero                :=  e₂
-        λ (succ _)            :=  e₂
-
-    case    -- reordered
-        λ zero                :=  e₂
-        λ (succ (succ n))     :=  e₁
-        λ (succ _)            :=  e₂
-
-    case    -- wildcard '_'  splitted
-        λ zero                :=  e₂
-        λ (succ (succ n))     :=  e₁
-        λ (succ zero)         :=  e₂
-        λ (succ (succ n))     :=  e₂
-
-    case    -- reordered
-        λ zero                :=  e₂
-        λ (succ zero)         :=  e₂
-        λ (succ (succ n))     :=  e₁
-        λ (succ (succ n))     :=  e₂
-
-    case    -- redundant clause eliminated
-        λ zero                :=  e₂
-        λ (succ zero)         :=  e₂
-        λ (succ (succ n))     :=  e₁
-
-
-Example 2::
-
-    case    -- non canonical
-        λ (succ n)    (h :: t)    := e₁
-        λ zero        []          := e₂
-        λ m           ys          := e₃
-
-
-    case    -- variable pattern 'm' splitted
-        λ (succ n)    (h :: t)    := e₁
-        λ zero        []          := e₂
-        λ zero        ys          := f zero ys
-        λ (succ n)    ys          := f (succ n) ys
-    where
-        f m ys := e
-
-    case    -- reordered
-        λ zero        []          := e₂
-        λ zero        ys          := f zero ys
-        λ (succ n)    (h :: t)    := e₁
-        λ (succ n)    ys          := f (succ n) ys
-    where
-        f m ys := e₃
-
-    case    -- variable pattern 'ys' splitted
-        λ zero        []          := e₂
-        λ zero        []          := f zero []            -- not reachable
-        λ zero        (y ::ys)    := f zero (y :: ys)
-        λ (succ n)    (h :: t)    := e₁
-        λ (succ n)    []          := f (succ n) []
-        λ (succ n)    (y :: ys)   := f (succ n) (y :: ys) -- not reachable
-    where
-        f m ys := e₃
-
-    case    -- reorder and eliminate not reachable cases
-        λ zero        []          := e₂
-        λ zero        (y ::ys)    := f zero (y :: ys)
-        λ (succ n)    []          := f (succ n) []
-        λ (succ n)    (h :: t)    := e₁
-    where
-        f m ys := e₃
-
-
-
-
-
-
-
-
-Dependent Pattern Match
-========================================
-
 Type
---------------------
+------------------------------
 
-In the previous chapter we just described pattern match expressions whose types
-are not dependent. Now we describe the general case. The type of a pattern match
+
+The type of a pattern match
 expression is a function type which has the general form
 
 .. code-block::
@@ -272,7 +77,7 @@ inferrable variables. The reverse is not true in general.
 
 
 Syntax
---------------------
+------------------------------
 
 The general form of a pattern match expression:
 
@@ -308,7 +113,7 @@ A pattern is one of:
 
 
 Rules
---------------------
+------------------------------
 
 Distinct pattern variables:
     All variables used in the explicit pattern of the same pattern clause have
@@ -368,7 +173,7 @@ Reachable:
 
 
 Canonical Forms
---------------------
+------------------------------
 
 The transformation into canonical form works by case splitting on variable
 pattern, reordering of the pattern clauses and dropping of non reachable
@@ -380,7 +185,8 @@ Focus of Subsequent Clauses
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We consider two pattern as equivalent if the have the same structure and only
-have different variables at the same position.
+have different variables at the same position. Furthermore inferable pattern are
+always considered as equivalent.
 
 The pattern in focus of two subsequent clauses is the first pattern on which
 both clauses are different. If there is no focal pattern, then the second one is
@@ -391,8 +197,6 @@ right where they are different. The difference can be because of two different
 constructors at the focal point or a constructor and a variable at the focal
 point.
 
-If two clause have a focal pattern and the first has a variable at the focal
-point, then the second clause is unreachable.
 
 
 
@@ -403,70 +207,278 @@ We reorder clauses in order to transform them into the lexicographic order. The
 order is induced by the order in which the constructors are introduced in the
 corresponding inductive type.
 
-We swap the order of two subsequent clauses with a common prefix of pattern
-followed by a pattern which is out of order.
-
-Two pattern are out of order if they have identical structure scanned from left
-to right up to a point where they have different constructor pattern and the
-constructors are out of order.
+We swap the order of two subsequent clauses if there is a focal pattern where
+both have a constructor at the focal point and the constructor of the second
+clause comes before the constructor in the first clause in the corresponding
+inductive type.
 
 Examples of *out of order* clauses::
 
     λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... (zero         ) ...     := ...
-
+    --           ^ focal point with out of order constructors
 
     λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... (succ zero    ) ...     := ...
+    --                ^ focal point with out of order constructors
 
-We can swap the out of order clauses without changing the semantics of the
-pattern match expression.
+The swapping of the clauses does not change the semantics of the pattern match
+expression.
+
 
 
 Split a Variable Pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Variable splitting occurs on two subsequent clauses with a common prefix. The
-suffix of both start with an overlapping pattern and an arbitrary suffix.
+Case splitting of a variable occurs if we have two subsequent clauses with a
+focal point where one has a constructor at the focal point and the other
+has a variable at the focal point.
 
-Two pattern overlap if scanned from left to right have an identical structure
-and then one of them has a variable pattern and the second one has a constructor
-pattern at the same position.
 
 Examples of overlapping clauses::
 
     λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... m               ...     := ...
+    --          ^ focal point with overlap
 
-    λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... (succ m       ) ...     := ...
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    --                ^ focal point with overlap
 
-Note that both clauses must have identical structure up to the variable pattern.
+We do a case split on the variable. The case splitting does not change the
+semantics of the pattern match expression.
 
-If we have two subsequent overlapping clauses, then we cannot swap the order
-without changing the semantics.
 
-If the first of two subsequent overlapping clauses contains the variable where
-the second one has a constructor pattern, then the second clause is not
-reachable (non reachable clauses are illegal).
-
-In order to split the variable pattern of two subsequent clauses we do a case
-split of the variable and replace the variable with all constructors by
-introducing new variables.
-
-Example::
+Example 1::
 
     λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... m               ...     := ...
+    --          ^ focal point with overlap
 
-    -- split 'm'
+    -- case split 'm'
 
     λ p₁ p₂ ... (succ (succ n)) ...     := ...
     λ p₁ p₂ ... (zero         ) ...     := ...
     λ p₁ p₂ ... (succ m       ) ...     := ...
 
-After the splitting we can reorder the first and the second clause.
 
+Example 2::
+
+    λ p₁ p₂ ... (succ m       ) ...     := ...
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    --                ^ focal point with overlap
+
+    -- case split 'm'
+
+    λ p₁ p₂ ... (succ zero    ) ...     := ...
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+    λ p₁ p₂ ... (succ (succ n)) ...     := ...
+
+
+
+Example 3::
+
+    λ p₁ p₂ ... zero        ...                := ...
+    λ p₁ p₂ ... m           ...     := ...
+    --          ^ focal point with overlap
+
+    -- case split 'm'
+
+    λ p₁ p₂ ... zero        ...     := ...
+    λ p₁ p₂ ... zero        ...     := ...
+    λ p₁ p₂ ... (succ m)    ...     := ...
+
+
+
+
+
+Transform into Canonical Form
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Definition of *canonical form*:
+    A pattern match expression is in canonical form if there are no two
+    subsequent clauses with a focal pattern.
+
+
+Transformation into *canonical form*:
+    Search for a focal pattern in two subsequent clauses and do a reordering or
+    a case splitting until no more focal pattern in subsequent clauses can be
+    found.
+
+
+It remains to be shown that the algorithm terminates.
+
+The pattern match expression has an initial maximal constructor nesting
+:math:`m`. This maximal constructor nesting :math:`m` remains constant during
+the algorithm
+
+Proof:
+    A reordering does not change the maximal constructor nesting.
+
+    A variable case split does not change the maximal constructor nesting.
+    During a variable case split, the splitted clauses have a new constructor at
+    the place of the variable. At that place the other clause had already a
+    constructor.  Therefore the maximal constructor nesting does not change.
+
+
+Now we create a sequence of numbers :math:`n_0 n_1 n_2 \ldots n_m i` for each
+step. :math:`n_k` is the number of variables which are nested below :math:`k`
+constructors and :math:`i` is the number of out of order clauses in the pattern
+match expression. Clearly there cannot be any variable nested below more than
+:math:`m` constructors, because :math:`m` is the maximal constructor nesting
+during the algorithm.
+
+We consider a lexicographic order on the sequence :math:`n_0 n_1 n_2 \ldots n_m
+i` and claim that this sequence decreases lexicographically at each step of the
+algorithm.
+
+Proof:
+    Reordering does not change :math:``n_0 n_1 \ldots n_m``, it only decreases
+    :math:`i`.
+
+    Variable case splitting decreases the sequence lexicographically. The
+    case splitted variable occurs at a certain nesting depth :math:`k`. After
+    the split the number :math:`n_k` has decreased by one. The numbers
+    :math:`n_{k+1} \ldots n_m i` might increase. But the number :math:`n_k` has
+    higher significance in the lexicographic order.
+
+
+
+
+
+Reachability
+------------------------------
+
+Reachability is can be checked by transforming a pattern match expression into
+its canonical form. Clauses which are unreachable follow immediately the
+clause which shadows the unreachable clauses. The unreachable clauses have to be
+eliminated.
+
+Each clause in the canonical form stems exactly from one original clause. If all
+clauses stemming from the same original clause are unreachable, then the
+original clause is unreachable which has to be flagged as an error.
+
+
+
+Exhaustiveness
+------------------------------
+
+Exhaustiveness can be easily checked in the canonical form where all
+nonreachable clauses have been removed.
+
+In the canonical form the sequence of clauses are nicely grouped. The pattern
+vary from left to right from low frequency to the highest frequence. Therefore
+missing variations can be easily spotted.
+
+We can ignore all missing variations in inferable pattern. We concentrate only
+on the non inferable pattern. If a clause is missing and it is unifiable with
+the type, then the pattern match is not exhaustive. If all missing clauses are
+not unifiable, then the pattern match is exhaustive even if not all combinations
+are present.
+
+We demonstrate the check on the following inductive types::
+
+    class (=) {α: Any} (x: α): α → Prop :=
+        identical: (=) x
+
+    class (≤): Endorelation ℕ :=
+        start {n}   : zero ≤ n
+        next  {n m} : n ≤ m → succ n ≤ succ m
+
+    class Vector (α: Any): ℕ → Any :=
+        []      : Vector zero
+        (::)    : ∀ {n}: α → Vector n → Vector (succ n)
+
+
+We look at the follwing pattern match expressions in canonical form
+
+
+Example 1::
+
+    -- Type
+    ∀ {n: ℕ}: zero = succ n → False
+
+    -- Pattern match expression
+    case
+        -- no clauses
+
+Since there are no clauses, the expression is certainly in canonical form. The
+missing clause has the form::
+
+    λ {i} (identical: i = i)    :=  ...
+
+Unification of the argument types with the pattern types gives the following
+unification problem::
+
+    -- unify
+    zero    =   succ n
+    i       =   i
+
+The unification problem has no solution. Therefore the potentially missing
+clause is not really missing.
+
+
+
+Example 2::
+
+    -- Type
+    ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m
+
+    -- Pattern match expression
+    case
+        λ {i j} (next {i j} (le: i ≤ j): add1 i ≤ add1 j) := le
+
+The obviously missing clause has the form::
+
+    λ {i j} (start: zero ≤ k)   :=
+
+The unification of the argument types with the pattern types gives the following
+unsolvable unification problem::
+
+    -- unify
+    succ n  ≤   succ m
+    zero    ≤   k
+
+Therefore the obviously missing clause is not really missing.
+
+
+
+Example 3::
+
+    -- Type
+    ∀ {n: ℕ}: Vector ℕ n → Vector ℕ n → Vector ℕ n
+
+    -- Pattern match expression
+    case
+        λ {zero}    []              []                  :=  ...
+        λ {i}       ((::) {j} x xs) ((::) {k} y ys)     :=  ...
+
+
+The obviously missing clauses are the *mixed* cases::
+
+    λ {i}       []                  ((::) {k} y ys)     :=  ...
+    λ {i}       ((::) {j} x xs)     []                  :=  ...
+
+
+Let's look at the unification problems generated by the first seemingly missing
+case::
+
+    -- unify first argument types
+    Vector ℕ n
+    Vector ℕ zero
+
+    -- solution
+    n := zero
+
+    -- unify second argument types
+    Vector ℕ n                  -- where 'n := zero'
+    Vector N (succ k)
+
+The unification of the second argument types is not possible, because the first
+unification problem already requires ``n = zero``. Therefore the clause is not
+really missing.
+
+The same reasoning applies to the second seemingly missing case.
 
 
 
@@ -496,7 +508,7 @@ Draft Examples
 
     inject: ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m := case
         λ   {i}
-            {j} 
+            {j}
             (next {i j} (le: i ≤ j): succ i ≤ succ j)
         : i ≤ j
         := le
