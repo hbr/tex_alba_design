@@ -1,49 +1,10 @@
 ****************************************
-Expressions
+Pattern Match
 ****************************************
 
 
-
-Inductive Types
-========================================
-
-.. note::
-    The following is DRAFT
-
-
-
-.. code-block::
-
-    mutual
-        (α: Any)            -- common parameter
-    :=
-        class Tree :=
-            node: α → Forest → Tree
-        class Forest :=
-            []      : Forest
-            (::)    : Tree → Forest → Forest
-
-
-    mutual :=
-        class Even: Predicate ℕ :=
-            zero        : Even zero
-            even1 {n}   : Odd n → Even (succ n)
-        class Odd:  Predicate ℕ :=
-            odd1 {n}    : Even n → Odd (succ n)
-
-
-
-
-
-
-
-
-Pattern Match
-========================================
-
-
 Type
-------------------------------
+==============================
 
 
 The type of a pattern match
@@ -61,6 +22,7 @@ expression is a function type which has the general form
 
     ∀ {n m: ℕ} (_: succ n ≤ add2 m): n ≤ m
 
+
 Note that type annotations can be ommitted as long as the compiler can infer
 them and ``A → B`` is a shorthand for ``∀ (_: A): B``. Braces are used to mark
 implicit arguments.
@@ -77,7 +39,7 @@ inferrable variables. The reverse is not true in general.
 
 
 Syntax
-------------------------------
+==============================
 
 The general form of a pattern match expression:
 
@@ -113,7 +75,7 @@ A pattern is one of:
 
 
 Rules
-------------------------------
+==============================
 
 Distinct pattern variables:
     All variables used in the explicit pattern of the same pattern clause have
@@ -173,7 +135,7 @@ Reachable:
 
 
 Canonical Forms
-------------------------------
+==============================
 
 The transformation into canonical form works by case splitting on variable
 pattern, reordering of the pattern clauses and dropping of non reachable
@@ -182,7 +144,7 @@ clauses.
 
 
 Focus of Subsequent Clauses
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 We consider two pattern as equivalent if the have the same structure and only
 have different variables at the same position. Furthermore inferable pattern are
@@ -201,7 +163,7 @@ point.
 
 
 Reorder Clauses
-^^^^^^^^^^^^^^^
+---------------
 
 We reorder clauses in order to transform them into the lexicographic order. The
 order is induced by the order in which the constructors are introduced in the
@@ -228,7 +190,7 @@ expression.
 
 
 Split a Variable Pattern
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 Case splitting of a variable occurs if we have two subsequent clauses with a
 focal point where one has a constructor at the focal point and the other
@@ -293,7 +255,7 @@ Example 3::
 
 
 Transform into Canonical Form
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 Definition of *canonical form*:
     A pattern match expression is in canonical form if there are no two
@@ -347,7 +309,7 @@ Proof:
 
 
 Reachability
-------------------------------
+==============================
 
 Reachability is can be checked by transforming a pattern match expression into
 its canonical form. Clauses which are unreachable follow immediately the
@@ -360,8 +322,12 @@ original clause is unreachable which has to be flagged as an error.
 
 
 
+
+
+
+
 Exhaustiveness
-------------------------------
+==============================
 
 Exhaustiveness can be easily checked in the canonical form where all
 nonreachable clauses have been removed.
@@ -479,76 +445,3 @@ unification problem already requires ``n = zero``. Therefore the clause is not
 really missing.
 
 The same reasoning applies to the second seemingly missing case.
-
-
-
-
-Draft Examples
---------------------
-
-.. note::
-    The following are DRAFT examples
-
-
-.. code-block::
-
-    -- Example: ≤ -----------------
-
-    class (≤): Endorelation ℕ :=
-        start {n}   : zero ≤ n
-        next  {n m} : n ≤ m → succ n ≤ succ m
-
-    reject: ∀ {n: ℕ}: succ n ≤ zero → False :=
-        case        -- no case match
-
-    inject: ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m := case
-        λ (next le):= le
-
-    -- long form:
-
-    inject: ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m := case
-        λ   {i}
-            {j}
-            (next {i j} (le: i ≤ j): succ i ≤ succ j)
-        : i ≤ j
-        := le
-
-.. code-block::
-
-    -- Example 'Vector'
-
-    class Vector (α: Any): ℕ → Any :=
-        []      : Vector zero
-        (::)    : ∀ {n}: α → Vector n → Vector (succ n)
-
-    map {α β γ: Any} (f: α → β → γ)
-    : ∀ {n}: Vector α n → Vector β n → Vector γ n
-    := case
-        λ {zero}        []                  []  :=
-            []
-
-        λ {succ n}      ((::) {n} x xs)     ((::) {n} y ys) :=
-            (::)
-                {n}
-                (f x y)
-                (map {n} xs ys)
-
-
-
-
-
-.. code-block::
-
-    section {α β γ: Any} :=
-        map (f: α → β → γ)
-        : ∀ {n}: Vector α n → Vector β n → Vector γ n
-        := case
-            λ []        []          := []
-            λ (x :: xs) (y :: ys)   := f x y :: map xs ys
-
-        class Image (f: α → β): β → Any :=
-            image a: Image (f a)
-
-        invers {f: α → β}: ∀ {b}: Image f b → α := case
-            λ (image a) := a
-

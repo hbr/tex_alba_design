@@ -7,17 +7,15 @@ Welcome to Alba's documentation!
 ================================
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :numbered:
     :caption: Contents:
 
-    lexical/index
-    expressions/index
+    lang-elems/index
     builtin/index
     backend/index
     llpi/llpi
-    llpi/pattern_match
-    llpi/effects
+    effects
     io/index
 
 
