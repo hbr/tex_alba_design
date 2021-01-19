@@ -1,3 +1,5 @@
+.. _Pattern Match:
+
 ****************************************
 Pattern Match
 ****************************************
@@ -33,7 +35,6 @@ variables and ``succ n ≤ succ m`` and ``n ≤ m`` are dependent types.
 
 In a type of a pattern match expression, all implicit variables must be
 inferrable variables. The reverse is not true in general.
-
 
 
 
@@ -130,6 +131,7 @@ Reachable:
     All clauses must be reachable. I.e. for each clause there is at least one
     set of arguments which matches the clause whih fails to match all previous
     clauses.
+
 
 
 

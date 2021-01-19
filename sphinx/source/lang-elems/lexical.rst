@@ -102,7 +102,7 @@ keywords have unicode equivalents which are written within parentheses.
     not Not (¬)
     once or Or (∨)
     Prop
-    ref
+    record ref
     section some (∃)
     then
     use

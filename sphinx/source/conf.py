@@ -30,6 +30,7 @@ author = 'Helmut Brandl'
 # ones.
 extensions = [
         'alba_lexer',
+        #'sphinx.ext.autosectionlabel',
         "sphinx_rtd_theme"
         ]
 
@@ -67,3 +68,7 @@ html_static_path = ['_static']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 highlight_language = 'alba'
+
+
+
+latex_engine = 'xelatex'

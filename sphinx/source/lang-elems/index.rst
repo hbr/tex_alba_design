@@ -2,16 +2,21 @@
 Language Elements
 ****************************************
 
-
 .. toctree::
     :maxdepth: 1
 
     lexical
     source-file
-    modules
+
+Alphabetic list:
+
+.. toctree::
+    :maxdepth: 1
+
     expressions
-    types
-    inductive
-    pattern-match
     functions
+    inductive
     let-where
+    modules
+    pattern-match
+    types
