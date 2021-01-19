@@ -20,3 +20,4 @@ Alphabetic list:
     modules
     pattern-match
     types
+    universes

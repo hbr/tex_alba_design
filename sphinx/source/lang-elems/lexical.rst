@@ -97,7 +97,7 @@ keywords have unicode equivalents which are written within parentheses.
     else
     ghost
     in (∈) inspect if
-    let
+    let Level
     module mutual
     not Not (¬)
     once or Or (∨)
