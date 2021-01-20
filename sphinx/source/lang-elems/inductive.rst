@@ -6,6 +6,14 @@ Inductive Types
     The following is DRAFT
 
 
+Draft
+========================================
+
+
+
+Examples
+------------------------------
+
 
 .. code-block::
 
@@ -25,3 +33,20 @@ Inductive Types
             even1 {n}   : Odd n → Even (succ n)
         class Odd:  Predicate ℕ :=
             odd1 {n}    : Even n → Odd (succ n)
+
+
+Violated Positivity
+------------------------------
+
+::
+
+    class Bad :=
+        make: (Bad → Bad) → Bad
+        --   ^ violated positivity
+
+    run: Bad -> Bad := case
+        λ (make f) := f (make f)
+
+    -- non terminating expression
+
+    run (make run)
