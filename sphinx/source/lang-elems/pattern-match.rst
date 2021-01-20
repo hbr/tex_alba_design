@@ -373,14 +373,14 @@ Example 1::
 Since there are no clauses, the expression is certainly in canonical form. The
 missing clause has the form::
 
-    λ {i} (identical: i = i)    :=  ...
+    λ {i} (identical: zero = zero)    :=  ...
 
 Unification of the argument types with the pattern types gives the following
 unification problem::
 
     -- unify
     zero    =   succ n
-    i       =   i
+    zero    =   zero
 
 The unification problem has no solution. Therefore the potentially missing
 clause is not really missing.
@@ -398,7 +398,7 @@ Example 2::
 
 The obviously missing clause has the form::
 
-    λ {i j} (start: zero ≤ k)   :=
+    λ {i j} (start {k}: zero ≤ k)   :=
 
 The unification of the argument types with the pattern types gives the following
 unsolvable unification problem::
