@@ -17,6 +17,7 @@ Welcome to Alba's documentation!
     llpi/llpi
     effects
     io/index
+    bibliography
 
 
 
