@@ -15,6 +15,7 @@ Welcome to Alba's documentation!
     introduction/index
     lang-elems/index
     builtin/index
+    elaboration/index
     intermediate/index
     backend/index
     llpi/llpi
