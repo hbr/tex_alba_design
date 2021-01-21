@@ -12,6 +12,7 @@ Welcome to Alba's documentation!
     :numbered:
     :caption: Contents:
 
+    introduction/index
     lang-elems/index
     builtin/index
     backend/index

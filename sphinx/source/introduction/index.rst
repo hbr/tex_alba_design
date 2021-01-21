@@ -1,0 +1,40 @@
+.. _Introduction:
+
+************************************************************
+Introduction
+************************************************************
+
+
+Manifesto
+============================================================
+
+- Easy to use functional programming
+
+- Flat learning curve: Dependent types do not appear when not needed.
+
+- Web application out of the box
+
+
+
+
+Goals for Version 1
+============================================================
+
+
+Mandatory goals:
+
+- Web applications in the elm style
+
+- Playground for experimenting with dependent types
+
+
+Nice to have goals:
+
+- Simple node applications
+
+
+Not necessary:
+
+- Universe polymorphism
+
+- Other backends (only javascript required in order to run on the browser)
