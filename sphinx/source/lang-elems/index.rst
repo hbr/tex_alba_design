@@ -7,6 +7,7 @@ Language Elements
 
     lexical
     source-file
+    style
 
 Alphabetic list:
 
