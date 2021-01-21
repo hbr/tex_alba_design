@@ -331,6 +331,3 @@ The following encodings are possible:
 
 According to the unicode standard the values between ``U+D800`` and ``U+DFFF``
 are not valid code points (they are used to encode surrogate pairs in UTF-16).
-
-
-

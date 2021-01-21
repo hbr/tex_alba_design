@@ -136,7 +136,7 @@ decision procedures are compiled to more efficient runtime representations.
         λ k m   (add1 n)    (add1 j):=  divAux k m n j
 
     modAux: ℕ → ℕ → ℕ → ℕ → ℕ := case
-            -- n % (add1 m) = modAux 0 m n m 
+            -- n % (add1 m) = modAux 0 m n m
         λ k m   zero        j       :=  k
         λ k m   (add1 n)    zero    :=  modAux 0 m n m
         λ k m   (add1 n)    (add1 j):=  modAux (add1 k) m n j
@@ -248,7 +248,7 @@ In the following we show the necessary definitions for ``UInt32``.
         fromℕ (toℕ n + toℕ m)
 
     UInt32.(-) (n m: UInt32): UInt32 :=
-        fromℕ (toℕ n + 2^(add1 bitsize)- toℕ m) 
+        fromℕ (toℕ n + 2^(add1 bitsize)- toℕ m)
 
     UInt32.plusProperty: ∀ (n m: UInt32):
 
@@ -279,7 +279,7 @@ comparison operatos ``<=``, ``<``, ... give wrong results. Before doing the
 comparisons, it is necessary to add the lowest negative number
 ``0x80_00_00_00`` which is :math:`-2^{31}`. This shifts the number zero to the
 lowest negative number, i.e. all other numbers are greater or equal to this
-number.  
+number.
 
 
 Compile to Machine Code
