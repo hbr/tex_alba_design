@@ -16,6 +16,7 @@ Alphabetic list:
     expressions
     functions
     inductive
+    inspect
     let-where
     modules
     pattern-match
