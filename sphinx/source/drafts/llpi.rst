@@ -68,4 +68,3 @@ language to write definitions in that common type system.
     Inductive Natural: Type :=
         | zero: Natural
         | add1: Natural -> Natural.
-

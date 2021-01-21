@@ -18,10 +18,8 @@ Welcome to Alba's documentation!
     elaboration/index
     intermediate/index
     backend/index
-    llpi/llpi
-    effects
-    io/index
     bibliography
+    drafts/index
 
 
 

@@ -202,4 +202,4 @@ specification. The output is a specification for the combined partial program.
         λ t₁ b t₃ :=
             Postcondition
                 (λ a t₂ :=
-                    S₁ t₁ a t₂ ∧ F a t₂ b t₃) 
+                    S₁ t₁ a t₂ ∧ F a t₂ b t₃)

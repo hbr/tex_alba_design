@@ -51,7 +51,7 @@ handling ommitted)
 Language Elements
 =================
 
-.. only:: draft 
+.. only:: draft
 
   My personal thoughts
 
@@ -81,7 +81,7 @@ Type attributes:
             However problems might arise, if the function uses a ``T`` which it
             thinks is a ``once T`` creates other once objects with it.
 
-        
+
 
 
 ``ghost T``
@@ -93,7 +93,7 @@ Type attributes:
 
     ``<ghost> T`` does not conform to ``T``.  Reason: The function might use the
     object to make decisions or construct other runtime objects from it.
-    
+
 
 ``ref T``
     A reference to the type ``T``. A reference cannot live longer than the
@@ -125,4 +125,3 @@ the name has to be used in a pattern match. The pattern match reveals the linear
 head and tail which have to be consumed as well. A pattern match on the empty
 list consumes the empty list and there remain no other linear objects which have
 to be consumed.
-
