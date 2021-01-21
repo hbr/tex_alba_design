@@ -47,13 +47,11 @@ The general form of a pattern match expression:
 .. code-block::
 
     case
-        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁      -- a pattern clause
+        { ∀ (x₁: A₁) (x₂: A₂) ... : R }             -- optional type
+        λ (p₁₁: A₁₁) (p₁₂: A₁₂) ... : R₁ := e₁      -- pattern clauses
         λ (p₂₁: A₂₁) (p₂₂: A₂₂) ... : R₂ := e₂
         ...
 
-    -- Type:
-
-        ∀ (x₁: A₁) (x₂: A₂) ... : R
 
 Type annotations for the pattern and the results in the pattern match expression
 are optional. Note that ``R`` can be a function type of the form ``∀ (y: B):
@@ -363,11 +361,8 @@ We look at the follwing pattern match expressions in canonical form
 
 Example 1::
 
-    -- Type
-    ∀ {n: ℕ}: zero = succ n → False
-
-    -- Pattern match expression
     case
+        { ∀ {n: ℕ}: zero = succ n → False }
         -- no clauses
 
 Since there are no clauses, the expression is certainly in canonical form. The
@@ -389,11 +384,8 @@ clause is not really missing.
 
 Example 2::
 
-    -- Type
-    ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m
-
-    -- Pattern match expression
     case
+        { ∀ {n m: ℕ}: succ n ≤ succ m → n ≤ m }
         λ {i j} (next {i j} (le: i ≤ j): add1 i ≤ add1 j) := le
 
 The obviously missing clause has the form::
@@ -413,11 +405,10 @@ Therefore the obviously missing clause is not really missing.
 
 Example 3::
 
-    -- Type
-    ∀ {n: ℕ}: Vector ℕ n → Vector ℕ n → Vector ℕ n
-
-    -- Pattern match expression
     case
+        { ∀ {n: ℕ}:
+            Vector ℕ n → Vector ℕ n → Vector ℕ n
+        }
         λ {zero}    []              []                  :=  ...
         λ {i}       ((::) {j} x xs) ((::) {k} y ys)     :=  ...
 

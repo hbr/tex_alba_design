@@ -27,6 +27,9 @@ Mandatory goals:
 
 - Playground for experimenting with dependent types
 
+- Compilation to intermediate representation in human readable form (see chapter
+  :ref:`Intermediate Representation`)
+
 
 Nice to have goals:
 
