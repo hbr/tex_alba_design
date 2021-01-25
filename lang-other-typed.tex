@@ -510,7 +510,7 @@ $$
 Binary trees can be encoded in the same manner.
 
 \begin{alba}
-  class Tree (A:Any): Any create
+  class Tree (A:Any): Any :=
     empty: Tree A
     node : Tree A -> A -> Tree A -> Tree A
 
@@ -542,6 +542,112 @@ $$
   &:& \Pi A^\Prop . T A \to A \to T A \to T A
 \end{array}
 $$
+
+
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Ordinal Numbers}
+%------------------------------
+
+\begin{alba}
+    class Ordinal: Any :=
+        zero: Ordinal
+        succ: Ordinal -> Ordinal
+        lim:  (Natural -> Ordinal) -> Ordinal
+
+    fold {A: Any}: Ordinal -> A -> (A -> A) -> ((Natural -> A) -> A) -> A
+    := case
+        \  zero z s l :=
+            z
+        \ (succ o) z s l :=
+            s (fold o z s l)
+        \ (lim f) z s l :=
+            l (\ n . fold (f n) z s l)
+\end{alba}
+
+
+Three constructors, replacing each \code{Ordinal} with a generic type \code{A}
+gives the signatures for each argument. The signature for the church encoding is
+
+$$
+O: \Pi A^\Prop . (A \to A) \to ((\Natural \to A) \to A) \to A
+$$
+
+The church constructors
+
+$$
+\begin{array}{lll}
+    \text{zero}: O &:=&
+        \lambda A z s l . z
+
+    \\
+
+    \text{succ}: O \to O
+    &:=&
+    \lambda o A z s l . s (o A z s l)
+
+    \\
+
+    \text{lim}: (\Natural \to O) \to O
+    &:=&
+    \lambda f A z s l . l (\lambda n. f n A z s l)
+
+\end{array}
+$$
+
+
+
+
+
+
+\vskip 5mm
+\subsection{Accessibility Predicate}
+
+\begin{alba}
+    class Acc {A: Any} (R: A -> A -> Prop): A -> Prop :=
+        acc: all {x: A} (all y: R y x -> Acc y) -> Acc x
+
+
+    fold {A: Any} {B: A -> Prop}
+    : all {x):
+        Acc R x
+        -> (all y: R y x -> B y)
+        -> B x
+    := case
+        \ {x} (acc {x} f) g :=
+            g (\ {y} ryx := fold (f {y} ryx) g)
+\end{alba}
+
+
+For the Church encoding we get the type
+
+$$
+\text{Acc}:
+    \lambda A^\Prop R^{A \to A \to \Prop} x^A.
+        \Pi B^{A \to \Prop} .
+            (\Pi y^A. R y x \to B y) \to B x
+$$
+
+The constructor \code{acc} in Church encoding:
+
+$$
+\begin{array}{l}
+
+    \text{acc} A R x f: \text{Acc} A R x :=
+    \\
+    \quad
+    \lambda B g. g (\lambda y r_{yx}. f y r_{yx} B g)
+
+\end{array}
+$$
+
+NOT YET CORRECT!!!!????
+
 
 
 %%% Local Variables:
