@@ -30,9 +30,14 @@ author = 'Helmut Brandl'
 # ones.
 extensions = [
         'alba_lexer',
+        'sphinx.ext.extlinks',
+        'sphinx_rtd_theme'
         #'sphinx.ext.autosectionlabel',
-        "sphinx_rtd_theme"
         ]
+
+extlinks = {
+        'api': ('https://hbr.github.io/fmlib/odoc/fmlib/%s', None)
+        }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

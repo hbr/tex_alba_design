@@ -22,8 +22,6 @@ Welcome to Alba's documentation!
     drafts/index
 
 
-
-
 Indices and tables
 ==================
 
