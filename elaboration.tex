@@ -4,10 +4,10 @@ The problem of elaboration is to read an Alba source code file and build terms
 and definitions in the intermediate language. In order to do this, overloaded
 symbols have to be resolved and implicit arguments have to derived.
 
-During the development of Alba I initially had completely underestimated the
-complexity of the task. In other dependently type languages like
-Idris~\cite{brady2013}, Agda~\cite{norell2007} and Lean~\cite{demoura2015} papers
-have been written to describe the complex procedure.
+The complexity of elaboration in dependently typed languages should not be
+underestimated. Other dependently type languages have dedicated scientific
+papers to describe the elaboration procedure, e.g.
+Idris~\cite{brady2013}, Agda~\cite{norell2007} and Lean~\cite{demoura2015}.
 
 In Alba we have the additional complexity that Alba shall be a language for
 beginners and experts. The beginners should not be bothered with the complexity
@@ -19,16 +19,19 @@ step. I.e. the learning curve shall be flat and not steep.
 
 The user terms are imcomplete. Not all binders are explicitly typed, implicit
 arguments are usually ommitted, in local definitions types may be ommitted and
-implicit arguments might be left out. It is the task of the elaborators to
+implicit arguments might be left out. It is the task of the elaborator to
 derive complete terms from incomplete terms and issue understandable error
 messages in case it cannot derive complete welltyped terms.
+
 
 \paragraph{Metavariables}
 Whenever the elaborator encounters an untyped binder or a missing implicit
 argument, it introduces a metavariable. A metavariable is like a global function
 which has a type but no definition. Possible arguments to the function are all
 free variables in the context. I.e. a metavariable $\meta{m}$ has the type $\Pi
-\vec{v}^\vec{V}. T_m$ where $\vec{v}$ are the free variables of the context.
+\vec{v}^\vec{V}. T_m$ where $\vec{v}$ are the free variables of the context and
+$T_m$ is either $\Any$ (in case that $\meta{m} \vec{v}$ is the type of an
+untyped binder) or the type of the missing implicit argument.
 
 Metavariables are instantiated by unification constraints. If the unifier
 produces the constraint $\meta{m} \vec{v} \unify e$ or $\meta{m} \vec{v}
@@ -134,7 +137,7 @@ various reasons.
 \end{description}
 
 A stuck elaboration means that the elaborator cannot elaborate a subterm. An
-elaboration is stuck either because one of its proper subterms are struck or if
+elaboration is stuck either because one of its proper subterms are stuck or if
 the elaboration waits for an instantiation of a metavariable or a unification
 constraint of a metavariable.
 
