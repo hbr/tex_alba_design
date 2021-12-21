@@ -238,8 +238,8 @@ ommit it. If the user provides the implicit argument, it has to be put into
 braces.
 
 A function type can have several implicit arguments in sequence. If the user
-wants to supply a subsequence implicit argument, then the previous have to be
-supplied as well.
+wants to supply an subsequence argument, then the immediately following implicit
+arguments have to be supplied as well.
 
 
 
@@ -432,7 +432,7 @@ More example of signatures.
 
     naturalInduction
         {P: Predicate Natural}
-        (zero: P zero) (step: all {i}: P i -> P (add1 i))
+        (zero: P zero) (step: all {i}: P i -> P (succ i))
         {n}: P n
 
         [I, U, [U,U], I, U]
@@ -447,7 +447,7 @@ More example of signatures.
 
     lessEqualInduction {R: Endorelation Natural}
         :   (all {n}: R zero n)
-            -> (all {n m}: LessEqual n m -> R n m -> R (add1 n) (add1 m))
+            -> (all {n m}: LessEqual n m -> R n m -> R (succ n) (succ m))
             -> all {n m}: LessEqual n m -> R n m
 
         [I, U, [I, I, LessEqual U U, U, U], LessEqual U U, U]
@@ -469,11 +469,11 @@ type.
 \begin{alba}
     (inspect n case
         zero := True
-        add1 i := False)
+        succ i := False)
 
     (inspect n case
         zero := Int
-        add1 i := List Int)
+        succ i := List Int)
 \end{alba}
 %
 
@@ -637,7 +637,7 @@ known $f a: R$. In this case we can use $A \to R$ as the type of $f$.
 
 We can try to use a dependent product for the type of $f$. We could try
 $$
-    f: \Pi x^{\meta{A} \vec{v}}. \meta{B} \vec{v}x
+    f: \Pi x^{\meta A \vec v}. \meta B  \vec v x
 $$
 %
 This results in the unification constraints
