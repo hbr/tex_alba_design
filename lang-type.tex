@@ -843,17 +843,23 @@ nonrecursive function \code{run} and an expression \code{run (co run)} which
 would end up in an endless loop.
 %
 \begin{alba}
-    class T: Any :=
+    type T: Any :=
         co: (T -> T) -> T
         --   ^ T appears in a negative position
 
-    run (t: T): T :=
-        inspect t case
-            co f :=
-                f t
+    run: T -> T
+    := case
+        \ (co f) :=
+            f (co f)
 
     -- non terminating expression
     run (co run)
+
+    -- can be expressed more directly
+    run: T -> T := case
+        \ (co f) :=
+            -- any term return by 'f' is considered 'smaller'
+            run (f (co f))
 \end{alba}
 
 
